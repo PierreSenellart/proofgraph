@@ -123,11 +123,29 @@
 % result labelled \meta{label} even when no visible reference is made.
 % A comma-separated list is accepted: |\uses{lem:a,lem:b}|.
 %
+% \DescribeMacro{\proofgraphedge}
+% |\proofgraphedge{|\meta{A}|}{|\meta{B}|}| adds an edge recording that result
+% \meta{A} depends on result \meta{B}, like a |\uses| but stated outside any
+% proof. This is handy for an ``obvious'' corollary that relies on earlier
+% results without a |proof| environment: |\proofgraphedge{cor:x}{thm:y}|. It may
+% appear anywhere; both labels are resolved when the graph is written.
+%
 % \DescribeMacro{\proofof}
-% By default a proof is attached to the most recently started result.
-% When this heuristic is wrong (notably when proofs are deferred, e.g.\
-% with \apxproof), |\proofof{|\meta{label}|}| inside the proof pins it
-% to the result labelled \meta{label}.
+% By default a proof is attached to the most recently started result, and
+% deferred proofs (as with \apxproof) are attached automatically to the result
+% they prove. When a proof does not directly follow its result, |\proofof{|%
+% \meta{label}|}| inside the proof pins it to the result labelled \meta{label}.
+%
+% \DescribeMacro{\proofgraphtrack}
+% \DescribeMacro{\proofgraphuntrack}
+% Result environments are detected automatically. Expository environments are
+% excluded from the graph by default (|definition|, |example|, |remark|,
+% |note|). In the preamble, |\proofgraphuntrack{|\meta{names}|}| excludes further
+% environment types and |\proofgraphtrack{|\meta{names}|}| forces environments to
+% be tracked (overriding the default exclusions), e.g.\
+% |\proofgraphuntrack{observation}| or |\proofgraphtrack{definition}|.
+% Nodes are labelled by the result's formatted name and number (``Theorem~1''),
+% not by the environment name.
 %
 % \DescribeMacro{\proofgraphignore}
 % |\proofgraphignore{|\meta{from}|}{|\meta{to}|}| suppresses the edge
@@ -141,6 +159,11 @@
 % |\proofgraphstyle{|\meta{env}|}{|\meta{attrs}|}| sets \Graphviz\ node
 % attributes for all results of the environment \meta{env}, e.g.\
 % |\proofgraphstyle{lemma}{shape=ellipse,color=blue}|.
+%
+% \DescribeMacro{\proofgraphstylecite}
+% |\proofgraphstylecite{|\meta{attrs}|}| sets the \Graphviz\ attributes of the
+% external citation nodes added by the |cite| option (default |shape=note|),
+% e.g.\ |\proofgraphstylecite{shape=box,style=dashed,color=gray}|.
 %
 % \DescribeMacro{\proofgraph}
 % In |autorun| mode, |\proofgraph| includes the rendered graph at that
@@ -162,15 +185,46 @@
 % \DescribeOption{format}
 % Output format for |autorun|/|\proofgraph| (default |pdf|).
 %
+% \DescribeOption{direction}
+% |direction=usedby| (default) orients an edge from the result that is used to
+% the result that uses it, so an arrow \texttt{a->b} reads ``\texttt{a} is used
+% by \texttt{b}'' (\texttt{b} relies on \texttt{a}). |direction=uses| reverses
+% it (\texttt{a->b} means ``\texttt{a} uses \texttt{b}'').
+%
 % \DescribeOption{rankdir}
 % Graph direction (default |LR|).
 %
 % \DescribeOption{cite}
 % |cite| (boolean, default false) also captures |\cite| inside proofs
-% as dependencies on external work, drawn as distinct nodes.
+% as dependencies on external work, drawn as distinct nodes. A |\cite| optional
+% note is kept: |\cite[Thm~3]{key}| labels the node ``Thm~3, \dots''.
+%
+% \DescribeOption{citelabel}
+% |citelabel=key| (default) labels citation nodes by their \BibTeX\ key;
+% |citelabel=tag| uses the printed citation tag instead (``[1]'', ``[Knu74]'',
+% ``[Abiteboul et al.\ 1995]'', \dots), recovered from the |.aux| (so it needs two
+% runs). It supports the standard, \textsf{hyperref}-wrapped and \textsf{natbib}
+% (numeric and author--year) bibliographies; if no clean tag can be recovered
+% (e.g.\ before the first \BibTeX\ run) it keeps the key.
 %
 % \DescribeOption{file}
 % Base name of the output file (default |\jobname|).
+%
+% \subsection{Use with \apxproof}
+% \label{sec:apxproof}
+% \apxproof\ moves proofs to the appendix and typesets them there, so the
+% references a proof makes are only executed at that later point. To attribute
+% them to the right result, \textsf{proofgraph} relies on the hook
+% |\apxproofhook|, which \apxproof\ fires inside each deferred proof. This hook
+% is available in \apxproof\ \textbf{v1.4.1} and later; load the two packages in
+% either order and no further setup is needed.
+%
+% With an \emph{earlier} \apxproof\ the document still compiles cleanly and every
+% result still becomes a node, but \emph{no proof dependencies are captured}
+% (the graph has nodes but no proof edges), because \textsf{proofgraph} cannot
+% tell which appendix proof belongs to which result. In that case, add the
+% dependencies manually with |\uses| (and |\proofof| to pin a proof to its
+% result), or upgrade \apxproof.
 %
 % \section{Limitations}
 %
@@ -197,6 +251,16 @@
 \RequirePackage{kvoptions}
 \RequirePackage{graphicx}
 %    \end{macrocode}
+% \begin{macro}{\pgph@trimsp}
+% An expandable space-trimmer (labels inside a |\cite|/|\cref|/|\uses| list
+% arrive with the space after each comma), built on the |expl3| primitive so it
+% is robust to leading spaces and braces.
+%    \begin{macrocode}
+\ExplSyntaxOn
+\cs_new:Npn \pgph@trimsp #1 { \tl_trim_spaces:n {#1} }
+\ExplSyntaxOff
+%    \end{macrocode}
+% \end{macro}
 %
 % \subsection{Options}
 %    \begin{macrocode}
@@ -206,7 +270,9 @@
 \DeclareStringOption[dot]{engine}
 \DeclareStringOption[pdf]{format}
 \DeclareStringOption[LR]{rankdir}
+\DeclareStringOption[usedby]{direction}
 \DeclareBoolOption{cite}
+\DeclareStringOption[key]{citelabel}
 \DeclareStringOption{file}
 \ProcessKeyvalOptions*
 \ifx\pgph@file\@empty\def\pgph@file{\jobname}\fi
@@ -257,76 +323,235 @@
 % A result environment is tracked by installing a begin-hook that records a
 % node. In every declaration command (|\newtheorem|, |\spnewtheorem|) the
 % environment \emph{name} is the first mandatory argument, so registration
-% does not need to parse the remaining (varied) arguments. Registration is
-% idempotent so an environment caught by several routes is tracked once.
+% does not need to parse the remaining (varied) arguments. Each name met is
+% queued as a \emph{candidate} (deduplicated); the begin-hooks themselves are
+% installed only at |\begin{document}|, once the inclusion and exclusion lists
+% are settled, so the customisation commands below may appear anywhere in the
+% preamble.
 %    \begin{macrocode}
+\let\pgph@candidates\@empty
 \newcommand\pgph@register[1]{%
   \edef\pgph@thisname{#1}%
   \IfBeginWith\pgph@thisname{axp@}{}{%
-    \ifcsname pgph@reg@\pgph@thisname\endcsname\else
-      \global\@namedef{pgph@reg@\pgph@thisname}{}%
-      \expandafter\pgph@doregister\expandafter{\pgph@thisname}%
+    \ifcsname pgph@cand@\pgph@thisname\endcsname\else
+      \global\@namedef{pgph@cand@\pgph@thisname}{}%
+      \ifx\pgph@candidates\@empty
+        \global\let\pgph@candidates\pgph@thisname
+      \else
+        \xdef\pgph@candidates{\pgph@candidates,\pgph@thisname}%
+      \fi
     \fi
   }%
 }
-\newcommand\pgph@doregister[1]{\AtBeginEnvironment{#1}{\pgph@beginresult{#1}}}
 %    \end{macrocode}
 % \end{macro}
 %
 % We wrap |\newtheorem| (and, for Springer classes, |\spnewtheorem|) to
-% register each newly declared environment, replaying the original command
-% so its own argument parsing is untouched.
+% register each newly declared environment, replaying the original command so
+% its own argument parsing is untouched. The starred (unnumbered) forms are
+% \emph{not} auto-registered: a results graph wants numbered statements, and
+% these forms are commonly used for unnumbered repeats of a result (e.g.\ the
+% appendix copies produced by \apxproof\ and \textsf{myproofs}), which would
+% otherwise appear as spurious unnumbered duplicate nodes. Use |\proofgraphtrack|
+% to track an unnumbered environment deliberately.
 %    \begin{macrocode}
 \let\pgph@orig@newtheorem\newtheorem
 \renewcommand\newtheorem{\@ifstar{\pgph@nt@star}{\pgph@nt@plain}}
 \newcommand\pgph@nt@plain[1]{\pgph@register{#1}\pgph@orig@newtheorem{#1}}
-\newcommand\pgph@nt@star[1]{\pgph@register{#1}\pgph@orig@newtheorem*{#1}}
+\newcommand\pgph@nt@star[1]{\pgph@orig@newtheorem*{#1}}
 \ifdefined\spnewtheorem
   \let\pgph@orig@spnewtheorem\spnewtheorem
   \renewcommand\spnewtheorem{\@ifstar{\pgph@spnt@star}{\pgph@spnt@plain}}
   \newcommand\pgph@spnt@plain[1]{\pgph@register{#1}\pgph@orig@spnewtheorem{#1}}
-  \newcommand\pgph@spnt@star[1]{\pgph@register{#1}\pgph@orig@spnewtheorem*{#1}}
+  \newcommand\pgph@spnt@star[1]{\pgph@orig@spnewtheorem*{#1}}
 \fi
 %    \end{macrocode}
 %
-% Environments predefined by the document class (\textsf{acmart},
-% \textsf{lipics}, Springer classes) are declared before the package is
-% loaded, so the wrappers above never see them. At |\begin{document}|, when
-% all such environments exist, we also register every common result name
-% that is defined. Users can add to this list with |\proofgraphtrack|.
+% \DescribeMacro{\proofgraphtrack}
+% \DescribeMacro{\proofgraphuntrack}
+% \begin{macro}{\proofgraphtrack}
+% \begin{macro}{\proofgraphuntrack}
+% Result environments are detected automatically, but the analysis can be
+% tuned. |\proofgraphtrack{|\meta{names}|}| forces the listed environments to be
+% tracked, overriding any exclusion; |\proofgraphuntrack{|\meta{names}|}|
+% excludes the listed environment \emph{types}. Expository environments are
+% excluded by default: |definition|, |example|, |remark|, |note|. Both commands
+% belong in the preamble. |\pgph@defaultenvs| is the list of class-predefined
+% names probed at |\begin{document}|; |\pgph@defaultexclude| seeds the exclusion
+% set.
 %    \begin{macrocode}
 \newcommand\pgph@defaultenvs{theorem,lemma,proposition,corollary,definition,%
   conjecture,claim,fact,remark,example,observation,notation,problem,%
   question,property,assumption,hypothesis,principle}
+\newcommand\pgph@defaultexclude{definition,example,remark,note}
 \newcommand\proofgraphtrack[1]{%
   \@for\pgph@one:=#1\do{%
-    \ifcsname\pgph@one\endcsname\expandafter\pgph@register\expandafter{\pgph@one}\fi}%
+    \csundef{pgph@xtype@\pgph@one}%
+    \global\@namedef{pgph@force@\pgph@one}{}%
+    \expandafter\pgph@register\expandafter{\pgph@one}%
+  }%
 }
-\AtBeginDocument{\expandafter\proofgraphtrack\expandafter{\pgph@defaultenvs}}
+\newcommand\proofgraphuntrack[1]{%
+  \@for\pgph@one:=#1\do{%
+    \csundef{pgph@force@\pgph@one}%
+    \global\@namedef{pgph@xtype@\pgph@one}{}%
+  }%
+}
+\expandafter\proofgraphuntrack\expandafter{\pgph@defaultexclude}
+%    \end{macrocode}
+% \end{macro}
+% \end{macro}
+%
+% Environments predefined by the document class (\textsf{acmart},
+% \textsf{lipics}, Springer classes) are declared before the package is loaded,
+% so the wrappers above never see them. At |\begin{document}| we add every
+% common result name that exists to the candidate list, then install a
+% begin-hook for each candidate that is forced or not excluded.
+%    \begin{macrocode}
+\newcommand\pgph@dohook[1]{%
+  \ifcsname pgph@hooked@#1\endcsname\else
+    \global\@namedef{pgph@hooked@#1}{}%
+    \AtBeginEnvironment{#1}{\pgph@beginresult{#1}}%
+  \fi
+}
+\newcommand\pgph@maybehook[1]{%
+  \ifcsname pgph@force@#1\endcsname
+    \pgph@dohook{#1}%
+  \else
+    \ifcsname pgph@xtype@#1\endcsname\else\pgph@dohook{#1}\fi
+  \fi
+}
+\newcommand\pgph@resolveregistration[1]{%
+  \@for\pgph@one:=#1\do{%
+    \ifcsname\pgph@one\endcsname\expandafter\pgph@register\expandafter{\pgph@one}\fi}%
+  \ifx\pgph@candidates\@empty\else
+    \@for\pgph@one:=\pgph@candidates\do{%
+      \expandafter\pgph@maybehook\expandafter{\pgph@one}}%
+  \fi
+}
+\AtBeginDocument{%
+  \expandafter\pgph@resolveregistration\expandafter{\pgph@defaultenvs}}
 %    \end{macrocode}
 %
 % \begin{macro}{\pgph@beginresult}
-% Start a result: allocate an id, record the node (keyed and displayed by
-% the environment name), and locally redefine |\label| to populate the map.
+% \begin{macro}{\pgph@hooknames}
+% \begin{macro}{\pgph@recordresult}
+% Start a result: allocate an id and record the node. The node is keyed and
+% styled by the environment name (third argument, also a fallback label), but
+% displayed by the result's \emph{formatted} name (``Theorem'', ``Lemma''),
+% captured from the heading. We get that name by locally wrapping
+% |\@begintheorem|/|\@opargbegintheorem| (the hooks every |amsthm|- and
+% |\newtheorem|-based class routes its heading through), whose first argument is
+% the title. These redefinitions are confined to the current environment group,
+% so they revert at |\end|. We also locally redefine |\label| to populate the
+% map.
+%
+% Nodes are accumulated in \emph{reverse} order of appearance
+% (|\pgph@prependnode|). With |rankdir=LR|, \Graphviz\ stacks disconnected
+% components vertically in the order they are read, from the bottom up; emitting
+% the results last-to-first therefore lays them out top-to-bottom in document
+% order (first result on top), while connected results stay grouped. This is a
+% layout tendency, not a guarantee, but needs no |pack| trickery.
 %    \begin{macrocode}
+\newcommand\pgph@prependnode[1]{%
+  \xdef\pgph@nodes{\unexpanded{#1}\unexpanded\expandafter{\pgph@nodes}}%
+}
 \newcommand\pgph@beginresult[1]{%
   \global\advance\pgph@idcnt\@ne
   \xdef\pgph@curresult{\the\pgph@idcnt}%
   \protected@edef\pgph@tmp{%
     \noexpand\pgph@node{\pgph@curresult}{#1}{#1}}%
-  \expandafter\g@addto@macro\expandafter\pgph@nodes\expandafter{\pgph@tmp}%
+  \expandafter\pgph@prependnode\expandafter{\pgph@tmp}%
+  \pgph@hooknames
   \ifx\label\pgph@maplabel\else\let\pgph@savedlabel\label\fi
   \let\label\pgph@maplabel
 }
+\newcommand\pgph@hooknames{%
+  \ifdefined\@begintheorem
+    \let\pgph@orig@bt\@begintheorem
+    \def\@begintheorem##1##2{\pgph@recordresult{##1}{##2}\pgph@orig@bt{##1}{##2}}%
+  \fi
+  \ifdefined\@opargbegintheorem
+    \let\pgph@orig@obt\@opargbegintheorem
+    \def\@opargbegintheorem##1##2##3{%
+      \pgph@recordresult{##1}{##2}\pgph@orig@obt{##1}{##2}{##3}}%
+  \fi
+  \ifdefined\@spbegintheorem
+    \let\pgph@orig@spbt\@spbegintheorem
+    \def\@spbegintheorem##1##2##3##4{%
+      \pgph@recordresult{##1}{##2}\pgph@orig@spbt{##1}{##2}{##3}{##4}}%
+  \fi
+  \ifdefined\@spopargbegintheorem
+    \let\pgph@orig@spobt\@spopargbegintheorem
+    \def\@spopargbegintheorem##1##2##3##4##5{%
+      \pgph@recordresult{##1}{##2}\pgph@orig@spobt{##1}{##2}{##3}{##4}{##5}}%
+  \fi
+}
 %    \end{macrocode}
-% The number is captured here, at |\label| time, because |\@currentlabel|
-% is only set once the result's |\refstepcounter| has run (which happens
-% after the begin-environment hook).
+% The formatted name is the first argument of every heading macro
+% (|\@begintheorem|/|\@opargbegintheorem| for |amsthm|/|\newtheorem|,
+% |\@spbegintheorem|/|\@spopargbegintheorem| for Springer's |\spnewtheorem|);
+% the second argument is the number. We use that second argument only to tell
+% \emph{whether} the result is numbered (it is empty for the starred,
+% unnumbered forms): an unnumbered result records no number, so it is dropped at
+% emission unless tracked explicitly. The number \emph{value}, when present, is
+% read from |\@currentlabel| rather than from that argument, which some classes
+% pollute (e.g.\ \textsf{lipics} injects |\advance\par@deathcycles\@ne|).
+% |\@currentlabel|, set by the result's |\refstepcounter| just before the
+% heading, is the clean number and needs no |\label|. Values are reduced to plain
+% strings now, with fragile wrappers neutralized (notably \apxproof's
+% forward-link). The first heading wins (guarded on the name), ignoring nested
+% headings. The emptiness of the number argument is tested without expanding it,
+% so a polluted (but non-empty) number does not trip the test.
+%    \begin{macrocode}
+\newcommand\pgph@recordresult[2]{%
+  \ifcsname pgph@name@\pgph@curresult\endcsname\else
+    \begingroup
+      \let\protect\@empty
+      \def\axp@forward@link##1##2{##2}%
+      \edef\pgph@tmpname{#1}%
+      \global\expandafter\let\csname pgph@name@\pgph@curresult\endcsname
+                              \pgph@tmpname
+      \global\@namedef{pgph@seen@\pgph@curresult}{}%
+      \def\pgph@tmphn{#2}%
+      \ifx\pgph@tmphn\@empty\else
+        \edef\pgph@tmpnum{\@currentlabel}%
+        \global\expandafter\let\csname pgph@num@\pgph@curresult\endcsname
+                                \pgph@tmpnum
+      \fi
+    \endgroup
+  \fi
+}
+%    \end{macrocode}
+% \end{macro}
+% \end{macro}
+% \end{macro}
+% |\pgph@maplabel| records the label-to-node mapping. As a fallback for classes
+% whose headings pass through none of the hooked heading macros (so no heading
+% was |seen|), it also captures the number from |\@currentlabel|. We do
+% \emph{not} do this once a heading was seen: there, an absent number means the
+% result is genuinely unnumbered (a starred form), and |\@currentlabel| could be
+% a stale value from an earlier result. The value is expanded to a plain string
+% \emph{now}, inside a group where fragile wrappers are neutralized, so that
+% nothing dangerous survives to the emission pass: in particular, under
+% \textsf{apxproof} forward-linking, |\@currentlabel| holds
+% |\axp@forward@link{|\meta{target}|}{|\meta{number}|}|, whose hyperlink machinery
+% must never be expanded in a non-typesetting context (it would run away).
+% Reducing it to its number argument keeps it harmless.
+% \begin{macro}{\pgph@maplabel}
 %    \begin{macrocode}
 \newcommand\pgph@maplabel[1]{%
   \pgph@setmap{#1}{\pgph@curresult}%
-  \protected@edef\pgph@tmpnum{\@currentlabel}%
-  \global\expandafter\let\csname pgph@num@\pgph@curresult\endcsname\pgph@tmpnum
+  \ifcsname pgph@num@\pgph@curresult\endcsname\else
+   \ifcsname pgph@seen@\pgph@curresult\endcsname\else
+    \begingroup
+      \let\protect\@empty
+      \def\axp@forward@link##1##2{##2}%
+      \edef\pgph@tmpnum{\@currentlabel}%
+      \global\expandafter\let\csname pgph@num@\pgph@curresult\endcsname\pgph@tmpnum
+    \endgroup
+   \fi
+  \fi
   \pgph@savedlabel{#1}%
 }
 %    \end{macrocode}
@@ -342,7 +567,9 @@
 }
 \newcommand\pgph@recordref[1]{%
   \ifx\pgph@curproof\@empty\else
-    \@for\pgph@one:=#1\do{\pgph@addedge{\pgph@curproof}{\pgph@one}}%
+    \@for\pgph@one:=#1\do{%
+      \edef\pgph@k{\expandafter\pgph@trimsp\expandafter{\pgph@one}}%
+      \pgph@addedge{\pgph@curproof}{\pgph@k}}%
   \fi
 }
 %    \end{macrocode}
@@ -419,13 +646,32 @@
 %
 % \begin{macro}{\pgph@hookcite}
 % Optional |\cite| capture: external references become |cite:|-prefixed
-% target labels, drawn later as distinct nodes.
+% target labels, drawn later as distinct nodes. A |\cite| optional note,
+% |\cite[|\meta{note}|]{|\meta{key}|}|, is recorded for the key(s) and shown in
+% the node label as ``\meta{note}, \meta{key}''. The note is reduced to a plain
+% string at capture time (fragile wrappers neutralized); the first note seen for
+% a key wins.
 %    \begin{macrocode}
 \newcommand\pgph@cap@cite[2][]{%
   \ifx\pgph@curproof\@empty\else
-    \@for\pgph@one:=#2\do{\pgph@addedge{\pgph@curproof}{cite:\pgph@one}}%
+    \def\pgph@citenotearg{#1}%
+    \@for\pgph@one:=#2\do{%
+      \edef\pgph@k{\expandafter\pgph@trimsp\expandafter{\pgph@one}}%
+      \pgph@addedge{\pgph@curproof}{cite:\pgph@k}%
+      \ifx\pgph@citenotearg\@empty\else
+        \expandafter\pgph@recordcitenote\expandafter{\pgph@k}{#1}%
+      \fi}%
   \fi
   \pgph@saved@cite[#1]{#2}%
+}
+\newcommand\pgph@recordcitenote[2]{%
+  \ifcsname pgph@citenote@#1\endcsname\else
+    \begingroup
+      \pgph@citesanitize
+      \edef\pgph@tmpnote{#2}%
+      \global\expandafter\let\csname pgph@citenote@#1\endcsname\pgph@tmpnote
+    \endgroup
+  \fi
 }
 \newcommand\pgph@installcite{%
   \ifcsname cite\endcsname
@@ -444,6 +690,15 @@
     \xdef\pgph@curproof{\csname pgph@map@#1\endcsname}%
   \fi
 }
+\newcommand\proofgraphedge[2]{%
+  \g@addto@macro\pgph@edges{\pgph@labeledge{#1}{#2}}%
+}
+\newcommand\pgph@labeledge[2]{%
+  \edef\pgph@ef{\pgph@resolve{#1}}%
+  \ifx\pgph@ef\@empty\else
+    \expandafter\pgph@plainedge\expandafter{\pgph@ef}{#2}%
+  \fi
+}
 \newcommand\proofgraphignore[2]{%
   \g@addto@macro\pgph@ignores{\pgph@ignorerule{#1}{#2}}%
 }
@@ -451,6 +706,13 @@
   \g@addto@macro\pgph@excludes{\pgph@excluderule{#1}}%
 }
 \newcommand\proofgraphstyle[2]{\global\@namedef{pgph@style@#1}{#2}}
+%    \end{macrocode}
+% External citation nodes (option |cite|) share one style, held in
+% |\pgph@citestyle| and overridable with |\proofgraphstylecite|; it defaults to
+% |shape=note|.
+%    \begin{macrocode}
+\newcommand\pgph@citestyle{shape=note}
+\newcommand\proofgraphstylecite[1]{\renewcommand\pgph@citestyle{#1}}
 %    \end{macrocode}
 %
 % \subsection{Resolution helpers}
@@ -462,12 +724,12 @@
 \newcommand\pgph@ignorerule[2]{%
   \edef\pgph@f{\pgph@resolve{#1}}\edef\pgph@t{\pgph@resolve{#2}}%
   \ifx\pgph@f\@empty\else\ifx\pgph@t\@empty\else
-    \global\@namedef{pgph@ig@\pgph@f @\pgph@t}{}%
+    \@namedef{pgph@ig@\pgph@f @\pgph@t}{}%
   \fi\fi
 }
 \newcommand\pgph@excluderule[1]{%
   \edef\pgph@x{\pgph@resolve{#1}}%
-  \ifx\pgph@x\@empty\else\global\@namedef{pgph@ex@\pgph@x}{}\fi
+  \ifx\pgph@x\@empty\else\@namedef{pgph@ex@\pgph@x}{}\fi
 }
 %    \end{macrocode}
 %
@@ -475,15 +737,33 @@
 % \begin{macro}{\pgph@node}
 % Emit one node line, honouring exclusions and per-environment styling.
 % External (|cite:|) targets are emitted separately as a pass over edges.
+% An \emph{unnumbered} result (no number captured) is omitted: a results graph
+% is about numbered statements, and unnumbered theorem-like environments are
+% typically expository or repeated copies (e.g.\ a class-predefined
+% |\spnewtheorem*{claim}|). |\proofgraphtrack{|\meta{env}|}| overrides this, so a
+% deliberately unnumbered environment is still drawn.
 %    \begin{macrocode}
 \newcommand\pgph@node[3]{%
   \ifcsname pgph@ex@#1\endcsname\else
-    \edef\pgph@s{\ifcsname pgph@style@#2\endcsname
-      , \csname pgph@style@#2\endcsname\fi}%
     \edef\pgph@nm{\ifcsname pgph@num@#1\endcsname\csname pgph@num@#1\endcsname\fi}%
-    \immediate\write\pgph@out{%
-      \space\space"n#1" [label="#3 \pgph@nm"\pgph@s];}%
+    \ifx\pgph@nm\@empty
+      \ifcsname pgph@force@#2\endcsname
+        \pgph@emitnode{#1}{#2}{#3}%
+      \else
+        \@namedef{pgph@ex@#1}{}%
+      \fi
+    \else
+      \pgph@emitnode{#1}{#2}{#3}%
+    \fi
   \fi
+}
+\newcommand\pgph@emitnode[3]{%
+  \edef\pgph@s{\ifcsname pgph@style@#2\endcsname
+    , \csname pgph@style@#2\endcsname\fi}%
+  \edef\pgph@dn{\ifcsname pgph@name@#1\endcsname
+    \csname pgph@name@#1\endcsname\else#3\fi}%
+  \immediate\write\pgph@out{%
+    \space\space"n#1" [label="\pgph@dn\space\pgph@nm"\pgph@s];}%
 }
 %    \end{macrocode}
 % \end{macro}
@@ -506,34 +786,120 @@
     \ifcsname pgph@ig@#1@\pgph@t\endcsname\else
       \ifboolexpr{ test {\ifnumequal{#1}{\pgph@t}}
                    and test {\ifdefstring{\pgph@selfloops}{remove}} }%
-        {}{\pgph@writeedge{n#1}{n\pgph@t}}%
+        {}{\pgph@emitedge{n#1}{n\pgph@t}}%
     \fi\fi\fi
-  \fi
-}
-\newcommand\pgph@writeedge[2]{%
-  \ifcsname pgph@drawn@#1@#2\endcsname\else
-    \global\@namedef{pgph@drawn@#1@#2}{}%
-    \immediate\write\pgph@out{\space\space"#1" -> "#2";}%
   \fi
 }
 %    \end{macrocode}
 % \end{macro}
 %
+% \begin{macro}{\pgph@emitedge}
+% \begin{macro}{\pgph@writeedge}
+% The relation recorded is always ``the result whose proof we are in (the first
+% argument) uses the target (the second)''. The |direction| option chooses the
+% arrow orientation: |direction=usedby| (default) draws \emph{target to result},
+% so an arrow \texttt{a->b} reads ``\texttt{a} is used by \texttt{b}'' (i.e.\
+% \texttt{b} relies on \texttt{a}); |direction=uses| draws \emph{result to
+% target} (``\texttt{a} uses \texttt{b}''). The filters above work on the
+% recorded relation, so they are unaffected by the chosen orientation.
+% |\pgph@writeedge| deduplicates.
+%    \begin{macrocode}
+\newcommand\pgph@emitedge[2]{%
+  \ifdefstring{\pgph@direction}{uses}%
+    {\pgph@writeedge{#1}{#2}}%
+    {\pgph@writeedge{#2}{#1}}%
+}
+\newcommand\pgph@writeedge[2]{%
+  \ifcsname pgph@drawn@#1@#2\endcsname\else
+    \@namedef{pgph@drawn@#1@#2}{}%
+    \immediate\write\pgph@out{\space\space"#1" -> "#2";}%
+  \fi
+}
+%    \end{macrocode}
+% \end{macro}
+% \end{macro}
+%
 % \begin{macro}{\pgph@citeedge}
-% A |cite:key| target: declare the external node once, then draw the edge.
+% \begin{macro}{\pgph@setcitelabel}
+% A |cite:key| target: declare the external node once (keyed, as a stable id, by
+% the \BibTeX\ key), then draw the edge. The node \emph{label} is built by
+% |\pgph@setcitelabel|: it is the key by default, or, with |citelabel=tag|, the
+% printed citation tag (the ``[42]''/``[Knu74]'' text) recovered from the
+% |\b@|\meta{key} macro that |\bibcite| writes to the |.aux| (so two runs are
+% needed, and it falls back to the key when no tag is known, e.g.\ on the first
+% run or with citation packages that do not populate |\b@|\meta{key}). A |\cite|
+% note, when present, is prepended as ``\meta{note}, \dots''.
 %    \begin{macrocode}
 \newcommand\pgph@citeedge[2]{%
   \ifcsname pgph@ex@#1\endcsname\else
     \StrBehind{#2}{cite:}[\pgph@key]%
     \ifcsname pgph@extnode@\pgph@key\endcsname\else
-      \global\@namedef{pgph@extnode@\pgph@key}{}%
+      \@namedef{pgph@extnode@\pgph@key}{}%
+      \expandafter\pgph@setcitelabel\expandafter{\pgph@key}%
       \immediate\write\pgph@out{%
-        \space\space"c@\pgph@key" [label="\pgph@key",shape=note];}%
+        \space\space"c@\pgph@key" [label="\pgph@clabel",\pgph@citestyle];}%
     \fi
-    \pgph@writeedge{n#1}{c@\pgph@key}%
+    \pgph@emitedge{n#1}{c@\pgph@key}%
   \fi
 }
+\edef\pgph@obrace{\expandafter\@gobble\string\{}
+\newif\ifpgph@natnum
+\newcommand\pgph@nil{}
 %    \end{macrocode}
+% |\pgph@citesanitize| neutralizes the wrappers and spacing cruft that citation
+% labels carry, so that an |\edef| of |\b@|\meta{key} yields plain text:
+% \textsf{hyperref}'s |\hyper@@link| (keep its printed last argument) and the
+% boxing/penalty/|\ignorespaces| noise that \textsf{natbib} bakes into author
+% lists.
+%    \begin{macrocode}
+\newcommand\pgph@citesanitize{%
+  \let\protect\@empty
+  \def\hyper@@link[##1]##2##3##4{##4}%
+  \let\unskip\@empty \let\ignorespaces\@empty \let\unhbox\@empty
+  \let\penalty\@gobble \let\@M\@empty \let\voidb@x\@empty
+  \let\nobreakspace\space \let~\space
+  \def\hbox##1{##1}\def\mbox##1{##1}%
+}
+%    \end{macrocode}
+% A \textsf{natbib} |\b@|\meta{key} is |{|\meta{num}|}{|\meta{year}|}{|%
+% \meta{short}|}{|\meta{long}|}|. In numbers mode the tag is the number; in
+% author--year mode it is the short author list and the year.
+%    \begin{macrocode}
+\def\pgph@natpick#1#2#3#4\pgph@nil{%
+  \ifpgph@natnum\def\pgph@x{#1}\else\def\pgph@x{#3 #2}\fi}
+\newcommand\pgph@natdo{\expandafter\pgph@natpick\pgph@x{}{}{}\pgph@nil}
+\newcommand\pgph@setcitelabel[1]{%
+  \edef\pgph@cbase{#1}%
+  \ifdefstring{\pgph@citelabel}{tag}{%
+    \ifcsname b@#1\endcsname
+      \global\let\pgph@cbaseg\relax
+      \begingroup
+        \pgph@citesanitize
+        \edef\pgph@x{\csname b@#1\endcsname}%
+        \edef\pgph@dx{\detokenize\expandafter{\pgph@x}}%
+        \IfBeginWith\pgph@dx\pgph@obrace{%
+          \pgph@natnumfalse
+          \@ifundefined{ifNAT@numbers}{}{%
+            \expandafter\ifx\csname ifNAT@numbers\endcsname\iftrue
+              \pgph@natnumtrue\fi}%
+          \pgph@natdo
+          \edef\pgph@dx{\detokenize\expandafter{\pgph@x}}%
+        }{}%
+        \ifx\pgph@x\@empty\else
+          \IfSubStr\pgph@dx\@backslashchar{}{%
+            \global\let\pgph@cbaseg\pgph@x}%
+        \fi
+      \endgroup
+      \ifx\pgph@cbaseg\relax\else\edef\pgph@cbase{[\pgph@cbaseg]}\fi
+    \fi
+  }{}%
+  \edef\pgph@clabel{%
+    \ifcsname pgph@citenote@#1\endcsname
+      \csname pgph@citenote@#1\endcsname, \fi
+    \pgph@cbase}%
+}
+%    \end{macrocode}
+% \end{macro}
 % \end{macro}
 %
 % \begin{macro}{\pgph@emit}
@@ -545,10 +911,12 @@
   \immediate\openout\pgph@out=\pgph@file.dot\relax
   \immediate\write\pgph@out{digraph proofgraph \pgph@ob}%
   \immediate\write\pgph@out{\space\space rankdir="\pgph@rankdir";}%
-  \pgph@ignores
-  \pgph@excludes
-  \pgph@nodes
-  \pgph@edges
+  \begingroup
+    \pgph@ignores
+    \pgph@excludes
+    \pgph@nodes
+    \pgph@edges
+  \endgroup
   \immediate\write\pgph@out{\pgph@cb}%
   \immediate\closeout\pgph@out
   \ifpgph@autorun

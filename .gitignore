@@ -23,6 +23,7 @@ build/
 
 # Graphviz output written by the package
 *.dot
+!**/reference.dot
 
 # Claude artifacts (kept local, never tracked)
 PLAN.md

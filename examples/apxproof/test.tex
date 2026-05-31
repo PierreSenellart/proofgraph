@@ -1,0 +1,37 @@
+% Minimal, stable apxproof fixture validating proofgraph's deferred-proof
+% capture. Each result is stated in the body with \newtheoremrep; its proof is
+% deferred to the appendix by apxproof. proofgraph must attribute the references
+% made inside each (appendix-typeset) proof to the right result, producing the
+% cross-edges below.
+%
+% Deferred-proof EDGE capture requires an apxproof providing \apxproofhook
+% (>= the version that fires it inside each typeset deferred proof). With an
+% older apxproof the document still compiles and the nodes are captured, but the
+% deferred-proof edges are absent.
+%
+% bibliography=common keeps it single-pass and bibtex-free for determinism.
+\documentclass{article}
+\usepackage{proofgraph}
+\usepackage[bibliography=common]{apxproof}
+\usepackage{hyperref}
+
+\newtheoremrep{theorem}{Theorem}
+\newtheoremrep{lemma}[theorem]{Lemma}
+
+\begin{document}
+
+\begin{theoremrep}\label{thm:main}
+  Main theorem.
+\end{theoremrep}
+\begin{proof}
+  Follows from Lemma~\ref{lem:helper}.
+\end{proof}
+
+\begin{lemmarep}\label{lem:helper}
+  Helper lemma.
+\end{lemmarep}
+\begin{proof}
+  By the definition referenced in Theorem~\ref{thm:main}.
+\end{proof}
+
+\end{document}
