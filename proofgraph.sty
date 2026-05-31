@@ -64,10 +64,12 @@
 }
 \newcommand\pgph@register[1]{%
   \edef\pgph@thisname{#1}%
-  \ifcsname pgph@reg@\pgph@thisname\endcsname\else
-    \global\@namedef{pgph@reg@\pgph@thisname}{}%
-    \expandafter\pgph@doregister\expandafter{\pgph@thisname}%
-  \fi
+  \IfBeginWith\pgph@thisname{axp@}{}{%
+    \ifcsname pgph@reg@\pgph@thisname\endcsname\else
+      \global\@namedef{pgph@reg@\pgph@thisname}{}%
+      \expandafter\pgph@doregister\expandafter{\pgph@thisname}%
+    \fi
+  }%
 }
 \newcommand\pgph@doregister[1]{\AtBeginEnvironment{#1}{\pgph@beginresult{#1}}}
 \let\pgph@orig@newtheorem\newtheorem
@@ -134,11 +136,19 @@
   \ifpgph@cite\pgph@installcite\fi
 }
 \newif\ifpgph@apxproof
-\providecommand\pgph@apxinit{}
 \AtBeginDocument{%
   \@ifpackageloaded{apxproof}%
     {\pgph@apxprooftrue\pgph@apxinit}%
     {\AtBeginEnvironment{proof}{\pgph@beginproof}}%
+}
+\newcommand\pgph@apxinit{\def\apxproofhook##1{\pgph@apxproofcapture{##1}}}
+\newcommand\pgph@apxproofcapture[1]{%
+  \edef\pgph@curproof{\pgph@resolve{#1}}%
+  \ifx\pgph@curproof\@empty\else
+    \pgph@install{ref}\pgph@install{cref}\pgph@install{Cref}%
+    \pgph@install{autoref}\pgph@install{eqref}\pgph@install{vref}%
+    \ifpgph@cite\pgph@installcite\fi
+  \fi
 }
 \newcommand\pgph@cap@cite[2][]{%
   \ifx\pgph@curproof\@empty\else
@@ -237,7 +247,7 @@
       \pgph@file.dot -o \pgph@file-proofgraph.\pgph@format}%
   \fi
 }
-\AtEndDocument{\pgph@emit}
+\AtBeginDocument{\AtEndDocument{\pgph@emit}}
 \newcommand\proofgraph[1][]{%
   \IfFileExists{\pgph@file-proofgraph.\pgph@format}%
     {\includegraphics[#1]{\pgph@file-proofgraph.\pgph@format}}%

@@ -262,10 +262,12 @@
 %    \begin{macrocode}
 \newcommand\pgph@register[1]{%
   \edef\pgph@thisname{#1}%
-  \ifcsname pgph@reg@\pgph@thisname\endcsname\else
-    \global\@namedef{pgph@reg@\pgph@thisname}{}%
-    \expandafter\pgph@doregister\expandafter{\pgph@thisname}%
-  \fi
+  \IfBeginWith\pgph@thisname{axp@}{}{%
+    \ifcsname pgph@reg@\pgph@thisname\endcsname\else
+      \global\@namedef{pgph@reg@\pgph@thisname}{}%
+      \expandafter\pgph@doregister\expandafter{\pgph@thisname}%
+    \fi
+  }%
 }
 \newcommand\pgph@doregister[1]{\AtBeginEnvironment{#1}{\pgph@beginresult{#1}}}
 %    \end{macrocode}
@@ -385,13 +387,34 @@
 % registration happens at |\begin{document}|, once we know what is loaded.
 %    \begin{macrocode}
 \newif\ifpgph@apxproof
-\providecommand\pgph@apxinit{}
 \AtBeginDocument{%
   \@ifpackageloaded{apxproof}%
     {\pgph@apxprooftrue\pgph@apxinit}%
     {\AtBeginEnvironment{proof}{\pgph@beginproof}}%
 }
 %    \end{macrocode}
+% \end{macro}
+%
+% \begin{macro}{\pgph@apxinit}
+% \begin{macro}{\pgph@apxproofcapture}
+% Under \apxproof, deferred proofs are typeset in the appendix, where their
+% references finally execute. \apxproof\ fires |\apxproofhook| inside each
+% such proof, passing the |axp@r|\meta{n} label of the proved theorem, which
+% (because \apxproof\ also attaches that label to the theorem in the main
+% text) is already in our map. We resolve it to the source node and install
+% the reference-capturing commands for the duration of the proof.
+%    \begin{macrocode}
+\newcommand\pgph@apxinit{\def\apxproofhook##1{\pgph@apxproofcapture{##1}}}
+\newcommand\pgph@apxproofcapture[1]{%
+  \edef\pgph@curproof{\pgph@resolve{#1}}%
+  \ifx\pgph@curproof\@empty\else
+    \pgph@install{ref}\pgph@install{cref}\pgph@install{Cref}%
+    \pgph@install{autoref}\pgph@install{eqref}\pgph@install{vref}%
+    \ifpgph@cite\pgph@installcite\fi
+  \fi
+}
+%    \end{macrocode}
+% \end{macro}
 % \end{macro}
 %
 % \begin{macro}{\pgph@hookcite}
@@ -533,7 +556,15 @@
       \pgph@file.dot -o \pgph@file-proofgraph.\pgph@format}%
   \fi
 }
-\AtEndDocument{\pgph@emit}
+%    \end{macrocode}
+% The emission is registered at |\begin{document}| rather than at load time
+% so that it is added to the end-document hook \emph{after} packages loaded
+% later (notably \apxproof, whose appendix, with the deferred proofs and
+% their references, is built at end of document). This way the graph is
+% written only once that material has been typeset, and the emission does
+% not disturb the verbatim replay of deferred proofs.
+%    \begin{macrocode}
+\AtBeginDocument{\AtEndDocument{\pgph@emit}}
 %    \end{macrocode}
 % \end{macro}
 %
