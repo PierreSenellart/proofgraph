@@ -252,53 +252,66 @@
 %    \end{macrocode}
 % \end{macro}
 %
-% \subsection{Hooking \cmd\newtheorem}
-% We wrap |\newtheorem| so that every declared environment registers a
-% begin-hook. The various signatures of |\newtheorem| are handled
-% explicitly.
-%    \begin{macrocode}
-\let\pgph@orig@newtheorem\newtheorem
-\renewcommand\newtheorem{\@ifstar\pgph@newthm@star\pgph@newthm@nostar}
-\newcommand\pgph@newthm@star[2]{%
-  \pgph@orig@newtheorem*{#1}{#2}%
-  \pgph@register@star{#1}{#2}%
-}
-\newcommand\pgph@newthm@nostar[1]{%
-  \@ifnextchar[{\pgph@newthm@A{#1}}{\pgph@newthm@B{#1}}%
-}
-\def\pgph@newthm@A#1[#2]#3{%
-  \pgph@orig@newtheorem{#1}[#2]{#3}%
-  \pgph@register{#1}{#3}%
-}
-\def\pgph@newthm@B#1#2{%
-  \@ifnextchar[{\pgph@newthm@Bp{#1}{#2}}%
-    {\pgph@orig@newtheorem{#1}{#2}\pgph@register{#1}{#2}}%
-}
-\def\pgph@newthm@Bp#1#2[#3]{%
-  \pgph@orig@newtheorem{#1}{#2}[#3]%
-  \pgph@register{#1}{#2}%
-}
-%    \end{macrocode}
-%
+% \subsection{Registering result environments}
 % \begin{macro}{\pgph@register}
-% Register the begin-hook for a (numbered or starred) result environment.
+% A result environment is tracked by installing a begin-hook that records a
+% node. In every declaration command (|\newtheorem|, |\spnewtheorem|) the
+% environment \emph{name} is the first mandatory argument, so registration
+% does not need to parse the remaining (varied) arguments. Registration is
+% idempotent so an environment caught by several routes is tracked once.
 %    \begin{macrocode}
-\newcommand\pgph@register[2]{%
-  \AtBeginEnvironment{#1}{\pgph@beginresult{#1}{#2}}%
+\newcommand\pgph@register[1]{%
+  \edef\pgph@thisname{#1}%
+  \ifcsname pgph@reg@\pgph@thisname\endcsname\else
+    \global\@namedef{pgph@reg@\pgph@thisname}{}%
+    \expandafter\pgph@doregister\expandafter{\pgph@thisname}%
+  \fi
 }
-\let\pgph@register@star\pgph@register
+\newcommand\pgph@doregister[1]{\AtBeginEnvironment{#1}{\pgph@beginresult{#1}}}
 %    \end{macrocode}
 % \end{macro}
 %
-% \begin{macro}{\pgph@beginresult}
-% Start a result: allocate an id, record the node, and locally redefine
-% |\label| to also populate the map.
+% We wrap |\newtheorem| (and, for Springer classes, |\spnewtheorem|) to
+% register each newly declared environment, replaying the original command
+% so its own argument parsing is untouched.
 %    \begin{macrocode}
-\newcommand\pgph@beginresult[2]{%
+\let\pgph@orig@newtheorem\newtheorem
+\renewcommand\newtheorem{\@ifstar{\pgph@nt@star}{\pgph@nt@plain}}
+\newcommand\pgph@nt@plain[1]{\pgph@register{#1}\pgph@orig@newtheorem{#1}}
+\newcommand\pgph@nt@star[1]{\pgph@register{#1}\pgph@orig@newtheorem*{#1}}
+\ifdefined\spnewtheorem
+  \let\pgph@orig@spnewtheorem\spnewtheorem
+  \renewcommand\spnewtheorem{\@ifstar{\pgph@spnt@star}{\pgph@spnt@plain}}
+  \newcommand\pgph@spnt@plain[1]{\pgph@register{#1}\pgph@orig@spnewtheorem{#1}}
+  \newcommand\pgph@spnt@star[1]{\pgph@register{#1}\pgph@orig@spnewtheorem*{#1}}
+\fi
+%    \end{macrocode}
+%
+% Environments predefined by the document class (\textsf{acmart},
+% \textsf{lipics}, Springer classes) are declared before the package is
+% loaded, so the wrappers above never see them. At |\begin{document}|, when
+% all such environments exist, we also register every common result name
+% that is defined. Users can add to this list with |\proofgraphtrack|.
+%    \begin{macrocode}
+\newcommand\pgph@defaultenvs{theorem,lemma,proposition,corollary,definition,%
+  conjecture,claim,fact,remark,example,observation,notation,problem,%
+  question,property,assumption,hypothesis,principle}
+\newcommand\proofgraphtrack[1]{%
+  \@for\pgph@one:=#1\do{%
+    \ifcsname\pgph@one\endcsname\expandafter\pgph@register\expandafter{\pgph@one}\fi}%
+}
+\AtBeginDocument{\expandafter\proofgraphtrack\expandafter{\pgph@defaultenvs}}
+%    \end{macrocode}
+%
+% \begin{macro}{\pgph@beginresult}
+% Start a result: allocate an id, record the node (keyed and displayed by
+% the environment name), and locally redefine |\label| to populate the map.
+%    \begin{macrocode}
+\newcommand\pgph@beginresult[1]{%
   \global\advance\pgph@idcnt\@ne
   \xdef\pgph@curresult{\the\pgph@idcnt}%
   \protected@edef\pgph@tmp{%
-    \noexpand\pgph@node{\pgph@curresult}{#1}{#2}}%
+    \noexpand\pgph@node{\pgph@curresult}{#1}{#1}}%
   \expandafter\g@addto@macro\expandafter\pgph@nodes\expandafter{\pgph@tmp}%
   \ifx\label\pgph@maplabel\else\let\pgph@savedlabel\label\fi
   \let\label\pgph@maplabel

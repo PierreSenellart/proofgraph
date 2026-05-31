@@ -62,36 +62,37 @@
   \global\expandafter\edef\csname pgph@map@#1\endcsname{\pgph@tmpid}%
   \protected@write\@auxout{}{\string\pgph@auxmap{#1}{\pgph@tmpid}}%
 }
+\newcommand\pgph@register[1]{%
+  \edef\pgph@thisname{#1}%
+  \ifcsname pgph@reg@\pgph@thisname\endcsname\else
+    \global\@namedef{pgph@reg@\pgph@thisname}{}%
+    \expandafter\pgph@doregister\expandafter{\pgph@thisname}%
+  \fi
+}
+\newcommand\pgph@doregister[1]{\AtBeginEnvironment{#1}{\pgph@beginresult{#1}}}
 \let\pgph@orig@newtheorem\newtheorem
-\renewcommand\newtheorem{\@ifstar\pgph@newthm@star\pgph@newthm@nostar}
-\newcommand\pgph@newthm@star[2]{%
-  \pgph@orig@newtheorem*{#1}{#2}%
-  \pgph@register@star{#1}{#2}%
+\renewcommand\newtheorem{\@ifstar{\pgph@nt@star}{\pgph@nt@plain}}
+\newcommand\pgph@nt@plain[1]{\pgph@register{#1}\pgph@orig@newtheorem{#1}}
+\newcommand\pgph@nt@star[1]{\pgph@register{#1}\pgph@orig@newtheorem*{#1}}
+\ifdefined\spnewtheorem
+  \let\pgph@orig@spnewtheorem\spnewtheorem
+  \renewcommand\spnewtheorem{\@ifstar{\pgph@spnt@star}{\pgph@spnt@plain}}
+  \newcommand\pgph@spnt@plain[1]{\pgph@register{#1}\pgph@orig@spnewtheorem{#1}}
+  \newcommand\pgph@spnt@star[1]{\pgph@register{#1}\pgph@orig@spnewtheorem*{#1}}
+\fi
+\newcommand\pgph@defaultenvs{theorem,lemma,proposition,corollary,definition,%
+  conjecture,claim,fact,remark,example,observation,notation,problem,%
+  question,property,assumption,hypothesis,principle}
+\newcommand\proofgraphtrack[1]{%
+  \@for\pgph@one:=#1\do{%
+    \ifcsname\pgph@one\endcsname\expandafter\pgph@register\expandafter{\pgph@one}\fi}%
 }
-\newcommand\pgph@newthm@nostar[1]{%
-  \@ifnextchar[{\pgph@newthm@A{#1}}{\pgph@newthm@B{#1}}%
-}
-\def\pgph@newthm@A#1[#2]#3{%
-  \pgph@orig@newtheorem{#1}[#2]{#3}%
-  \pgph@register{#1}{#3}%
-}
-\def\pgph@newthm@B#1#2{%
-  \@ifnextchar[{\pgph@newthm@Bp{#1}{#2}}%
-    {\pgph@orig@newtheorem{#1}{#2}\pgph@register{#1}{#2}}%
-}
-\def\pgph@newthm@Bp#1#2[#3]{%
-  \pgph@orig@newtheorem{#1}{#2}[#3]%
-  \pgph@register{#1}{#2}%
-}
-\newcommand\pgph@register[2]{%
-  \AtBeginEnvironment{#1}{\pgph@beginresult{#1}{#2}}%
-}
-\let\pgph@register@star\pgph@register
-\newcommand\pgph@beginresult[2]{%
+\AtBeginDocument{\expandafter\proofgraphtrack\expandafter{\pgph@defaultenvs}}
+\newcommand\pgph@beginresult[1]{%
   \global\advance\pgph@idcnt\@ne
   \xdef\pgph@curresult{\the\pgph@idcnt}%
   \protected@edef\pgph@tmp{%
-    \noexpand\pgph@node{\pgph@curresult}{#1}{#2}}%
+    \noexpand\pgph@node{\pgph@curresult}{#1}{#1}}%
   \expandafter\g@addto@macro\expandafter\pgph@nodes\expandafter{\pgph@tmp}%
   \ifx\label\pgph@maplabel\else\let\pgph@savedlabel\label\fi
   \let\label\pgph@maplabel
