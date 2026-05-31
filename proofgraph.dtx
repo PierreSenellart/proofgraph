@@ -1,0 +1,520 @@
+% \iffalse meta-comment
+%
+% Copyright (C) 2026 by Pierre Senellart
+%
+% This work may be distributed and/or modified under the
+% conditions of the LaTeX Project Public License, either version 1.3
+% of this license or (at your option) any later version.
+% The latest version of this license is in
+%   http://www.latex-project.org/lppl.txt
+% and version 1.3 or later is part of all distributions of LaTeX
+% version 2005/12/01 or later.
+%
+% This work has the LPPL maintenance status `maintained'.
+%
+% The Current Maintainer of this work is Pierre Senellart
+% <pierre@senellart.com> and a version control system for this work
+% is available at http://github.com/PierreSenellart/proofgraph
+%
+% This work consists of the files proofgraph.dtx and proofgraph.ins
+% and the derived file proofgraph.sty.
+%
+% \fi
+%
+% \iffalse
+%<*driver>
+\documentclass{ltxdoc}
+\usepackage{hypdoc}
+\usepackage{proofgraph}
+\makeatletter
+\newcommand\DescribeOption[1]{\leavevmode\@bsphack
+  \marginpar{\raggedleft\strut\emph{option}\\\MacroFont #1\ }%
+  \@esphack\ignorespaces}
+\makeatother
+\EnableCrossrefs
+\CodelineIndex
+\RecordChanges
+\begin{document}
+  \DocInput{proofgraph.dtx}
+  \PrintIndex
+  \PrintChanges
+\end{document}
+%</driver>
+% \fi
+%
+% \CheckSum{0}
+%
+% \CharacterTable
+%  {Upper-case    \A\B\C\D\E\F\G\H\I\J\K\L\M\N\O\P\Q\R\S\T\U\V\W\X\Y\Z
+%   Lower-case    \a\b\c\d\e\f\g\h\i\j\k\l\m\n\o\p\q\r\s\t\u\v\w\x\y\z
+%   Digits        \0\1\2\3\4\5\6\7\8\9
+%   Exclamation   \!     Double quote  \"     Hash (number) \#
+%   Dollar        \$     Percent       \%     Ampersand     \&
+%   Acute accent  \'     Left paren    \(     Right paren   \)
+%   Asterisk      \*     Plus          \+     Comma         \,
+%   Minus         \-     Point         \.     Solidus       \/
+%   Colon         \:     Semicolon     \;     Less than     \<
+%   Equals        \=     Greater than  \>     Question mark \?
+%   Commercial at \@     Left bracket  \[     Backslash     \\
+%   Right bracket \]     Circumflex    \^     Underscore    \_
+%   Grave accent  \`     Left brace    \{     Vertical bar  \|
+%   Right brace   \}     Tilde         \~}
+%
+% \changes{v0.1.0}{2026/05/31}{Initial version}
+%
+% \DoNotIndex{\newcommand,\renewcommand,\providecommand,\def,\edef,\gdef,\xdef}
+% \DoNotIndex{\let,\global,\long,\relax,\expandafter,\csname,\endcsname}
+% \DoNotIndex{\ifcsname,\ifdefined,\ifx,\fi,\else,\@ifstar,\@ifnextchar}
+% \DoNotIndex{\begingroup,\endgroup,\@empty,\@ne,\advance,\the,\string}
+% \DoNotIndex{\immediate,\write,\newwrite,\openout,\closeout,\space}
+% \DoNotIndex{\RequirePackage,\ProvidesPackage,\NeedsTeXFormat}
+% \DoNotIndex{\g@addto@macro,\@for,\do,\@gobble,\@firstofone}
+%
+% \def\proofgraph{\textsf{proofgraph}}
+% \def\apxproof{\textsf{apxproof}}
+% \def\Graphviz{\textsf{Graphviz}}
+%
+% \title{The \proofgraph\ package\thanks{This document
+%   corresponds to \proofgraph~v0.1.0, dated 2026/05/31.}}
+% \author{Pierre Senellart \\ \texttt{pierre@senellart.com}}
+%
+% \maketitle
+%
+% \begin{abstract}
+%   The \proofgraph\ package automatically produces a graph of the
+%   dependencies between the results (theorems, lemmas, propositions)
+%   of a mathematical article. It infers an edge from one result to
+%   another whenever the proof of the former refers to the latter
+%   through an ordinary cross-reference, requiring no manual
+%   annotation. The graph is written as a \Graphviz\ |.dot| file,
+%   which can be rendered externally or, optionally, embedded into the
+%   document automatically.
+% \end{abstract}
+%
+% \section{Introduction}
+%
+% When writing a mathematical article, it is often useful to visualise
+% how the results depend on one another: which lemma is used in the
+% proof of which theorem, and so on. \proofgraph\ builds such a
+% dependency graph automatically. Each theorem-like environment becomes
+% a node; each cross-reference (|\ref|, |\cref|, \ldots) appearing
+% \emph{inside a proof} becomes an edge from the proved result to the
+% referred-to result.
+%
+% \section{Usage}
+%
+% Load the package after any theorem-providing package (such as
+% \textsf{amsthm}) and \emph{before} your |\newtheorem| declarations:
+% \begin{verbatim}
+%   \usepackage{proofgraph}
+%   \newtheorem{theorem}{Theorem}
+%   \newtheorem{lemma}{Lemma}
+% \end{verbatim}
+% Then write your document as usual. After two compilation runs, a file
+% |\jobname.dot| is produced. Render it with \Graphviz:
+% \begin{verbatim}
+%   dot -Tpdf myfile.dot -o mygraph.pdf
+% \end{verbatim}
+%
+% \DescribeMacro{\uses}
+% Inside a proof, |\uses{|\meta{label}|}| records a dependency on the
+% result labelled \meta{label} even when no visible reference is made.
+% A comma-separated list is accepted: |\uses{lem:a,lem:b}|.
+%
+% \DescribeMacro{\proofof}
+% By default a proof is attached to the most recently started result.
+% When this heuristic is wrong (notably when proofs are deferred, e.g.\
+% with \apxproof), |\proofof{|\meta{label}|}| inside the proof pins it
+% to the result labelled \meta{label}.
+%
+% \DescribeMacro{\proofgraphignore}
+% |\proofgraphignore{|\meta{from}|}{|\meta{to}|}| suppresses the edge
+% from \meta{from} to \meta{to} (e.g.\ an unwanted forward citation).
+%
+% \DescribeMacro{\proofgraphexclude}
+% |\proofgraphexclude{|\meta{label}|}| removes the result labelled
+% \meta{label}, together with all its incident edges, from the graph.
+%
+% \DescribeMacro{\proofgraphstyle}
+% |\proofgraphstyle{|\meta{env}|}{|\meta{attrs}|}| sets \Graphviz\ node
+% attributes for all results of the environment \meta{env}, e.g.\
+% |\proofgraphstyle{lemma}{shape=ellipse,color=blue}|.
+%
+% \DescribeMacro{\proofgraph}
+% In |autorun| mode, |\proofgraph| includes the rendered graph at that
+% point (using the image produced on the previous run).
+%
+% \subsection{Options}
+%
+% \DescribeOption{selfloops}
+% |selfloops=remove| (default) drops edges from a result to itself;
+% |selfloops=keep| retains them.
+%
+% \DescribeOption{autorun}
+% |autorun| (boolean, default false) runs \Graphviz\ automatically at
+% the end of the run; requires compilation with shell-escape enabled.
+%
+% \DescribeOption{engine}
+% Graphviz layout engine (default |dot|).
+%
+% \DescribeOption{format}
+% Output format for |autorun|/|\proofgraph| (default |pdf|).
+%
+% \DescribeOption{rankdir}
+% Graph direction (default |LR|).
+%
+% \DescribeOption{cite}
+% |cite| (boolean, default false) also captures |\cite| inside proofs
+% as dependencies on external work, drawn as distinct nodes.
+%
+% \DescribeOption{file}
+% Base name of the output file (default |\jobname|).
+%
+% \section{Limitations}
+%
+% Nodes are created only for environments declared through |\newtheorem|
+% \emph{after} the package is loaded. Results must be labelled for
+% references to them to be resolved. Two compilation runs are required,
+% as for any cross-reference. Theorem titles containing the characters
+% |"| or |\| in the node label are not escaped in this version.
+%
+% \section{Implementation}
+%
+%    \begin{macrocode}
+%<*package>
+\NeedsTeXFormat{LaTeX2e}[2005/12/01]
+\ProvidesPackage{proofgraph}
+  [2026/05/31 v0.1.0 Dependency graph of results]
+%    \end{macrocode}
+%
+% \subsection{Dependencies}
+%    \begin{macrocode}
+\RequirePackage{amsthm}
+\RequirePackage{etoolbox}
+\RequirePackage{xstring}
+\RequirePackage{kvoptions}
+\RequirePackage{graphicx}
+%    \end{macrocode}
+%
+% \subsection{Options}
+%    \begin{macrocode}
+\SetupKeyvalOptions{family=pgph,prefix=pgph@}
+\DeclareStringOption[remove]{selfloops}
+\DeclareBoolOption{autorun}
+\DeclareStringOption[dot]{engine}
+\DeclareStringOption[pdf]{format}
+\DeclareStringOption[LR]{rankdir}
+\DeclareBoolOption{cite}
+\DeclareStringOption{file}
+\ProcessKeyvalOptions*
+\ifx\pgph@file\@empty\def\pgph@file{\jobname}\fi
+%    \end{macrocode}
+%
+% \subsection{Literal braces}
+% We need catcode-12 braces to write the \Graphviz\ |digraph { }| block.
+%    \begin{macrocode}
+\begingroup
+  \catcode`\[=1 \catcode`\]=2
+  \catcode`\{=12 \catcode`\}=12
+  \gdef\pgph@ob[{]%
+  \gdef\pgph@cb[}]%
+\endgroup
+%    \end{macrocode}
+%
+% \subsection{Data structures}
+% A global counter gives each result instance a unique numeric id. Nodes
+% and edges are accumulated in list macros and emitted at end of
+% document, so that editing commands (ignore, exclude, self-loops) can
+% be applied to the complete graph regardless of where they appear.
+%    \begin{macrocode}
+\newcount\pgph@idcnt
+\def\pgph@nodes{}
+\def\pgph@edges{}
+\def\pgph@ignores{}
+\def\pgph@excludes{}
+\let\pgph@curresult\@empty
+\let\pgph@curproof\@empty
+%    \end{macrocode}
+%
+% \begin{macro}{\pgph@auxmap}
+% The label-to-id map. |\label| inside a result records, both in memory
+% and in the |.aux| file, that the user label maps to the current node
+% id, so references resolve independently of \textsf{hyperref}.
+%    \begin{macrocode}
+\newcommand\pgph@auxmap[2]{\global\@namedef{pgph@map@#1}{#2}}
+\newcommand\pgph@setmap[2]{%
+  \edef\pgph@tmpid{#2}%
+  \global\expandafter\edef\csname pgph@map@#1\endcsname{\pgph@tmpid}%
+  \protected@write\@auxout{}{\string\pgph@auxmap{#1}{\pgph@tmpid}}%
+}
+%    \end{macrocode}
+% \end{macro}
+%
+% \subsection{Hooking \cmd\newtheorem}
+% We wrap |\newtheorem| so that every declared environment registers a
+% begin-hook. The various signatures of |\newtheorem| are handled
+% explicitly.
+%    \begin{macrocode}
+\let\pgph@orig@newtheorem\newtheorem
+\renewcommand\newtheorem{\@ifstar\pgph@newthm@star\pgph@newthm@nostar}
+\newcommand\pgph@newthm@star[2]{%
+  \pgph@orig@newtheorem*{#1}{#2}%
+  \pgph@register@star{#1}{#2}%
+}
+\newcommand\pgph@newthm@nostar[1]{%
+  \@ifnextchar[{\pgph@newthm@A{#1}}{\pgph@newthm@B{#1}}%
+}
+\def\pgph@newthm@A#1[#2]#3{%
+  \pgph@orig@newtheorem{#1}[#2]{#3}%
+  \pgph@register{#1}{#3}%
+}
+\def\pgph@newthm@B#1#2{%
+  \@ifnextchar[{\pgph@newthm@Bp{#1}{#2}}%
+    {\pgph@orig@newtheorem{#1}{#2}\pgph@register{#1}{#2}}%
+}
+\def\pgph@newthm@Bp#1#2[#3]{%
+  \pgph@orig@newtheorem{#1}{#2}[#3]%
+  \pgph@register{#1}{#2}%
+}
+%    \end{macrocode}
+%
+% \begin{macro}{\pgph@register}
+% Register the begin-hook for a (numbered or starred) result environment.
+%    \begin{macrocode}
+\newcommand\pgph@register[2]{%
+  \AtBeginEnvironment{#1}{\pgph@beginresult{#1}{#2}}%
+}
+\let\pgph@register@star\pgph@register
+%    \end{macrocode}
+% \end{macro}
+%
+% \begin{macro}{\pgph@beginresult}
+% Start a result: allocate an id, record the node, and locally redefine
+% |\label| to also populate the map.
+%    \begin{macrocode}
+\newcommand\pgph@beginresult[2]{%
+  \global\advance\pgph@idcnt\@ne
+  \xdef\pgph@curresult{\the\pgph@idcnt}%
+  \protected@edef\pgph@tmp{%
+    \noexpand\pgph@node{\pgph@curresult}{#1}{#2}}%
+  \expandafter\g@addto@macro\expandafter\pgph@nodes\expandafter{\pgph@tmp}%
+  \let\pgph@savedlabel\label
+  \let\label\pgph@maplabel
+}
+%    \end{macrocode}
+% The number is captured here, at |\label| time, because |\@currentlabel|
+% is only set once the result's |\refstepcounter| has run (which happens
+% after the begin-environment hook).
+%    \begin{macrocode}
+\newcommand\pgph@maplabel[1]{%
+  \pgph@setmap{#1}{\pgph@curresult}%
+  \protected@edef\pgph@tmpnum{\@currentlabel}%
+  \global\expandafter\let\csname pgph@num@\pgph@curresult\endcsname\pgph@tmpnum
+  \pgph@savedlabel{#1}%
+}
+%    \end{macrocode}
+% \end{macro}
+%
+% \subsection{Hooking proofs}
+% Inside a proof we redefine the reference commands to capture edges from
+% the proved result.
+%    \begin{macrocode}
+\newcommand\pgph@addedge[2]{%
+  \protected@edef\pgph@tmpedge{\noexpand\pgph@edge{#1}{#2}}%
+  \expandafter\g@addto@macro\expandafter\pgph@edges\expandafter{\pgph@tmpedge}%
+}
+\newcommand\pgph@recordref[1]{%
+  \ifx\pgph@curproof\@empty\else
+    \@for\pgph@one:=#1\do{\pgph@addedge{\pgph@curproof}{\pgph@one}}%
+  \fi
+}
+%    \end{macrocode}
+%
+% \begin{macro}{\pgph@beginproof}
+% Attach the proof to the current result and install the capturing
+% versions of the reference commands (only those that exist).
+%    \begin{macrocode}
+\newcommand\pgph@cap@ref[1]{\pgph@recordref{#1}\pgph@saved@ref{#1}}
+\newcommand\pgph@cap@cref[1]{\pgph@recordref{#1}\pgph@saved@cref{#1}}
+\newcommand\pgph@cap@Cref[1]{\pgph@recordref{#1}\pgph@saved@Cref{#1}}
+\newcommand\pgph@cap@autoref[1]{\pgph@recordref{#1}\pgph@saved@autoref{#1}}
+\newcommand\pgph@cap@eqref[1]{\pgph@recordref{#1}\pgph@saved@eqref{#1}}
+\newcommand\pgph@cap@vref[1]{\pgph@recordref{#1}\pgph@saved@vref{#1}}
+\newcommand\pgph@install[1]{%
+  \ifcsname #1\endcsname
+    \expandafter\let\csname pgph@saved@#1\expandafter\endcsname\csname #1\endcsname
+    \expandafter\let\csname #1\expandafter\endcsname\csname pgph@cap@#1\endcsname
+  \fi
+}
+\newcommand\pgph@beginproof{%
+  \let\pgph@curproof\pgph@curresult
+  \pgph@install{ref}\pgph@install{cref}\pgph@install{Cref}%
+  \pgph@install{autoref}\pgph@install{eqref}\pgph@install{vref}%
+  \ifpgph@cite\pgph@installcite\fi
+}
+\AtBeginEnvironment{proof}{\pgph@beginproof}
+%    \end{macrocode}
+% \end{macro}
+%
+% \begin{macro}{\pgph@hookcite}
+% Optional |\cite| capture: external references become |cite:|-prefixed
+% target labels, drawn later as distinct nodes.
+%    \begin{macrocode}
+\newcommand\pgph@cap@cite[2][]{%
+  \ifx\pgph@curproof\@empty\else
+    \@for\pgph@one:=#2\do{\pgph@addedge{\pgph@curproof}{cite:\pgph@one}}%
+  \fi
+  \pgph@saved@cite[#1]{#2}%
+}
+\newcommand\pgph@installcite{%
+  \ifcsname cite\endcsname
+    \let\pgph@saved@cite\cite
+    \let\cite\pgph@cap@cite
+  \fi
+}
+%    \end{macrocode}
+% \end{macro}
+%
+% \subsection{User commands}
+%    \begin{macrocode}
+\newcommand\uses[1]{\pgph@recordref{#1}}
+\newcommand\proofof[1]{%
+  \ifcsname pgph@map@#1\endcsname
+    \xdef\pgph@curproof{\csname pgph@map@#1\endcsname}%
+  \fi
+}
+\newcommand\proofgraphignore[2]{%
+  \g@addto@macro\pgph@ignores{\pgph@ignorerule{#1}{#2}}%
+}
+\newcommand\proofgraphexclude[1]{%
+  \g@addto@macro\pgph@excludes{\pgph@excluderule{#1}}%
+}
+\newcommand\proofgraphstyle[2]{\global\@namedef{pgph@style@#1}{#2}}
+%    \end{macrocode}
+%
+% \subsection{Resolution helpers}
+% These run at end of document, after the |.aux| has populated the map.
+%    \begin{macrocode}
+\newcommand\pgph@resolve[1]{%
+  \ifcsname pgph@map@#1\endcsname\csname pgph@map@#1\endcsname\fi
+}
+\newcommand\pgph@ignorerule[2]{%
+  \edef\pgph@f{\pgph@resolve{#1}}\edef\pgph@t{\pgph@resolve{#2}}%
+  \ifx\pgph@f\@empty\else\ifx\pgph@t\@empty\else
+    \global\@namedef{pgph@ig@\pgph@f @\pgph@t}{}%
+  \fi\fi
+}
+\newcommand\pgph@excluderule[1]{%
+  \edef\pgph@x{\pgph@resolve{#1}}%
+  \ifx\pgph@x\@empty\else\global\@namedef{pgph@ex@\pgph@x}{}\fi
+}
+%    \end{macrocode}
+%
+% \subsection{Emission}
+% \begin{macro}{\pgph@node}
+% Emit one node line, honouring exclusions and per-environment styling.
+% External (|cite:|) targets are emitted separately as a pass over edges.
+%    \begin{macrocode}
+\newcommand\pgph@node[3]{%
+  \ifcsname pgph@ex@#1\endcsname\else
+    \edef\pgph@s{\ifcsname pgph@style@#2\endcsname
+      , \csname pgph@style@#2\endcsname\fi}%
+    \edef\pgph@nm{\ifcsname pgph@num@#1\endcsname\csname pgph@num@#1\endcsname\fi}%
+    \immediate\write\pgph@out{%
+      \space\space"n#1" [label="#3 \pgph@nm"\pgph@s];}%
+  \fi
+}
+%    \end{macrocode}
+% \end{macro}
+%
+% \begin{macro}{\pgph@edge}
+% Emit one edge, resolving the target label to an id and applying the
+% self-loop, ignore and exclude filters. Targets beginning with |cite:|
+% denote external nodes.
+%    \begin{macrocode}
+\newcommand\pgph@edge[2]{%
+  \IfBeginWith{#2}{cite:}%
+    {\pgph@citeedge{#1}{#2}}%
+    {\pgph@plainedge{#1}{#2}}%
+}
+\newcommand\pgph@plainedge[2]{%
+  \edef\pgph@t{\pgph@resolve{#2}}%
+  \ifx\pgph@t\@empty\else
+    \ifcsname pgph@ex@#1\endcsname\else
+    \ifcsname pgph@ex@\pgph@t\endcsname\else
+    \ifcsname pgph@ig@#1@\pgph@t\endcsname\else
+      \ifboolexpr{ test {\ifnumequal{#1}{\pgph@t}}
+                   and test {\ifdefstring{\pgph@selfloops}{remove}} }%
+        {}{\pgph@writeedge{n#1}{n\pgph@t}}%
+    \fi\fi\fi
+  \fi
+}
+\newcommand\pgph@writeedge[2]{%
+  \ifcsname pgph@drawn@#1@#2\endcsname\else
+    \global\@namedef{pgph@drawn@#1@#2}{}%
+    \immediate\write\pgph@out{\space\space"#1" -> "#2";}%
+  \fi
+}
+%    \end{macrocode}
+% \end{macro}
+%
+% \begin{macro}{\pgph@citeedge}
+% A |cite:key| target: declare the external node once, then draw the edge.
+%    \begin{macrocode}
+\newcommand\pgph@citeedge[2]{%
+  \ifcsname pgph@ex@#1\endcsname\else
+    \StrBehind{#2}{cite:}[\pgph@key]%
+    \ifcsname pgph@extnode@\pgph@key\endcsname\else
+      \global\@namedef{pgph@extnode@\pgph@key}{}%
+      \immediate\write\pgph@out{%
+        \space\space"c@\pgph@key" [label="\pgph@key",shape=note];}%
+    \fi
+    \pgph@writeedge{n#1}{c@\pgph@key}%
+  \fi
+}
+%    \end{macrocode}
+% \end{macro}
+%
+% \begin{macro}{\pgph@emit}
+% Open the file, resolve editing rules, write nodes then edges, close,
+% and optionally run \Graphviz.
+%    \begin{macrocode}
+\newwrite\pgph@out
+\newcommand\pgph@emit{%
+  \immediate\openout\pgph@out=\pgph@file.dot\relax
+  \immediate\write\pgph@out{digraph proofgraph \pgph@ob}%
+  \immediate\write\pgph@out{\space\space rankdir="\pgph@rankdir";}%
+  \pgph@ignores
+  \pgph@excludes
+  \pgph@nodes
+  \pgph@edges
+  \immediate\write\pgph@out{\pgph@cb}%
+  \immediate\closeout\pgph@out
+  \ifpgph@autorun
+    \immediate\write18{\pgph@engine\space -T\pgph@format\space
+      \pgph@file.dot -o \pgph@file-proofgraph.\pgph@format}%
+  \fi
+}
+\AtEndDocument{\pgph@emit}
+%    \end{macrocode}
+% \end{macro}
+%
+% \begin{macro}{\proofgraph}
+% Include the rendered graph (from a previous run) in |autorun| mode.
+%    \begin{macrocode}
+\newcommand\proofgraph[1][]{%
+  \IfFileExists{\pgph@file-proofgraph.\pgph@format}%
+    {\includegraphics[#1]{\pgph@file-proofgraph.\pgph@format}}%
+    {\PackageWarning{proofgraph}{Rendered graph
+       \pgph@file-proofgraph.\pgph@format\space not found; compile with
+       shell-escape and the autorun option, then re-run}}%
+}
+%    \end{macrocode}
+% \end{macro}
+%
+%    \begin{macrocode}
+%</package>
+%    \end{macrocode}
+%
+% \Finale
+\endinput

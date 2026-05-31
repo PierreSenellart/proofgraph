@@ -1,21 +1,27 @@
-# Top-level Makefile for proofgraph.
-# NOTE: package build targets (proofgraph.sty / proofgraph.pdf via l3build) are
-# added when the .dtx/.ins are in place. For now this wires the test targets.
+all: proofgraph.pdf proofgraph.sty
 
-.PHONY: all test realworld clean
+clean:
+	l3build clean
+	-$(MAKE) -C examples clean
+	-$(MAKE) -C examples/realworld clean
 
-all:
-	@echo "Package sources (proofgraph.dtx/.ins) not yet present; nothing to build."
+ctan:
+	l3build ctan
 
-# Synthetic, public example suite (added during package build).
 test:
-	@if [ -d examples ] && [ -f examples/Makefile ]; then $(MAKE) -s -C examples; \
-	else echo "No public example suite yet."; fi
+	$(MAKE) -s -C examples
+	@echo All synthetic tests passed!
 
-# Private real-world suite: only present in local checkouts (gitignored).
+# Private real-world suite (only present in local checkouts).
 realworld:
 	@if [ -f examples/realworld/Makefile ]; then $(MAKE) -s -C examples/realworld; \
 	else echo "No private real-world suite present (examples/realworld/ is local-only)."; fi
 
-clean:
-	@if [ -f examples/realworld/Makefile ]; then $(MAKE) -s -C examples/realworld clean; fi
+%.pdf: %.dtx
+	l3build doc
+
+%.sty: %.ins %.dtx
+	l3build unpack
+	cp build/unpacked/$@ .
+
+.PHONY: all clean ctan test realworld

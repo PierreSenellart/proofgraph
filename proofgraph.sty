@@ -1,0 +1,240 @@
+%%
+%% This is file `proofgraph.sty',
+%% generated with the docstrip utility.
+%%
+%% The original source files were:
+%%
+%% proofgraph.dtx  (with options: `package')
+%% 
+%% Copyright (C) 2026 by Pierre Senellart
+%% 
+%% This work may be distributed and/or modified under the
+%% conditions of the LaTeX Project Public License, either version 1.3
+%% of this license or (at your option) any later version.
+%% The latest version of this license is in
+%%   http://www.latex-project.org/lppl.txt
+%% and version 1.3 or later is part of all distributions of LaTeX
+%% version 2005/12/01 or later.
+%% 
+%% This work has the LPPL maintenance status `maintained'.
+%% 
+%% The Current Maintainer of this work is Pierre Senellart
+%% <pierre@senellart.com> and a version control system for this work
+%% is available at http://github.com/PierreSenellart/proofgraph
+%% 
+%% This work consists of the files proofgraph.dtx and proofgraph.ins
+%% and the derived file proofgraph.sty.
+%% 
+\NeedsTeXFormat{LaTeX2e}[2005/12/01]
+\ProvidesPackage{proofgraph}
+  [2026/05/31 v0.1.0 Dependency graph of results]
+\RequirePackage{amsthm}
+\RequirePackage{etoolbox}
+\RequirePackage{xstring}
+\RequirePackage{kvoptions}
+\RequirePackage{graphicx}
+\SetupKeyvalOptions{family=pgph,prefix=pgph@}
+\DeclareStringOption[remove]{selfloops}
+\DeclareBoolOption{autorun}
+\DeclareStringOption[dot]{engine}
+\DeclareStringOption[pdf]{format}
+\DeclareStringOption[LR]{rankdir}
+\DeclareBoolOption{cite}
+\DeclareStringOption{file}
+\ProcessKeyvalOptions*
+\ifx\pgph@file\@empty\def\pgph@file{\jobname}\fi
+\begingroup
+  \catcode`\[=1 \catcode`\]=2
+  \catcode`\{=12 \catcode`\}=12
+  \gdef\pgph@ob[{]%
+  \gdef\pgph@cb[}]%
+\endgroup
+\newcount\pgph@idcnt
+\def\pgph@nodes{}
+\def\pgph@edges{}
+\def\pgph@ignores{}
+\def\pgph@excludes{}
+\let\pgph@curresult\@empty
+\let\pgph@curproof\@empty
+\newcommand\pgph@auxmap[2]{\global\@namedef{pgph@map@#1}{#2}}
+\newcommand\pgph@setmap[2]{%
+  \edef\pgph@tmpid{#2}%
+  \global\expandafter\edef\csname pgph@map@#1\endcsname{\pgph@tmpid}%
+  \protected@write\@auxout{}{\string\pgph@auxmap{#1}{\pgph@tmpid}}%
+}
+\let\pgph@orig@newtheorem\newtheorem
+\renewcommand\newtheorem{\@ifstar\pgph@newthm@star\pgph@newthm@nostar}
+\newcommand\pgph@newthm@star[2]{%
+  \pgph@orig@newtheorem*{#1}{#2}%
+  \pgph@register@star{#1}{#2}%
+}
+\newcommand\pgph@newthm@nostar[1]{%
+  \@ifnextchar[{\pgph@newthm@A{#1}}{\pgph@newthm@B{#1}}%
+}
+\def\pgph@newthm@A#1[#2]#3{%
+  \pgph@orig@newtheorem{#1}[#2]{#3}%
+  \pgph@register{#1}{#3}%
+}
+\def\pgph@newthm@B#1#2{%
+  \@ifnextchar[{\pgph@newthm@Bp{#1}{#2}}%
+    {\pgph@orig@newtheorem{#1}{#2}\pgph@register{#1}{#2}}%
+}
+\def\pgph@newthm@Bp#1#2[#3]{%
+  \pgph@orig@newtheorem{#1}{#2}[#3]%
+  \pgph@register{#1}{#2}%
+}
+\newcommand\pgph@register[2]{%
+  \AtBeginEnvironment{#1}{\pgph@beginresult{#1}{#2}}%
+}
+\let\pgph@register@star\pgph@register
+\newcommand\pgph@beginresult[2]{%
+  \global\advance\pgph@idcnt\@ne
+  \xdef\pgph@curresult{\the\pgph@idcnt}%
+  \protected@edef\pgph@tmp{%
+    \noexpand\pgph@node{\pgph@curresult}{#1}{#2}}%
+  \expandafter\g@addto@macro\expandafter\pgph@nodes\expandafter{\pgph@tmp}%
+  \let\pgph@savedlabel\label
+  \let\label\pgph@maplabel
+}
+\newcommand\pgph@maplabel[1]{%
+  \pgph@setmap{#1}{\pgph@curresult}%
+  \protected@edef\pgph@tmpnum{\@currentlabel}%
+  \global\expandafter\let\csname pgph@num@\pgph@curresult\endcsname\pgph@tmpnum
+  \pgph@savedlabel{#1}%
+}
+\newcommand\pgph@addedge[2]{%
+  \protected@edef\pgph@tmpedge{\noexpand\pgph@edge{#1}{#2}}%
+  \expandafter\g@addto@macro\expandafter\pgph@edges\expandafter{\pgph@tmpedge}%
+}
+\newcommand\pgph@recordref[1]{%
+  \ifx\pgph@curproof\@empty\else
+    \@for\pgph@one:=#1\do{\pgph@addedge{\pgph@curproof}{\pgph@one}}%
+  \fi
+}
+\newcommand\pgph@cap@ref[1]{\pgph@recordref{#1}\pgph@saved@ref{#1}}
+\newcommand\pgph@cap@cref[1]{\pgph@recordref{#1}\pgph@saved@cref{#1}}
+\newcommand\pgph@cap@Cref[1]{\pgph@recordref{#1}\pgph@saved@Cref{#1}}
+\newcommand\pgph@cap@autoref[1]{\pgph@recordref{#1}\pgph@saved@autoref{#1}}
+\newcommand\pgph@cap@eqref[1]{\pgph@recordref{#1}\pgph@saved@eqref{#1}}
+\newcommand\pgph@cap@vref[1]{\pgph@recordref{#1}\pgph@saved@vref{#1}}
+\newcommand\pgph@install[1]{%
+  \ifcsname #1\endcsname
+    \expandafter\let\csname pgph@saved@#1\expandafter\endcsname\csname #1\endcsname
+    \expandafter\let\csname #1\expandafter\endcsname\csname pgph@cap@#1\endcsname
+  \fi
+}
+\newcommand\pgph@beginproof{%
+  \let\pgph@curproof\pgph@curresult
+  \pgph@install{ref}\pgph@install{cref}\pgph@install{Cref}%
+  \pgph@install{autoref}\pgph@install{eqref}\pgph@install{vref}%
+  \ifpgph@cite\pgph@installcite\fi
+}
+\AtBeginEnvironment{proof}{\pgph@beginproof}
+\newcommand\pgph@cap@cite[2][]{%
+  \ifx\pgph@curproof\@empty\else
+    \@for\pgph@one:=#2\do{\pgph@addedge{\pgph@curproof}{cite:\pgph@one}}%
+  \fi
+  \pgph@saved@cite[#1]{#2}%
+}
+\newcommand\pgph@installcite{%
+  \ifcsname cite\endcsname
+    \let\pgph@saved@cite\cite
+    \let\cite\pgph@cap@cite
+  \fi
+}
+\newcommand\uses[1]{\pgph@recordref{#1}}
+\newcommand\proofof[1]{%
+  \ifcsname pgph@map@#1\endcsname
+    \xdef\pgph@curproof{\csname pgph@map@#1\endcsname}%
+  \fi
+}
+\newcommand\proofgraphignore[2]{%
+  \g@addto@macro\pgph@ignores{\pgph@ignorerule{#1}{#2}}%
+}
+\newcommand\proofgraphexclude[1]{%
+  \g@addto@macro\pgph@excludes{\pgph@excluderule{#1}}%
+}
+\newcommand\proofgraphstyle[2]{\global\@namedef{pgph@style@#1}{#2}}
+\newcommand\pgph@resolve[1]{%
+  \ifcsname pgph@map@#1\endcsname\csname pgph@map@#1\endcsname\fi
+}
+\newcommand\pgph@ignorerule[2]{%
+  \edef\pgph@f{\pgph@resolve{#1}}\edef\pgph@t{\pgph@resolve{#2}}%
+  \ifx\pgph@f\@empty\else\ifx\pgph@t\@empty\else
+    \global\@namedef{pgph@ig@\pgph@f @\pgph@t}{}%
+  \fi\fi
+}
+\newcommand\pgph@excluderule[1]{%
+  \edef\pgph@x{\pgph@resolve{#1}}%
+  \ifx\pgph@x\@empty\else\global\@namedef{pgph@ex@\pgph@x}{}\fi
+}
+\newcommand\pgph@node[3]{%
+  \ifcsname pgph@ex@#1\endcsname\else
+    \edef\pgph@s{\ifcsname pgph@style@#2\endcsname
+      , \csname pgph@style@#2\endcsname\fi}%
+    \edef\pgph@nm{\ifcsname pgph@num@#1\endcsname\csname pgph@num@#1\endcsname\fi}%
+    \immediate\write\pgph@out{%
+      \space\space"n#1" [label="#3 \pgph@nm"\pgph@s];}%
+  \fi
+}
+\newcommand\pgph@edge[2]{%
+  \IfBeginWith{#2}{cite:}%
+    {\pgph@citeedge{#1}{#2}}%
+    {\pgph@plainedge{#1}{#2}}%
+}
+\newcommand\pgph@plainedge[2]{%
+  \edef\pgph@t{\pgph@resolve{#2}}%
+  \ifx\pgph@t\@empty\else
+    \ifcsname pgph@ex@#1\endcsname\else
+    \ifcsname pgph@ex@\pgph@t\endcsname\else
+    \ifcsname pgph@ig@#1@\pgph@t\endcsname\else
+      \ifboolexpr{ test {\ifnumequal{#1}{\pgph@t}}
+                   and test {\ifdefstring{\pgph@selfloops}{remove}} }%
+        {}{\pgph@writeedge{n#1}{n\pgph@t}}%
+    \fi\fi\fi
+  \fi
+}
+\newcommand\pgph@writeedge[2]{%
+  \ifcsname pgph@drawn@#1@#2\endcsname\else
+    \global\@namedef{pgph@drawn@#1@#2}{}%
+    \immediate\write\pgph@out{\space\space"#1" -> "#2";}%
+  \fi
+}
+\newcommand\pgph@citeedge[2]{%
+  \ifcsname pgph@ex@#1\endcsname\else
+    \StrBehind{#2}{cite:}[\pgph@key]%
+    \ifcsname pgph@extnode@\pgph@key\endcsname\else
+      \global\@namedef{pgph@extnode@\pgph@key}{}%
+      \immediate\write\pgph@out{%
+        \space\space"c@\pgph@key" [label="\pgph@key",shape=note];}%
+    \fi
+    \pgph@writeedge{n#1}{c@\pgph@key}%
+  \fi
+}
+\newwrite\pgph@out
+\newcommand\pgph@emit{%
+  \immediate\openout\pgph@out=\pgph@file.dot\relax
+  \immediate\write\pgph@out{digraph proofgraph \pgph@ob}%
+  \immediate\write\pgph@out{\space\space rankdir="\pgph@rankdir";}%
+  \pgph@ignores
+  \pgph@excludes
+  \pgph@nodes
+  \pgph@edges
+  \immediate\write\pgph@out{\pgph@cb}%
+  \immediate\closeout\pgph@out
+  \ifpgph@autorun
+    \immediate\write18{\pgph@engine\space -T\pgph@format\space
+      \pgph@file.dot -o \pgph@file-proofgraph.\pgph@format}%
+  \fi
+}
+\AtEndDocument{\pgph@emit}
+\newcommand\proofgraph[1][]{%
+  \IfFileExists{\pgph@file-proofgraph.\pgph@format}%
+    {\includegraphics[#1]{\pgph@file-proofgraph.\pgph@format}}%
+    {\PackageWarning{proofgraph}{Rendered graph
+       \pgph@file-proofgraph.\pgph@format\space not found; compile with
+       shell-escape and the autorun option, then re-run}}%
+}
+\endinput
+%%
+%% End of file `proofgraph.sty'.
