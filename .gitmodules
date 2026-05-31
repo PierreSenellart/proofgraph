@@ -1,0 +1,3 @@
+[submodule "examples/realworld"]
+	path = examples/realworld
+	url = git@github.com:PierreSenellart/proofgraph-realworld.git
