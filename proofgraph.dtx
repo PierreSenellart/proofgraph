@@ -123,18 +123,29 @@
 % result labelled \meta{label} even when no visible reference is made.
 % A comma-separated list is accepted: |\uses{lem:a,lem:b}|.
 %
+% A cross-reference in the \emph{optional title} of a result is captured
+% automatically as a dependency: |\begin{theorem}[(generalises~\ref{thm:x})]| in
+% a result labelled \meta{A} adds an edge from \meta{A} to |thm:x|. This is handy
+% for restatements (e.g.\ an introduction that previews results with
+% |\begin{result}[(Corollary~\ref{cor:y})]|).
+%
 % \DescribeMacro{\proofgraphedge}
-% |\proofgraphedge{|\meta{A}|}{|\meta{B}|}| adds an edge recording that result
-% \meta{A} depends on result \meta{B}, like a |\uses| but stated outside any
-% proof. This is handy for an ``obvious'' corollary that relies on earlier
-% results without a |proof| environment: |\proofgraphedge{cor:x}{thm:y}|. It may
-% appear anywhere; both labels are resolved when the graph is written.
+% |\proofgraphedge{|\meta{A}|}{|\meta{labels}|}| adds edges recording that result
+% \meta{A} depends on the result(s) \meta{labels} (a comma-separated list), like
+% a |\uses| but stated outside any proof. This is handy for an ``obvious''
+% corollary that relies on earlier results without a |proof| environment:
+% |\proofgraphedge{cor:x}{thm:y,lem:z}|. It may appear anywhere; all labels are
+% resolved when the graph is written.
 %
 % \DescribeMacro{\proofof}
-% By default a proof is attached to the most recently started result, and
-% deferred proofs (as with \apxproof) are attached automatically to the result
-% they prove. When a proof does not directly follow its result, |\proofof{|%
-% \meta{label}|}| inside the proof pins it to the result labelled \meta{label}.
+% By default a proof is attached to the most recently started result. A detached
+% proof whose optional title names its result is attached automatically to that
+% result: writing |\begin{proof}| with the optional argument
+% |[of Theorem~\ref{thm:x}]| attaches the proof to |thm:x|. This works for the
+% |amsthm| |proof| environment and for |proof| defined as a theorem (the Springer
+% classes); deferred proofs (as with \apxproof) are likewise attached
+% automatically. When none of this applies, |\proofof{|\meta{label}|}| inside the
+% proof pins it to the result labelled \meta{label}.
 %
 % \DescribeMacro{\proofgraphtrack}
 % \DescribeMacro{\proofgraphuntrack}
@@ -474,7 +485,8 @@
   \ifdefined\@opargbegintheorem
     \let\pgph@orig@obt\@opargbegintheorem
     \def\@opargbegintheorem##1##2##3{%
-      \pgph@recordresult{##1}{##2}\pgph@orig@obt{##1}{##2}{##3}}%
+      \pgph@recordresult{##1}{##2}\pgph@scanrefs{##3}%
+      \pgph@orig@obt{##1}{##2}{##3}}%
   \fi
   \ifdefined\@spbegintheorem
     \let\pgph@orig@spbt\@spbegintheorem
@@ -484,10 +496,34 @@
   \ifdefined\@spopargbegintheorem
     \let\pgph@orig@spobt\@spopargbegintheorem
     \def\@spopargbegintheorem##1##2##3##4##5{%
-      \pgph@recordresult{##1}{##2}\pgph@orig@spobt{##1}{##2}{##3}{##4}{##5}}%
+      \pgph@recordresult{##1}{##2}\pgph@scanrefs{##3}%
+      \pgph@orig@spobt{##1}{##2}{##3}{##4}{##5}}%
   \fi
 }
 %    \end{macrocode}
+% \begin{macro}{\pgph@scanrefs}
+% A result whose optional title carries a cross-reference, e.g.\
+% |\begin{result}[(Corollary~\ref{cor:x})]\label{res:y}|, is understood to
+% restate or build on that result: we record an edge from the current result to
+% each label referenced in the title. We capture these by typesetting the title
+% once into a discarded box with the reference-capturing commands installed and
+% |\pgph@curproof| pointing at the current result; |\pgph@curproof| is saved and
+% restored, so this affects nothing outside the title.
+%    \begin{macrocode}
+\newcommand\pgph@scanrefs[1]{%
+  \ifx\pgph@curresult\@empty\else
+    \begingroup
+      \global\let\pgph@savedcurproof\pgph@curproof
+      \global\let\pgph@curproof\pgph@curresult
+      \pgph@install{ref}\pgph@install{cref}\pgph@install{Cref}%
+      \pgph@install{autoref}\pgph@install{eqref}\pgph@install{vref}%
+      \setbox\z@\hbox{#1}%
+      \global\let\pgph@curproof\pgph@savedcurproof
+    \endgroup
+  \fi
+}
+%    \end{macrocode}
+% \end{macro}
 % The formatted name is the first argument of every heading macro
 % (|\@begintheorem|/|\@opargbegintheorem| for |amsthm|/|\newtheorem|,
 % |\@spbegintheorem|/|\@spopargbegintheorem| for Springer's |\spnewtheorem|);
@@ -603,24 +639,98 @@
   \pgph@install{ref}\pgph@install{cref}\pgph@install{Cref}%
   \pgph@install{autoref}\pgph@install{eqref}\pgph@install{vref}%
   \ifpgph@cite\pgph@installcite\fi
+  \pgph@hookproofhead
 }
 %    \end{macrocode}
-% Packages such as \apxproof\ capture the body of a |proof| verbatim (to
-% defer it to the appendix) and replay it there. Patching the |proof|
-% environment then corrupts that capture (its |\proof| has delimited
-% arguments), and the references are only executed at replay time anyway.
-% So the standard begin-|proof| hook is installed only when no such package
-% is active; otherwise the deferred-proof capture (below) takes over. The
-% registration happens at |\begin{document}|, once we know what is loaded.
+% When the |proof| environment is itself a theorem-like environment (as with
+% Springer's |\spnewtheorem*{proof}|), its optional title is set by
+% |\@opargbegintheorem|/|\@spopargbegintheorem|. We wrap these for the duration
+% of the proof so that a title such as |[of Theorem~\ref{thm:x}]| sets
+% |\proofof{thm:x}|, attributing the proof to its result.
+%    \begin{macrocode}
+\newcommand\pgph@hookproofhead{%
+  \ifdefined\@opargbegintheorem
+    \let\pgph@orig@obtp\@opargbegintheorem
+    \def\@opargbegintheorem##1##2##3{%
+      \pgph@scanproofarg{##3}\pgph@orig@obtp{##1}{##2}{##3}}%
+  \fi
+  \ifdefined\@spopargbegintheorem
+    \let\pgph@orig@spobtp\@spopargbegintheorem
+    \def\@spopargbegintheorem##1##2##3##4##5{%
+      \pgph@scanproofarg{##3}\pgph@orig@spobtp{##1}{##2}{##3}{##4}{##5}}%
+  \fi
+  \ifdefined\@Opargbegintheorem
+    \let\pgph@orig@Obtp\@Opargbegintheorem
+    \def\@Opargbegintheorem##1##2##3##4{%
+      \pgph@scanproofarg{##2}\pgph@orig@Obtp{##1}{##2}{##3}{##4}}%
+  \fi
+}
+%    \end{macrocode}
+% \end{macro}
+% \begin{macro}{\pgph@scanproofarg}
+% \begin{macro}{\pgph@wrapproof}
+% A proof whose optional title names its result (a detached proof) has its
+% result given by that title, e.g.\ \texttt{thm:x} for an optional argument
+% |[of Theorem~\ref{thm:x}]|, rather than by the most recently opened result.
+% We capture this by wrapping the |proof|
+% environment so that, when an optional title is given, the cross-reference it
+% contains is turned into a |\proofof| (the title is typeset once into a
+% discarded box with |\ref| and friends redefined). Without an optional title
+% the original environment is used unchanged.
+%    \begin{macrocode}
+\newcommand\pgph@scanproofarg[1]{%
+  \begingroup
+    \let\protect\@empty
+    \def\ref##1{\proofof{##1}}\def\cref##1{\proofof{##1}}%
+    \def\Cref##1{\proofof{##1}}\def\autoref##1{\proofof{##1}}%
+    \setbox\z@\hbox{#1}%
+  \endgroup
+}
+%    \end{macrocode}
+% To capture the optional title of a detached |amsthm| proof
+% (|\begin{proof}[of Theorem~\ref{thm:x}]|) we redefine the outer |\proof| to read
+% the optional argument and delegate to the original inner macro (saved as
+% |\pgph@proofinner|), so no recursion occurs. We must do this \emph{only} for a
+% genuine optional-argument environment: a package that captures the proof body
+% verbatim (\apxproof, \textsf{myproofs}) redefines |proof| with no optional
+% argument, and wrapping it would break that capture. We recognise the
+% optional-argument form by the |\@protected@testopt| in its definition. When
+% |proof| is instead a theorem-like environment (Springer |\spnewtheorem*{proof}|)
+% its title is already handled by |\pgph@hookproofhead|, so here we just install
+% the begin-hook.
+%    \begin{macrocode}
+\newcommand\pgph@wrapproof{%
+  \ifdefined\proof
+    \edef\pgph@proofmeaning{\meaning\proof}%
+    \edef\pgph@testoptstr{\detokenize{\@protected@testopt}}%
+    \IfSubStr\pgph@proofmeaning\pgph@testoptstr
+      {\pgph@redefproof}%
+      {\AtBeginEnvironment{proof}{\pgph@beginproof}}%
+  \fi
+}
+\newcommand\pgph@redefproof{%
+  \expandafter\let\expandafter\pgph@proofinner\csname\string\proof\endcsname
+  \def\proof{\pgph@beginproof
+    \@ifnextchar[{\pgph@proofopt}{\pgph@proofinner[\proofname]}}%
+  \def\pgph@proofopt[##1]{\pgph@scanproofarg{##1}\pgph@proofinner[##1]}%
+}
+%    \end{macrocode}
+% \end{macro}
+% \end{macro}
+% Packages such as \apxproof\ capture the body of a |proof| verbatim (to defer
+% it to the appendix) and replay it there. Patching the |proof| environment then
+% corrupts that capture, and the references are only executed at replay time
+% anyway. So we wrap |proof| only when no such package is active; otherwise the
+% deferred-proof capture (below) takes over. This happens at |\begin{document}|,
+% once we know what is loaded.
 %    \begin{macrocode}
 \newif\ifpgph@apxproof
 \AtBeginDocument{%
   \@ifpackageloaded{apxproof}%
     {\pgph@apxprooftrue\pgph@apxinit}%
-    {\AtBeginEnvironment{proof}{\pgph@beginproof}}%
+    {\pgph@wrapproof}%
 }
 %    \end{macrocode}
-% \end{macro}
 %
 % \begin{macro}{\pgph@apxinit}
 % \begin{macro}{\pgph@apxproofcapture}
@@ -696,7 +806,9 @@
 \newcommand\pgph@labeledge[2]{%
   \edef\pgph@ef{\pgph@resolve{#1}}%
   \ifx\pgph@ef\@empty\else
-    \expandafter\pgph@plainedge\expandafter{\pgph@ef}{#2}%
+    \@for\pgph@one:=#2\do{%
+      \edef\pgph@k{\expandafter\pgph@trimsp\expandafter{\pgph@one}}%
+      \pgph@plainedge{\pgph@ef}{\pgph@k}}%
   \fi
 }
 \newcommand\proofgraphignore[2]{%

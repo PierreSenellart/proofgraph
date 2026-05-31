@@ -153,7 +153,8 @@
   \ifdefined\@opargbegintheorem
     \let\pgph@orig@obt\@opargbegintheorem
     \def\@opargbegintheorem##1##2##3{%
-      \pgph@recordresult{##1}{##2}\pgph@orig@obt{##1}{##2}{##3}}%
+      \pgph@recordresult{##1}{##2}\pgph@scanrefs{##3}%
+      \pgph@orig@obt{##1}{##2}{##3}}%
   \fi
   \ifdefined\@spbegintheorem
     \let\pgph@orig@spbt\@spbegintheorem
@@ -163,7 +164,20 @@
   \ifdefined\@spopargbegintheorem
     \let\pgph@orig@spobt\@spopargbegintheorem
     \def\@spopargbegintheorem##1##2##3##4##5{%
-      \pgph@recordresult{##1}{##2}\pgph@orig@spobt{##1}{##2}{##3}{##4}{##5}}%
+      \pgph@recordresult{##1}{##2}\pgph@scanrefs{##3}%
+      \pgph@orig@spobt{##1}{##2}{##3}{##4}{##5}}%
+  \fi
+}
+\newcommand\pgph@scanrefs[1]{%
+  \ifx\pgph@curresult\@empty\else
+    \begingroup
+      \global\let\pgph@savedcurproof\pgph@curproof
+      \global\let\pgph@curproof\pgph@curresult
+      \pgph@install{ref}\pgph@install{cref}\pgph@install{Cref}%
+      \pgph@install{autoref}\pgph@install{eqref}\pgph@install{vref}%
+      \setbox\z@\hbox{#1}%
+      \global\let\pgph@curproof\pgph@savedcurproof
+    \endgroup
   \fi
 }
 \newcommand\pgph@recordresult[2]{%
@@ -229,12 +243,53 @@
   \pgph@install{ref}\pgph@install{cref}\pgph@install{Cref}%
   \pgph@install{autoref}\pgph@install{eqref}\pgph@install{vref}%
   \ifpgph@cite\pgph@installcite\fi
+  \pgph@hookproofhead
+}
+\newcommand\pgph@hookproofhead{%
+  \ifdefined\@opargbegintheorem
+    \let\pgph@orig@obtp\@opargbegintheorem
+    \def\@opargbegintheorem##1##2##3{%
+      \pgph@scanproofarg{##3}\pgph@orig@obtp{##1}{##2}{##3}}%
+  \fi
+  \ifdefined\@spopargbegintheorem
+    \let\pgph@orig@spobtp\@spopargbegintheorem
+    \def\@spopargbegintheorem##1##2##3##4##5{%
+      \pgph@scanproofarg{##3}\pgph@orig@spobtp{##1}{##2}{##3}{##4}{##5}}%
+  \fi
+  \ifdefined\@Opargbegintheorem
+    \let\pgph@orig@Obtp\@Opargbegintheorem
+    \def\@Opargbegintheorem##1##2##3##4{%
+      \pgph@scanproofarg{##2}\pgph@orig@Obtp{##1}{##2}{##3}{##4}}%
+  \fi
+}
+\newcommand\pgph@scanproofarg[1]{%
+  \begingroup
+    \let\protect\@empty
+    \def\ref##1{\proofof{##1}}\def\cref##1{\proofof{##1}}%
+    \def\Cref##1{\proofof{##1}}\def\autoref##1{\proofof{##1}}%
+    \setbox\z@\hbox{#1}%
+  \endgroup
+}
+\newcommand\pgph@wrapproof{%
+  \ifdefined\proof
+    \edef\pgph@proofmeaning{\meaning\proof}%
+    \edef\pgph@testoptstr{\detokenize{\@protected@testopt}}%
+    \IfSubStr\pgph@proofmeaning\pgph@testoptstr
+      {\pgph@redefproof}%
+      {\AtBeginEnvironment{proof}{\pgph@beginproof}}%
+  \fi
+}
+\newcommand\pgph@redefproof{%
+  \expandafter\let\expandafter\pgph@proofinner\csname\string\proof\endcsname
+  \def\proof{\pgph@beginproof
+    \@ifnextchar[{\pgph@proofopt}{\pgph@proofinner[\proofname]}}%
+  \def\pgph@proofopt[##1]{\pgph@scanproofarg{##1}\pgph@proofinner[##1]}%
 }
 \newif\ifpgph@apxproof
 \AtBeginDocument{%
   \@ifpackageloaded{apxproof}%
     {\pgph@apxprooftrue\pgph@apxinit}%
-    {\AtBeginEnvironment{proof}{\pgph@beginproof}}%
+    {\pgph@wrapproof}%
 }
 \newcommand\pgph@apxinit{\def\apxproofhook##1{\pgph@apxproofcapture{##1}}}
 \newcommand\pgph@apxproofcapture[1]{%
@@ -284,7 +339,9 @@
 \newcommand\pgph@labeledge[2]{%
   \edef\pgph@ef{\pgph@resolve{#1}}%
   \ifx\pgph@ef\@empty\else
-    \expandafter\pgph@plainedge\expandafter{\pgph@ef}{#2}%
+    \@for\pgph@one:=#2\do{%
+      \edef\pgph@k{\expandafter\pgph@trimsp\expandafter{\pgph@one}}%
+      \pgph@plainedge{\pgph@ef}{\pgph@k}}%
   \fi
 }
 \newcommand\proofgraphignore[2]{%
