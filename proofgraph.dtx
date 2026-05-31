@@ -29,13 +29,9 @@
 % This documentation is itself a proofgraph document: the example results in
 % the introduction are typeset with the package enabled, and the graph shown
 % there is the one they produce (rendered automatically thanks to autorun).
-\theoremstyle{plain}
 \newtheorem{theorem}{Theorem}
 \newtheorem{lemma}{Lemma}
 \newtheorem{corollary}{Corollary}
-\theoremstyle{definition}
-\newtheorem{example}{Example}
-\theoremstyle{plain}
 \proofgraphstyle{theorem}{shape=box,style=filled,fillcolor=gold}
 \proofgraphstyle{corollary}{shape=box,style="rounded,filled",fillcolor=palegoldenrod}
 \proofgraphstyle{lemma}{shape=ellipse,style=filled,fillcolor=lightgray}
@@ -117,13 +113,11 @@
 % \emph{inside a proof} becomes an edge from the proved result to the
 % referred-to result. No manual annotation is required.
 %
-% The package is best explained by example. Throughout this documentation,
-% the examples are genuine: this manual is itself a \proofgraph\ document, so
-% the results stated below are really typeset with the package enabled, and the
-% graph shown at the end of this section is the one they produce.
+% The package is best explained by a small example of its use. This manual is
+% itself a \proofgraph\ document, so the results stated below are really typeset
+% with the package enabled, and the graph shown at the end of this section is
+% the one they produce.
 %
-% \begin{example}
-% \label{ex:intro}
 % Load \proofgraph\ after the theorem-providing package, and declare the usual
 % theorem-like environments:
 % \begin{quote}
@@ -176,9 +170,7 @@
 % \begin{proof}
 %   Apply Theorem~\ref{thm:parity} to $n$ and $n$.
 % \end{proof}
-% \end{example}
-%
-% \noindent In addition, \proofgraph\ writes out the dependency graph below.
+% In addition, \proofgraph\ writes out the dependency graph below.
 % Here it is rendered with \Graphviz\ and embedded automatically, thanks to the
 % |autorun| option:
 % \begin{center}
