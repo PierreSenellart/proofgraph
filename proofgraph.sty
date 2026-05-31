@@ -128,16 +128,18 @@
   \fi
 }
 \newcommand\pgph@beginproof{%
-  \ifpgph@hookproof
-    \let\pgph@curproof\pgph@curresult
-    \pgph@install{ref}\pgph@install{cref}\pgph@install{Cref}%
-    \pgph@install{autoref}\pgph@install{eqref}\pgph@install{vref}%
-    \ifpgph@cite\pgph@installcite\fi
-  \fi
+  \let\pgph@curproof\pgph@curresult
+  \pgph@install{ref}\pgph@install{cref}\pgph@install{Cref}%
+  \pgph@install{autoref}\pgph@install{eqref}\pgph@install{vref}%
+  \ifpgph@cite\pgph@installcite\fi
 }
-\AtBeginEnvironment{proof}{\pgph@beginproof}
-\newif\ifpgph@hookproof \pgph@hookprooftrue
-\AtBeginDocument{\@ifpackageloaded{apxproof}{\pgph@hookprooffalse}{}}
+\newif\ifpgph@apxproof
+\providecommand\pgph@apxinit{}
+\AtBeginDocument{%
+  \@ifpackageloaded{apxproof}%
+    {\pgph@apxprooftrue\pgph@apxinit}%
+    {\AtBeginEnvironment{proof}{\pgph@beginproof}}%
+}
 \newcommand\pgph@cap@cite[2][]{%
   \ifx\pgph@curproof\@empty\else
     \@for\pgph@one:=#2\do{\pgph@addedge{\pgph@curproof}{cite:\pgph@one}}%

@@ -370,24 +370,27 @@
   \fi
 }
 \newcommand\pgph@beginproof{%
-  \ifpgph@hookproof
-    \let\pgph@curproof\pgph@curresult
-    \pgph@install{ref}\pgph@install{cref}\pgph@install{Cref}%
-    \pgph@install{autoref}\pgph@install{eqref}\pgph@install{vref}%
-    \ifpgph@cite\pgph@installcite\fi
-  \fi
+  \let\pgph@curproof\pgph@curresult
+  \pgph@install{ref}\pgph@install{cref}\pgph@install{Cref}%
+  \pgph@install{autoref}\pgph@install{eqref}\pgph@install{vref}%
+  \ifpgph@cite\pgph@installcite\fi
 }
-\AtBeginEnvironment{proof}{\pgph@beginproof}
 %    \end{macrocode}
 % Packages such as \apxproof\ capture the body of a |proof| verbatim (to
-% defer it to the appendix) and replay it elsewhere. Installing our hooks at
-% the |proof| begin then both corrupts that verbatim capture and misses the
-% references (which are only executed at replay time). When such a package
-% is detected we disable the begin-|proof| hook; capturing deferred-proof
-% dependencies is handled separately (and authors can use |\uses|).
+% defer it to the appendix) and replay it there. Patching the |proof|
+% environment then corrupts that capture (its |\proof| has delimited
+% arguments), and the references are only executed at replay time anyway.
+% So the standard begin-|proof| hook is installed only when no such package
+% is active; otherwise the deferred-proof capture (below) takes over. The
+% registration happens at |\begin{document}|, once we know what is loaded.
 %    \begin{macrocode}
-\newif\ifpgph@hookproof \pgph@hookprooftrue
-\AtBeginDocument{\@ifpackageloaded{apxproof}{\pgph@hookprooffalse}{}}
+\newif\ifpgph@apxproof
+\providecommand\pgph@apxinit{}
+\AtBeginDocument{%
+  \@ifpackageloaded{apxproof}%
+    {\pgph@apxprooftrue\pgph@apxinit}%
+    {\AtBeginEnvironment{proof}{\pgph@beginproof}}%
+}
 %    \end{macrocode}
 % \end{macro}
 %
