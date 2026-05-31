@@ -29,9 +29,13 @@
 % This documentation is itself a proofgraph document: the example results in
 % the introduction are typeset with the package enabled, and the graph shown
 % there is the one they produce (rendered automatically thanks to autorun).
+\theoremstyle{plain}
 \newtheorem{theorem}{Theorem}
 \newtheorem{lemma}{Lemma}
 \newtheorem{corollary}{Corollary}
+\theoremstyle{definition}
+\newtheorem{example}{Example}
+\theoremstyle{plain}
 \proofgraphstyle{theorem}{shape=box,style=filled,fillcolor=gold}
 \proofgraphstyle{corollary}{shape=box,style="rounded,filled",fillcolor=palegoldenrod}
 \proofgraphstyle{lemma}{shape=ellipse,style=filled,fillcolor=lightgray}
@@ -113,15 +117,25 @@
 % \emph{inside a proof} becomes an edge from the proved result to the
 % referred-to result. No manual annotation is required.
 %
-% The package is best explained by example. Suppose a document loads
-% \proofgraph\ and defines a few theorem-like environments,
+% The package is best explained by example. Throughout this documentation,
+% the examples are genuine: this manual is itself a \proofgraph\ document, so
+% the results stated below are really typeset with the package enabled, and the
+% graph shown at the end of this section is the one they produce.
+%
+% \begin{example}
+% \label{ex:intro}
+% Load \proofgraph\ after the theorem-providing package, and declare the usual
+% theorem-like environments:
+% \begin{quote}
 % \begin{verbatim}
 % \usepackage{proofgraph}
 % \newtheorem{theorem}{Theorem}
 % \newtheorem{lemma}{Lemma}
 % \newtheorem{corollary}{Corollary}
 % \end{verbatim}
-% and then states and proves some results that build on one another:
+% \end{quote}
+% Then state and prove, as usual, a few results that build on one another:
+% \begin{quote}
 % \begin{verbatim}
 % \begin{lemma}\label{lem:even}
 %   The sum of two even integers is even.
@@ -142,9 +156,8 @@
 %   Apply Theorem~\ref{thm:parity} to $n$ and $n$.
 % \end{proof}
 % \end{verbatim}
-% Typeset with \proofgraph\ enabled, these results read as usual --- this
-% very documentation is a \proofgraph\ document, so the following are the
-% genuine output:
+% \end{quote}
+% We obtain the following results, exactly as without the package:
 % \begin{lemma}\label{lem:even}
 %   The sum of two even integers is even.
 % \end{lemma}
@@ -163,15 +176,18 @@
 % \begin{proof}
 %   Apply Theorem~\ref{thm:parity} to $n$ and $n$.
 % \end{proof}
-% \noindent and \proofgraph\ writes out, behind the scenes, the dependency
-% graph below (here rendered and embedded automatically, in |autorun| mode):
+% \end{example}
+%
+% \noindent In addition, \proofgraph\ writes out the dependency graph below.
+% Here it is rendered with \Graphviz\ and embedded automatically, thanks to the
+% |autorun| option:
 % \begin{center}
 % \embedproofgraph[width=0.7\textwidth]
 % \end{center}
-% Each proof's cross-references become arrows \emph{into} the result they
-% prove: the two lemmas point to Theorem~\ref{thm:parity}, which in turn
-% points to Corollary~\ref{cor:double}. The rest of this manual explains how
-% to obtain, tune and extend such graphs.
+% Each cross-reference made inside a proof becomes an arrow \emph{into} the
+% result that proof establishes: the two lemmas point to
+% Theorem~\ref{thm:parity}, which in turn points to Corollary~\ref{cor:double}.
+% The rest of this manual explains how to obtain, tune and extend such graphs.
 %
 % \section{Usage}
 %
