@@ -1,0 +1,44 @@
+# NOTE: proofgraph.sty is intentionally tracked (like apxproof.sty) so the
+# latest dev version of the package can be pointed to directly from the repo.
+
+# LaTeX / l3build / docs auxiliary files
+*.aux
+*.glo
+*.gls
+*.glg
+*.hd
+*.idx
+*.ilg
+*.ind
+*.log
+*.out
+*.toc
+*.bbl
+*.blg
+*.fls
+*.fdb_latexmk
+*.synctex.gz
+*~
+build/
+
+# Graphviz output written by the package
+*.dot
+
+# Claude artifacts (kept local, never tracked)
+PLAN.md
+.claude/
+CLAUDE.md
+
+# Regression-test diffs
+examples/pdfdiff/
+
+# Private real-world test papers (past articles): never published in the
+# public repo. These live in a SEPARATE PRIVATE repo wired in as a git
+# submodule at examples/realworld/ (see PLAN.md "real-world" section).
+#
+# IMPORTANT: once examples/realworld/ is added as a submodule, REMOVE the
+# ignore line below — a submodule path must be tracked (as a gitlink), and
+# cannot be both ignored and a submodule. The line is kept for now (before
+# the submodule exists) only to prevent accidentally committing the loose
+# papers into the public repo.
+examples/realworld/
