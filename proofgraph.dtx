@@ -25,10 +25,13 @@
 %<*driver>
 \documentclass{ltxdoc}
 \usepackage{hypdoc}
+\usepackage{tikz}
 \usepackage[autorun]{proofgraph}
 % This documentation is itself a proofgraph document: the example results in
 % the introduction are typeset with the package enabled, and the graph shown
 % there is the one they produce (rendered automatically thanks to autorun).
+% TikZ and hyperref (via hypdoc) are loaded, so the nodes of that graph are
+% clickable: each links to the result it represents.
 \newtheorem{theorem}{Theorem}
 \newtheorem{lemma}{Lemma}
 \newtheorem{corollary}{Corollary}
@@ -45,6 +48,7 @@
 \RecordChanges
 \begin{document}
   \DocInput{proofgraph.dtx}
+  \clearpage
   \PrintIndex
   \PrintChanges
 \end{document}
@@ -179,6 +183,9 @@
 % Each cross-reference made inside a proof becomes an arrow \emph{into} the
 % result that proof establishes: the two lemmas point to
 % Theorem~\ref{thm:parity}, which in turn points to Corollary~\ref{cor:double}.
+% Moreover, since this manual loads \textsf{hyperref} and \textsf{TikZ}, the
+% nodes of the graph above are \emph{clickable}: try clicking one to jump to the
+% result it represents (see |\proofgraph| and the |hyperlinks| option below).
 % The rest of this manual explains how to obtain, tune and extend such graphs.
 %
 % \section{Usage}
@@ -256,7 +263,14 @@
 %
 % \DescribeMacro{\proofgraph}
 % In |autorun| mode, |\proofgraph| includes the rendered graph at that
-% point (using the image produced on the previous run).
+% point (using the image produced on the previous run). If \textsf{hyperref}
+% and \textsf{TikZ} are both loaded (and |hyperlinks| is left on), every node is
+% turned into an internal hyperlink to the result it represents: \Graphviz\
+% writes the node positions to a |-Tplain| file, and |\proofgraph| overlays a
+% transparent |\hyperref| area on each node over the image. This is needed
+% because the link annotations \Graphviz\ puts in the |.pdf| would be discarded
+% by |\includegraphics|. An optional argument is passed to the underlying
+% |\includegraphics|, e.g.\ |\proofgraph[width=\linewidth]|.
 %
 % \subsection{Options}
 %
@@ -273,6 +287,11 @@
 %
 % \DescribeOption{format}
 % Output format for |autorun|/|\proofgraph| (default |pdf|).
+%
+% \DescribeOption{hyperlinks}
+% |hyperlinks| (boolean, default true) makes the nodes of an embedded graph
+% clickable when \textsf{hyperref} and \textsf{TikZ} are available (see
+% |\proofgraph|). Set |hyperlinks=false| to embed the graph as a plain image.
 %
 % \DescribeOption{direction}
 % |direction=usedby| (default) orients an edge from the result that is used to
@@ -362,6 +381,7 @@
 \DeclareStringOption[usedby]{direction}
 \DeclareBoolOption{cite}
 \DeclareStringOption[key]{citelabel}
+\DeclareBoolOption[true]{hyperlinks}
 \DeclareStringOption{file}
 \ProcessKeyvalOptions*
 \ifx\pgph@file\@empty\def\pgph@file{\jobname}\fi
@@ -398,10 +418,14 @@
 % and in the |.aux| file, that the user label maps to the current node
 % id, so references resolve independently of \textsf{hyperref}.
 %    \begin{macrocode}
-\newcommand\pgph@auxmap[2]{\global\@namedef{pgph@map@#1}{#2}}
+\newcommand\pgph@auxmap[2]{\global\@namedef{pgph@map@#1}{#2}%
+  \ifcsname pgph@rmap@#2\endcsname\else\global\@namedef{pgph@rmap@#2}{#1}\fi}
 \newcommand\pgph@setmap[2]{%
   \edef\pgph@tmpid{#2}%
   \global\expandafter\edef\csname pgph@map@#1\endcsname{\pgph@tmpid}%
+  \ifcsname pgph@rmap@\pgph@tmpid\endcsname\else
+    \global\expandafter\def\csname pgph@rmap@\pgph@tmpid\endcsname{#1}%
+  \fi
   \protected@write\@auxout{}{\string\pgph@auxmap{#1}{\pgph@tmpid}}%
 }
 %    \end{macrocode}
@@ -954,6 +978,10 @@
     \csname pgph@name@#1\endcsname\else#3\fi}%
   \immediate\write\pgph@out{%
     \space\space"n#1" [label="\pgph@dn\space\pgph@nm"\pgph@s];}%
+  \ifcsname pgph@rmap@#1\endcsname
+    \immediate\write\pgph@mapout{%
+      \string\pgphnodemap{n#1}{\csname pgph@rmap@#1\endcsname}}%
+  \fi
 }
 %    \end{macrocode}
 % \end{macro}
@@ -1097,8 +1125,10 @@
 % and optionally run \Graphviz.
 %    \begin{macrocode}
 \newwrite\pgph@out
+\newwrite\pgph@mapout
 \newcommand\pgph@emit{%
   \immediate\openout\pgph@out=\pgph@file.dot\relax
+  \immediate\openout\pgph@mapout=\pgph@file-proofgraph.map\relax
   \immediate\write\pgph@out{digraph proofgraph \pgph@ob}%
   \immediate\write\pgph@out{\space\space rankdir="\pgph@rankdir";}%
   \begingroup
@@ -1109,9 +1139,12 @@
   \endgroup
   \immediate\write\pgph@out{\pgph@cb}%
   \immediate\closeout\pgph@out
+  \immediate\closeout\pgph@mapout
   \ifpgph@autorun
     \immediate\write18{\pgph@engine\space -T\pgph@format\space
       \pgph@file.dot -o \pgph@file-proofgraph.\pgph@format}%
+    \immediate\write18{\pgph@engine\space -Tplain\space
+      \pgph@file.dot -o \pgph@file-proofgraph.plain}%
   \fi
 }
 %    \end{macrocode}
@@ -1124,17 +1157,106 @@
 %    \begin{macrocode}
 \AtBeginDocument{\AtEndDocument{\pgph@emit}}
 %    \end{macrocode}
+% If \textsf{TikZ} is available, load its |calc| library now (at
+% |\begin{document}|, where category codes are normal) so that the hyperlink
+% overlay in |\proofgraph| can use it without reading a file mid-document.
+%    \begin{macrocode}
+\AtBeginDocument{\@ifpackageloaded{tikz}{\usetikzlibrary{calc}}{}}
+%    \end{macrocode}
+% \end{macro}
+%
+% \begin{macro}{\pgphnodemap}
+% One entry of the node-to-label map written by |\pgph@emit|: it records, for a
+% \Graphviz\ node identifier, the user label of the result it represents. The map
+% is read back when the graph is embedded, to turn each node into a hyperlink.
+%    \begin{macrocode}
+\newcommand\pgphnodemap[2]{\global\@namedef{pgph@lbl@#1}{#2}}
+%    \end{macrocode}
 % \end{macro}
 %
 % \begin{macro}{\proofgraph}
-% Include the rendered graph (from a previous run) in |autorun| mode.
+% Include the rendered graph (from a previous run) in |autorun| mode. When
+% \textsf{hyperref} and \textsf{TikZ} are both available (and |hyperlinks| is not
+% switched off), each node is made into an internal hyperlink to the result it
+% represents: \Graphviz\ produces a |.pdf| whose link annotations would be lost
+% by |\includegraphics| (they sit inside a form \textsc{xobject}), so instead we
+% overlay transparent |\hyperref| areas at the node positions, which we read from
+% the |-Tplain| output. Without those packages we fall back to a plain inclusion.
 %    \begin{macrocode}
+\newif\ifpgph@canlink
+\newsavebox\pgph@imgbox
+\newread\pgph@plainin
+\def\pgph@stop{}
 \newcommand\proofgraph[1][]{%
   \IfFileExists{\pgph@file-proofgraph.\pgph@format}%
-    {\includegraphics[#1]{\pgph@file-proofgraph.\pgph@format}}%
+    {\pgph@includegraph{#1}}%
     {\PackageWarning{proofgraph}{Rendered graph
        \pgph@file-proofgraph.\pgph@format\space not found; compile with
        shell-escape and the autorun option, then re-run}}%
+}
+\newcommand\pgph@includegraph[1]{%
+  \pgph@canlinkfalse
+  \ifpgph@hyperlinks
+    \@ifpackageloaded{hyperref}%
+      {\@ifpackageloaded{tikz}%
+         {\IfFileExists{\pgph@file-proofgraph.plain}{\pgph@canlinktrue}{}}{}}{}%
+  \fi
+  \ifpgph@canlink
+    \pgph@graphlinked{#1}%
+  \else
+    \includegraphics[#1]{\pgph@file-proofgraph.\pgph@format}%
+  \fi
+}
+%    \end{macrocode}
+% The linked version. We read the node-to-label map under safe category codes (a
+% label may contain |_| or, under \textsf{babel}, an active |:|), measure the
+% rendered image, place it in a \textsf{TikZ} node, then read the |-Tplain| file
+% and drop one transparent |\hyperref| box on each labelled node. Positions are
+% expressed as fractions of the bounding box, so they follow whatever size the
+% image is scaled to.
+%    \begin{macrocode}
+\newcommand\pgph@graphlinked[1]{%
+  \begingroup
+    \catcode`\:=12 \catcode`\_=12 \catcode`\;=12 \catcode`\!=12
+    \catcode`\?=12 \catcode`\&=12 \catcode`\^=12 \catcode`\~=12
+    \InputIfFileExists{\pgph@file-proofgraph.map}{}{}%
+  \endgroup
+  \sbox\pgph@imgbox{\includegraphics[#1]{\pgph@file-proofgraph.\pgph@format}}%
+  \edef\pgph@imgw{\the\wd\pgph@imgbox}%
+  \edef\pgph@imgh{\the\dimexpr\ht\pgph@imgbox+\dp\pgph@imgbox\relax}%
+  \begin{tikzpicture}
+    \node[inner sep=\z@,outer sep=\z@](pgph@P){\usebox\pgph@imgbox};
+    \openin\pgph@plainin=\pgph@file-proofgraph.plain\relax
+    \pgph@loopplain
+    \closein\pgph@plainin
+  \end{tikzpicture}%
+}
+\newcommand\pgph@loopplain{%
+  \unless\ifeof\pgph@plainin
+    \read\pgph@plainin to \pgph@line
+    \pgph@procline
+    \expandafter\pgph@loopplain
+  \fi
+}
+\newcommand\pgph@procline{%
+  \IfBeginWith{\pgph@line}{graph }%
+    {\expandafter\pgph@dograph\pgph@line\pgph@stop}%
+    {\IfBeginWith{\pgph@line}{node }%
+       {\expandafter\pgph@donode\pgph@line\pgph@stop}{}}%
+}
+\def\pgph@dograph graph #1 #2 #3 #4\pgph@stop{%
+  \def\pgph@gw{#2}\def\pgph@gh{#3}}
+\def\pgph@donode node #1 #2 #3 #4 #5 #6\pgph@stop{%
+  \ifcsname pgph@lbl@#1\endcsname
+    \pgfmathsetmacro\pgph@fx{#2/\pgph@gw}%
+    \pgfmathsetmacro\pgph@fy{#3/\pgph@gh}%
+    \pgfmathsetlengthmacro\pgph@bw{#4/\pgph@gw*\pgph@imgw*0.9}%
+    \pgfmathsetlengthmacro\pgph@bh{#5/\pgph@gh*\pgph@imgh*0.85}%
+    \edef\pgph@thislbl{\csname pgph@lbl@#1\endcsname}%
+    \node[anchor=center] at ($($(pgph@P.south west)!\pgph@fx!(pgph@P.south east)$)%
+      !\pgph@fy!($(pgph@P.north west)!\pgph@fx!(pgph@P.north east)$)$)
+      {\hyperref[\pgph@thislbl]{\phantom{\rule{\pgph@bw}{\pgph@bh}}}};%
+  \fi
 }
 %    \end{macrocode}
 % \end{macro}

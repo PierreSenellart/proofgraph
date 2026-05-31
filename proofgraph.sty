@@ -45,6 +45,7 @@
 \DeclareStringOption[usedby]{direction}
 \DeclareBoolOption{cite}
 \DeclareStringOption[key]{citelabel}
+\DeclareBoolOption[true]{hyperlinks}
 \DeclareStringOption{file}
 \ProcessKeyvalOptions*
 \ifx\pgph@file\@empty\def\pgph@file{\jobname}\fi
@@ -61,10 +62,14 @@
 \def\pgph@excludes{}
 \let\pgph@curresult\@empty
 \let\pgph@curproof\@empty
-\newcommand\pgph@auxmap[2]{\global\@namedef{pgph@map@#1}{#2}}
+\newcommand\pgph@auxmap[2]{\global\@namedef{pgph@map@#1}{#2}%
+  \ifcsname pgph@rmap@#2\endcsname\else\global\@namedef{pgph@rmap@#2}{#1}\fi}
 \newcommand\pgph@setmap[2]{%
   \edef\pgph@tmpid{#2}%
   \global\expandafter\edef\csname pgph@map@#1\endcsname{\pgph@tmpid}%
+  \ifcsname pgph@rmap@\pgph@tmpid\endcsname\else
+    \global\expandafter\def\csname pgph@rmap@\pgph@tmpid\endcsname{#1}%
+  \fi
   \protected@write\@auxout{}{\string\pgph@auxmap{#1}{\pgph@tmpid}}%
 }
 \let\pgph@candidates\@empty
@@ -387,6 +392,10 @@
     \csname pgph@name@#1\endcsname\else#3\fi}%
   \immediate\write\pgph@out{%
     \space\space"n#1" [label="\pgph@dn\space\pgph@nm"\pgph@s];}%
+  \ifcsname pgph@rmap@#1\endcsname
+    \immediate\write\pgph@mapout{%
+      \string\pgphnodemap{n#1}{\csname pgph@rmap@#1\endcsname}}%
+  \fi
 }
 \newcommand\pgph@edge[2]{%
   \IfBeginWith{#2}{cite:}%
@@ -473,8 +482,10 @@
     \pgph@cbase}%
 }
 \newwrite\pgph@out
+\newwrite\pgph@mapout
 \newcommand\pgph@emit{%
   \immediate\openout\pgph@out=\pgph@file.dot\relax
+  \immediate\openout\pgph@mapout=\pgph@file-proofgraph.map\relax
   \immediate\write\pgph@out{digraph proofgraph \pgph@ob}%
   \immediate\write\pgph@out{\space\space rankdir="\pgph@rankdir";}%
   \begingroup
@@ -485,18 +496,83 @@
   \endgroup
   \immediate\write\pgph@out{\pgph@cb}%
   \immediate\closeout\pgph@out
+  \immediate\closeout\pgph@mapout
   \ifpgph@autorun
     \immediate\write18{\pgph@engine\space -T\pgph@format\space
       \pgph@file.dot -o \pgph@file-proofgraph.\pgph@format}%
+    \immediate\write18{\pgph@engine\space -Tplain\space
+      \pgph@file.dot -o \pgph@file-proofgraph.plain}%
   \fi
 }
 \AtBeginDocument{\AtEndDocument{\pgph@emit}}
+\AtBeginDocument{\@ifpackageloaded{tikz}{\usetikzlibrary{calc}}{}}
+\newcommand\pgphnodemap[2]{\global\@namedef{pgph@lbl@#1}{#2}}
+\newif\ifpgph@canlink
+\newsavebox\pgph@imgbox
+\newread\pgph@plainin
+\def\pgph@stop{}
 \newcommand\proofgraph[1][]{%
   \IfFileExists{\pgph@file-proofgraph.\pgph@format}%
-    {\includegraphics[#1]{\pgph@file-proofgraph.\pgph@format}}%
+    {\pgph@includegraph{#1}}%
     {\PackageWarning{proofgraph}{Rendered graph
        \pgph@file-proofgraph.\pgph@format\space not found; compile with
        shell-escape and the autorun option, then re-run}}%
+}
+\newcommand\pgph@includegraph[1]{%
+  \pgph@canlinkfalse
+  \ifpgph@hyperlinks
+    \@ifpackageloaded{hyperref}%
+      {\@ifpackageloaded{tikz}%
+         {\IfFileExists{\pgph@file-proofgraph.plain}{\pgph@canlinktrue}{}}{}}{}%
+  \fi
+  \ifpgph@canlink
+    \pgph@graphlinked{#1}%
+  \else
+    \includegraphics[#1]{\pgph@file-proofgraph.\pgph@format}%
+  \fi
+}
+\newcommand\pgph@graphlinked[1]{%
+  \begingroup
+    \catcode`\:=12 \catcode`\_=12 \catcode`\;=12 \catcode`\!=12
+    \catcode`\?=12 \catcode`\&=12 \catcode`\^=12 \catcode`\~=12
+    \InputIfFileExists{\pgph@file-proofgraph.map}{}{}%
+  \endgroup
+  \sbox\pgph@imgbox{\includegraphics[#1]{\pgph@file-proofgraph.\pgph@format}}%
+  \edef\pgph@imgw{\the\wd\pgph@imgbox}%
+  \edef\pgph@imgh{\the\dimexpr\ht\pgph@imgbox+\dp\pgph@imgbox\relax}%
+  \begin{tikzpicture}
+    \node[inner sep=\z@,outer sep=\z@](pgph@P){\usebox\pgph@imgbox};
+    \openin\pgph@plainin=\pgph@file-proofgraph.plain\relax
+    \pgph@loopplain
+    \closein\pgph@plainin
+  \end{tikzpicture}%
+}
+\newcommand\pgph@loopplain{%
+  \unless\ifeof\pgph@plainin
+    \read\pgph@plainin to \pgph@line
+    \pgph@procline
+    \expandafter\pgph@loopplain
+  \fi
+}
+\newcommand\pgph@procline{%
+  \IfBeginWith{\pgph@line}{graph }%
+    {\expandafter\pgph@dograph\pgph@line\pgph@stop}%
+    {\IfBeginWith{\pgph@line}{node }%
+       {\expandafter\pgph@donode\pgph@line\pgph@stop}{}}%
+}
+\def\pgph@dograph graph #1 #2 #3 #4\pgph@stop{%
+  \def\pgph@gw{#2}\def\pgph@gh{#3}}
+\def\pgph@donode node #1 #2 #3 #4 #5 #6\pgph@stop{%
+  \ifcsname pgph@lbl@#1\endcsname
+    \pgfmathsetmacro\pgph@fx{#2/\pgph@gw}%
+    \pgfmathsetmacro\pgph@fy{#3/\pgph@gh}%
+    \pgfmathsetlengthmacro\pgph@bw{#4/\pgph@gw*\pgph@imgw*0.9}%
+    \pgfmathsetlengthmacro\pgph@bh{#5/\pgph@gh*\pgph@imgh*0.85}%
+    \edef\pgph@thislbl{\csname pgph@lbl@#1\endcsname}%
+    \node[anchor=center] at ($($(pgph@P.south west)!\pgph@fx!(pgph@P.south east)$)%
+      !\pgph@fy!($(pgph@P.north west)!\pgph@fx!(pgph@P.north east)$)$)
+      {\hyperref[\pgph@thislbl]{\phantom{\rule{\pgph@bw}{\pgph@bh}}}};%
+  \fi
 }
 \endinput
 %%
