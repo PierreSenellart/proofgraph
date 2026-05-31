@@ -33,5 +33,3 @@ CLAUDE.md
 # Regression-test diffs
 examples/pdfdiff/
 
-# Generated documentation (rebuild with: make / l3build doc)
-proofgraph.pdf
