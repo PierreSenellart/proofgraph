@@ -93,7 +93,7 @@
   \protected@edef\pgph@tmp{%
     \noexpand\pgph@node{\pgph@curresult}{#1}{#2}}%
   \expandafter\g@addto@macro\expandafter\pgph@nodes\expandafter{\pgph@tmp}%
-  \let\pgph@savedlabel\label
+  \ifx\label\pgph@maplabel\else\let\pgph@savedlabel\label\fi
   \let\label\pgph@maplabel
 }
 \newcommand\pgph@maplabel[1]{%
@@ -111,16 +111,19 @@
     \@for\pgph@one:=#1\do{\pgph@addedge{\pgph@curproof}{\pgph@one}}%
   \fi
 }
-\newcommand\pgph@cap@ref[1]{\pgph@recordref{#1}\pgph@saved@ref{#1}}
-\newcommand\pgph@cap@cref[1]{\pgph@recordref{#1}\pgph@saved@cref{#1}}
-\newcommand\pgph@cap@Cref[1]{\pgph@recordref{#1}\pgph@saved@Cref{#1}}
-\newcommand\pgph@cap@autoref[1]{\pgph@recordref{#1}\pgph@saved@autoref{#1}}
-\newcommand\pgph@cap@eqref[1]{\pgph@recordref{#1}\pgph@saved@eqref{#1}}
-\newcommand\pgph@cap@vref[1]{\pgph@recordref{#1}\pgph@saved@vref{#1}}
+\protected\def\pgph@cap@ref#1{\pgph@recordref{#1}\pgph@saved@ref{#1}}
+\protected\def\pgph@cap@cref#1{\pgph@recordref{#1}\pgph@saved@cref{#1}}
+\protected\def\pgph@cap@Cref#1{\pgph@recordref{#1}\pgph@saved@Cref{#1}}
+\protected\def\pgph@cap@autoref#1{\pgph@recordref{#1}\pgph@saved@autoref{#1}}
+\protected\def\pgph@cap@eqref#1{\pgph@recordref{#1}\pgph@saved@eqref{#1}}
+\protected\def\pgph@cap@vref#1{\pgph@recordref{#1}\pgph@saved@vref{#1}}
 \newcommand\pgph@install[1]{%
   \ifcsname #1\endcsname
-    \expandafter\let\csname pgph@saved@#1\expandafter\endcsname\csname #1\endcsname
-    \expandafter\let\csname #1\expandafter\endcsname\csname pgph@cap@#1\endcsname
+    \expandafter\ifx\csname #1\expandafter\endcsname\csname pgph@cap@#1\endcsname
+    \else
+      \expandafter\let\csname pgph@saved@#1\expandafter\endcsname\csname #1\endcsname
+      \expandafter\let\csname #1\expandafter\endcsname\csname pgph@cap@#1\endcsname
+    \fi
   \fi
 }
 \newcommand\pgph@beginproof{%

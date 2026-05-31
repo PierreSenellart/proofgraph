@@ -74,9 +74,11 @@
 % \def\apxproof{\textsf{apxproof}}
 % \def\Graphviz{\textsf{Graphviz}}
 %
-% \title{The \proofgraph\ package\thanks{This document
-%   corresponds to \proofgraph~v0.1.0, dated 2026/05/31.}}
+% \GetFileInfo{proofgraph.sty}
+%
+% \title{The \proofgraph\ package}
 % \author{Pierre Senellart \\ \texttt{pierre@senellart.com}}
+% \date{\filedate \quad \fileversion}
 %
 % \maketitle
 %
@@ -298,7 +300,7 @@
   \protected@edef\pgph@tmp{%
     \noexpand\pgph@node{\pgph@curresult}{#1}{#2}}%
   \expandafter\g@addto@macro\expandafter\pgph@nodes\expandafter{\pgph@tmp}%
-  \let\pgph@savedlabel\label
+  \ifx\label\pgph@maplabel\else\let\pgph@savedlabel\label\fi
   \let\label\pgph@maplabel
 }
 %    \end{macrocode}
@@ -334,16 +336,24 @@
 % Attach the proof to the current result and install the capturing
 % versions of the reference commands (only those that exist).
 %    \begin{macrocode}
-\newcommand\pgph@cap@ref[1]{\pgph@recordref{#1}\pgph@saved@ref{#1}}
-\newcommand\pgph@cap@cref[1]{\pgph@recordref{#1}\pgph@saved@cref{#1}}
-\newcommand\pgph@cap@Cref[1]{\pgph@recordref{#1}\pgph@saved@Cref{#1}}
-\newcommand\pgph@cap@autoref[1]{\pgph@recordref{#1}\pgph@saved@autoref{#1}}
-\newcommand\pgph@cap@eqref[1]{\pgph@recordref{#1}\pgph@saved@eqref{#1}}
-\newcommand\pgph@cap@vref[1]{\pgph@recordref{#1}\pgph@saved@vref{#1}}
+%    \end{macrocode}
+% The capturing commands are |\protected| so that, when a reference appears
+% in a moving argument inside a proof (e.g.\ a |\caption|), they do not
+% expand into the |.aux|/|.lof| and leak internal tokens.
+%    \begin{macrocode}
+\protected\def\pgph@cap@ref#1{\pgph@recordref{#1}\pgph@saved@ref{#1}}
+\protected\def\pgph@cap@cref#1{\pgph@recordref{#1}\pgph@saved@cref{#1}}
+\protected\def\pgph@cap@Cref#1{\pgph@recordref{#1}\pgph@saved@Cref{#1}}
+\protected\def\pgph@cap@autoref#1{\pgph@recordref{#1}\pgph@saved@autoref{#1}}
+\protected\def\pgph@cap@eqref#1{\pgph@recordref{#1}\pgph@saved@eqref{#1}}
+\protected\def\pgph@cap@vref#1{\pgph@recordref{#1}\pgph@saved@vref{#1}}
 \newcommand\pgph@install[1]{%
   \ifcsname #1\endcsname
-    \expandafter\let\csname pgph@saved@#1\expandafter\endcsname\csname #1\endcsname
-    \expandafter\let\csname #1\expandafter\endcsname\csname pgph@cap@#1\endcsname
+    \expandafter\ifx\csname #1\expandafter\endcsname\csname pgph@cap@#1\endcsname
+    \else
+      \expandafter\let\csname pgph@saved@#1\expandafter\endcsname\csname #1\endcsname
+      \expandafter\let\csname #1\expandafter\endcsname\csname pgph@cap@#1\endcsname
+    \fi
   \fi
 }
 \newcommand\pgph@beginproof{%
