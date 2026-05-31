@@ -3,7 +3,7 @@
 module = "proofgraph"
 
 typesetexe = "pdflatex"
-typesetopts = " --interaction=nonstopmode"
+typesetopts = " --interaction=nonstopmode --shell-escape"
 
 function typeset(file, dir)
   local errorlevel = tex(file, dir)

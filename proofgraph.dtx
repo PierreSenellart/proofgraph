@@ -25,7 +25,16 @@
 %<*driver>
 \documentclass{ltxdoc}
 \usepackage{hypdoc}
-\usepackage{proofgraph}
+\usepackage[autorun]{proofgraph}
+% This documentation is itself a proofgraph document: the example results in
+% the introduction are typeset with the package enabled, and the graph shown
+% there is the one they produce (rendered automatically thanks to autorun).
+\newtheorem{theorem}{Theorem}
+\newtheorem{lemma}{Lemma}
+\newtheorem{corollary}{Corollary}
+\proofgraphstyle{theorem}{shape=box,style=filled,fillcolor=gold}
+\proofgraphstyle{corollary}{shape=box,style="rounded,filled",fillcolor=palegoldenrod}
+\proofgraphstyle{lemma}{shape=ellipse,style=filled,fillcolor=lightgray}
 \makeatletter
 \newcommand\DescribeOption[1]{\leavevmode\@bsphack
   \marginpar{\raggedleft\strut\emph{option}\\\MacroFont #1\ }%
@@ -70,6 +79,7 @@
 % \DoNotIndex{\RequirePackage,\ProvidesPackage,\NeedsTeXFormat}
 % \DoNotIndex{\g@addto@macro,\@for,\do,\@gobble,\@firstofone}
 %
+% \let\embedproofgraph\proofgraph
 % \def\proofgraph{\textsf{proofgraph}}
 % \def\apxproof{\textsf{apxproof}}
 % \def\Graphviz{\textsf{Graphviz}}
@@ -101,7 +111,67 @@
 % dependency graph automatically. Each theorem-like environment becomes
 % a node; each cross-reference (|\ref|, |\cref|, \ldots) appearing
 % \emph{inside a proof} becomes an edge from the proved result to the
-% referred-to result.
+% referred-to result. No manual annotation is required.
+%
+% The package is best explained by example. Suppose a document loads
+% \proofgraph\ and defines a few theorem-like environments,
+% \begin{verbatim}
+% \usepackage{proofgraph}
+% \newtheorem{theorem}{Theorem}
+% \newtheorem{lemma}{Lemma}
+% \newtheorem{corollary}{Corollary}
+% \end{verbatim}
+% and then states and proves some results that build on one another:
+% \begin{verbatim}
+% \begin{lemma}\label{lem:even}
+%   The sum of two even integers is even.
+% \end{lemma}
+% \begin{lemma}\label{lem:odd}
+%   The sum of two odd integers is even.
+% \end{lemma}
+% \begin{theorem}\label{thm:parity}
+%   The sum of two integers of the same parity is even.
+% \end{theorem}
+% \begin{proof}
+%   By Lemma~\ref{lem:even} and Lemma~\ref{lem:odd}.
+% \end{proof}
+% \begin{corollary}\label{cor:double}
+%   For every integer $n$, the number $2n$ is even.
+% \end{corollary}
+% \begin{proof}
+%   Apply Theorem~\ref{thm:parity} to $n$ and $n$.
+% \end{proof}
+% \end{verbatim}
+% Typeset with \proofgraph\ enabled, these results read as usual --- this
+% very documentation is a \proofgraph\ document, so the following are the
+% genuine output:
+% \begin{lemma}\label{lem:even}
+%   The sum of two even integers is even.
+% \end{lemma}
+% \begin{lemma}\label{lem:odd}
+%   The sum of two odd integers is even.
+% \end{lemma}
+% \begin{theorem}\label{thm:parity}
+%   The sum of two integers of the same parity is even.
+% \end{theorem}
+% \begin{proof}
+%   By Lemma~\ref{lem:even} and Lemma~\ref{lem:odd}.
+% \end{proof}
+% \begin{corollary}\label{cor:double}
+%   For every integer $n$, the number $2n$ is even.
+% \end{corollary}
+% \begin{proof}
+%   Apply Theorem~\ref{thm:parity} to $n$ and $n$.
+% \end{proof}
+% \noindent and \proofgraph\ writes out, behind the scenes, the dependency
+% graph below (here rendered and embedded automatically, in |autorun| mode):
+% \begin{center}
+% \embedproofgraph[width=0.7\textwidth]
+% \end{center}
+% Each proof's cross-references become arrows \emph{into} the result they
+% prove: the two lemmas point to Theorem~\ref{thm:parity}, which in turn
+% points to Corollary~\ref{cor:double}. The rest of this manual explains how
+% to obtain, tune and extend such graphs.
 %
 % \section{Usage}
 %
