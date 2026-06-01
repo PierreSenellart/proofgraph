@@ -75,14 +75,11 @@
 \RecordChanges
 \begin{document}
   \DocInput{proofgraph.dtx}
-  \clearpage
-  \PrintIndex
-  \PrintChanges
 \end{document}
 %</driver>
 % \fi
 %
-% \CheckSum{0}
+% \CheckSum{1515}
 %
 % \CharacterTable
 %  {Upper-case    \A\B\C\D\E\F\G\H\I\J\K\L\M\N\O\P\Q\R\S\T\U\V\W\X\Y\Z
@@ -101,6 +98,7 @@
 %   Right brace   \}     Tilde         \~}
 %
 % \changes{v0.1.0}{2026/05/31}{Initial version}
+% \changes{v1.0.0}{2026/06/01}{First released version}
 %
 % \DoNotIndex{\newcommand,\renewcommand,\providecommand,\def,\edef,\gdef,\xdef}
 % \DoNotIndex{\let,\global,\long,\relax,\expandafter,\csname,\endcsname}
@@ -410,7 +408,11 @@
 % \item[\cmdname{proofgraph}\cmdoarg{options}]\SpecialUsageIndex{\proofgraph}%
 %   Includes the rendered graph image at this point, passing the optional
 %   \meta{options} to the underlying |\includegraphics| (e.g.,
-%   |\proofgraph[width=\linewidth]|). With the |autorun| option, \Graphviz\ is run
+%   |\proofgraph[width=\linewidth]|). This is the only feature that needs
+%   \textsf{graphicx}, which the package therefore does not load on its own: a
+%   document that uses |\proofgraph| must load \textsf{graphicx} itself (loading
+%   \textsf{tikz} for the |hyperlinks| overlay also suffices). With the |autorun|
+%   option, \Graphviz\ is run
 %   at the end of every compilation (shell-escape required) to produce that image,
 %   so |\proofgraph| embeds the graph from the previous run and is up to date
 %   after two runs. Without |autorun|, no \Graphviz\ is run: |\proofgraph| embeds
@@ -505,6 +507,12 @@
 %   {\texttt{doi:10.1007/s00224-019-09930-2}}.
 % \end{thebibliography}
 %
+% \StopEventually{
+%   \clearpage
+%   \PrintIndex
+%   \PrintChanges
+% }
+%
 % \clearpage
 % \section{Implementation}
 %
@@ -512,7 +520,7 @@
 %<*package>
 \NeedsTeXFormat{LaTeX2e}[2005/12/01]
 \ProvidesPackage{proofgraph}
-  [2026/05/31 v0.1.0 Dependency graph of results]
+  [2026/06/01 v1.0.0 Dependency graph of results]
 %    \end{macrocode}
 %
 % \subsection{Dependencies}
@@ -535,8 +543,12 @@
 \RequirePackage{etoolbox}
 \RequirePackage{xstring}
 \RequirePackage{kvoptions}
-\RequirePackage{graphicx}
 %    \end{macrocode}
+% \textsf{graphicx} is needed only to embed a rendered graph with |\proofgraph|;
+% the core |.dot|-writing machinery does not use it. Rather than burden every
+% document with it, we leave it unloaded and check for |\includegraphics| at the
+% point of use (see |\proofgraph|). When the |hyperlinks| overlay is active
+% \textsf{tikz} is loaded, which pulls \textsf{graphicx} in anyway.
 % \begin{macro}{\pgph@trimsp}
 % An expandable space-trimmer (labels inside a |\cite|/|\cref|/|\uses| list
 % arrive with the space after each comma), built on the |expl3| primitive so it
@@ -1462,11 +1474,15 @@
 \newread\pgph@plainin
 \def\pgph@stop{}
 \newcommand\proofgraph[1][]{%
-  \IfFileExists{\pgph@file-proofgraph.\pgph@format}%
-    {\pgph@includegraph{#1}}%
-    {\PackageWarning{proofgraph}{Rendered graph
-       \pgph@file-proofgraph.\pgph@format\space not found; compile with
-       shell-escape and the autorun option, then re-run}}%
+  \@ifundefined{includegraphics}%
+    {\PackageError{proofgraph}{\string\proofgraph\space requires the
+       graphicx package}{Add \string\usepackage{graphicx} to your preamble
+       to embed the rendered graph.}}%
+    {\IfFileExists{\pgph@file-proofgraph.\pgph@format}%
+      {\pgph@includegraph{#1}}%
+      {\PackageWarning{proofgraph}{Rendered graph
+         \pgph@file-proofgraph.\pgph@format\space not found; compile with
+         shell-escape and the autorun option, then re-run}}}%
 }
 \newcommand\pgph@includegraph[1]{%
   \pgph@canlinkfalse

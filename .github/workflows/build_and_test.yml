@@ -1,0 +1,17 @@
+---
+name: Build and Test proofgraph
+
+on: [push, pull_request]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    container: texlive/texlive:latest
+    steps:
+      # The private real-world suite lives in a submodule; do not fetch it.
+      - uses: actions/checkout@v4
+      - run: apt-get update
+      # graphviz provides dot, needed to render the embedded graphs of the
+      # manual (built with --shell-escape) and the synthetic test fixtures.
+      - run: apt-get install -y graphviz
+      - run: make clean && make && make test

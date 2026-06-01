@@ -27,7 +27,7 @@
 %% 
 \NeedsTeXFormat{LaTeX2e}[2005/12/01]
 \ProvidesPackage{proofgraph}
-  [2026/05/31 v0.1.0 Dependency graph of results]
+  [2026/06/01 v1.0.0 Dependency graph of results]
 \@ifpackageloaded{amsthm}{}{%
   \@ifundefined{proof}{}{%
     \let\pgph@class@proof\proof \let\pgph@class@endproof\endproof}%
@@ -38,7 +38,6 @@
 \RequirePackage{etoolbox}
 \RequirePackage{xstring}
 \RequirePackage{kvoptions}
-\RequirePackage{graphicx}
 \ExplSyntaxOn
 \cs_new:Npn \pgph@trimsp #1 { \tl_trim_spaces:n {#1} }
 \ExplSyntaxOff
@@ -575,11 +574,15 @@
 \newread\pgph@plainin
 \def\pgph@stop{}
 \newcommand\proofgraph[1][]{%
-  \IfFileExists{\pgph@file-proofgraph.\pgph@format}%
-    {\pgph@includegraph{#1}}%
-    {\PackageWarning{proofgraph}{Rendered graph
-       \pgph@file-proofgraph.\pgph@format\space not found; compile with
-       shell-escape and the autorun option, then re-run}}%
+  \@ifundefined{includegraphics}%
+    {\PackageError{proofgraph}{\string\proofgraph\space requires the
+       graphicx package}{Add \string\usepackage{graphicx} to your preamble
+       to embed the rendered graph.}}%
+    {\IfFileExists{\pgph@file-proofgraph.\pgph@format}%
+      {\pgph@includegraph{#1}}%
+      {\PackageWarning{proofgraph}{Rendered graph
+         \pgph@file-proofgraph.\pgph@format\space not found; compile with
+         shell-escape and the autorun option, then re-run}}}%
 }
 \newcommand\pgph@includegraph[1]{%
   \pgph@canlinkfalse

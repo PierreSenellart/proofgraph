@@ -31,11 +31,14 @@ In addition to a working installation of LaTeX2e, `proofgraph` relies on a few
 other packages, which should be provided by all reasonable LaTeX distributions:
 
 - `amsthm`
-- `environ`
 - `etoolbox`
 - `xstring`
 - `kvoptions`
-- `graphicx` (only when the rendered graph is embedded automatically)
+- `graphicx` (only to embed the rendered graph in the document with
+  `\proofgraph`; not needed if you only emit and render the `.dot` file)
+- `tikz` and `hyperref` (optional, only to make the embedded graph's nodes
+  clickable hyperlinks to their results; without them the graph is still
+  embedded, just without links)
 
 Rendering the `.dot` file into an image requires the external
 [Graphviz](https://graphviz.org/) tool `dot`. Automatic rendering additionally

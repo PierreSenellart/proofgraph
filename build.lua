@@ -4,6 +4,7 @@ module = "proofgraph"
 
 typesetexe = "pdflatex"
 typesetopts = " --interaction=nonstopmode --shell-escape"
+textfiles = {"*.md", "LICENSE"}
 
 -- The pre-rendered real-world example graph (Section "A real-world example" of
 -- the manual) is committed as an image and embedded with \includegraphics: the
