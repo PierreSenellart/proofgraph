@@ -1,0 +1,12 @@
+% Exercises citelabel=tag: a \cite inside a proof becomes an external node
+% labelled by its printed citation tag ([1]), recovered from the .aux. A manual
+% \bibitem keeps it single-pass and bibtex-free (two runs suffice for the tag).
+\documentclass{article}
+\usepackage{amsthm}
+\usepackage[cite,citelabel=tag]{proofgraph}
+\newtheorem{theorem}{Theorem}
+\begin{document}
+\begin{theorem}\label{t}A theorem.\end{theorem}
+\begin{proof}See \cite{knuth}.\end{proof}
+\begin{thebibliography}{9}\bibitem{knuth}A reference.\end{thebibliography}
+\end{document}

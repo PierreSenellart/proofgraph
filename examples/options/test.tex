@@ -1,0 +1,15 @@
+% Exercises four output options at once, checked against reference.dot:
+%   direction=uses  -> an edge a->b means "a uses b" (reversed from the default)
+%   selfloops=keep  -> a proof referring to its own result keeps the self-loop
+%   rankdir=TB      -> the emitted graph is top-to-bottom
+%   file=mygraph    -> the graph is written to mygraph.dot, not \jobname.dot
+\documentclass{article}
+\usepackage{amsthm}
+\usepackage[direction=uses,selfloops=keep,rankdir=TB,file=mygraph]{proofgraph}
+\newtheorem{theorem}{Theorem}
+\newtheorem{lemma}{Lemma}
+\begin{document}
+\begin{lemma}\label{l}A lemma.\end{lemma}
+\begin{theorem}\label{t}A theorem.\end{theorem}
+\begin{proof}By \ref{l}; the statement \ref{t} refers to itself.\end{proof}
+\end{document}

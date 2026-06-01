@@ -28,7 +28,13 @@
 \NeedsTeXFormat{LaTeX2e}[2005/12/01]
 \ProvidesPackage{proofgraph}
   [2026/05/31 v0.1.0 Dependency graph of results]
+\@ifpackageloaded{amsthm}{}{%
+  \@ifundefined{proof}{}{%
+    \let\pgph@class@proof\proof \let\pgph@class@endproof\endproof}%
+  \let\proof\relax \let\endproof\relax}
 \RequirePackage{amsthm}
+\@ifundefined{pgph@class@proof}{}{%
+  \let\proof\pgph@class@proof \let\endproof\pgph@class@endproof}
 \RequirePackage{etoolbox}
 \RequirePackage{xstring}
 \RequirePackage{kvoptions}
@@ -56,6 +62,7 @@
   \gdef\pgph@cb[}]%
 \endgroup
 \newcount\pgph@idcnt
+\newcount\pgph@citeslotcnt
 \def\pgph@nodes{}
 \def\pgph@edges{}
 \def\pgph@ignores{}
@@ -63,7 +70,8 @@
 \let\pgph@curresult\@empty
 \let\pgph@curproof\@empty
 \newcommand\pgph@auxmap[2]{\global\@namedef{pgph@map@#1}{#2}%
-  \ifcsname pgph@rmap@#2\endcsname\else\global\@namedef{pgph@rmap@#2}{#1}\fi}
+  \ifcsname pgph@rmap@#2\endcsname\else
+    \global\@namedef{pgph@rmap@#2}{#1}\fi}
 \newcommand\pgph@setmap[2]{%
   \edef\pgph@tmpid{#2}%
   \global\expandafter\edef\csname pgph@map@#1\endcsname{\pgph@tmpid}%
@@ -88,17 +96,20 @@
 }
 \let\pgph@orig@newtheorem\newtheorem
 \renewcommand\newtheorem{\@ifstar{\pgph@nt@star}{\pgph@nt@plain}}
-\newcommand\pgph@nt@plain[1]{\pgph@register{#1}\pgph@orig@newtheorem{#1}}
+\newcommand\pgph@nt@plain[1]{%
+  \pgph@register{#1}\pgph@orig@newtheorem{#1}}
 \newcommand\pgph@nt@star[1]{\pgph@orig@newtheorem*{#1}}
 \ifdefined\spnewtheorem
   \let\pgph@orig@spnewtheorem\spnewtheorem
-  \renewcommand\spnewtheorem{\@ifstar{\pgph@spnt@star}{\pgph@spnt@plain}}
-  \newcommand\pgph@spnt@plain[1]{\pgph@register{#1}\pgph@orig@spnewtheorem{#1}}
+  \renewcommand\spnewtheorem{%
+    \@ifstar{\pgph@spnt@star}{\pgph@spnt@plain}}
+  \newcommand\pgph@spnt@plain[1]{%
+    \pgph@register{#1}\pgph@orig@spnewtheorem{#1}}
   \newcommand\pgph@spnt@star[1]{\pgph@orig@spnewtheorem*{#1}}
 \fi
-\newcommand\pgph@defaultenvs{theorem,lemma,proposition,corollary,definition,%
-  conjecture,claim,fact,remark,example,observation,notation,problem,%
-  question,property,assumption,hypothesis,principle}
+\newcommand\pgph@defaultenvs{theorem,lemma,proposition,corollary,%
+  definition,conjecture,claim,fact,remark,example,observation,%
+  notation,problem,question,property,assumption,hypothesis,principle}
 \newcommand\pgph@defaultexclude{definition,example,remark,note}
 \newcommand\proofgraphtrack[1]{%
   \@for\pgph@one:=#1\do{%
@@ -129,7 +140,8 @@
 }
 \newcommand\pgph@resolveregistration[1]{%
   \@for\pgph@one:=#1\do{%
-    \ifcsname\pgph@one\endcsname\expandafter\pgph@register\expandafter{\pgph@one}\fi}%
+    \ifcsname\pgph@one\endcsname%
+      \expandafter\pgph@register\expandafter{\pgph@one}\fi}%
   \ifx\pgph@candidates\@empty\else
     \@for\pgph@one:=\pgph@candidates\do{%
       \expandafter\pgph@maybehook\expandafter{\pgph@one}}%
@@ -153,14 +165,21 @@
 \newcommand\pgph@hooknames{%
   \ifdefined\@begintheorem
     \let\pgph@orig@bt\@begintheorem
-    \def\@begintheorem##1##2{\pgph@recordresult{##1}{##2}\pgph@orig@bt{##1}{##2}}%
+    \ifx\@opargbegintheorem\relax
+      \def\@begintheorem##1##2[##3]{%
+        \pgph@recordresult{##1}{##2}\pgph@scanrefs{##3}%
+        \pgph@orig@bt{##1}{##2}[##3]}%
+    \else
+      \def\@begintheorem##1##2{%
+        \pgph@recordresult{##1}{##2}\pgph@orig@bt{##1}{##2}}%
+    \fi
   \fi
-  \ifdefined\@opargbegintheorem
+  \ifdefined\@opargbegintheorem\ifx\@opargbegintheorem\relax\else
     \let\pgph@orig@obt\@opargbegintheorem
     \def\@opargbegintheorem##1##2##3{%
       \pgph@recordresult{##1}{##2}\pgph@scanrefs{##3}%
       \pgph@orig@obt{##1}{##2}{##3}}%
-  \fi
+  \fi\fi
   \ifdefined\@spbegintheorem
     \let\pgph@orig@spbt\@spbegintheorem
     \def\@spbegintheorem##1##2##3##4{%
@@ -197,8 +216,8 @@
       \def\pgph@tmphn{#2}%
       \ifx\pgph@tmphn\@empty\else
         \edef\pgph@tmpnum{\@currentlabel}%
-        \global\expandafter\let\csname pgph@num@\pgph@curresult\endcsname
-                                \pgph@tmpnum
+      \global\expandafter\let\csname pgph@num@\pgph@curresult%
+        \endcsname\pgph@tmpnum
       \fi
     \endgroup
   \fi
@@ -211,7 +230,8 @@
       \let\protect\@empty
       \def\axp@forward@link##1##2{##2}%
       \edef\pgph@tmpnum{\@currentlabel}%
-      \global\expandafter\let\csname pgph@num@\pgph@curresult\endcsname\pgph@tmpnum
+      \global\expandafter\let\csname pgph@num@\pgph@curresult%
+        \endcsname\pgph@tmpnum
     \endgroup
    \fi
   \fi
@@ -219,7 +239,8 @@
 }
 \newcommand\pgph@addedge[2]{%
   \protected@edef\pgph@tmpedge{\noexpand\pgph@edge{#1}{#2}}%
-  \expandafter\g@addto@macro\expandafter\pgph@edges\expandafter{\pgph@tmpedge}%
+  \expandafter\g@addto@macro\expandafter\pgph@edges%
+    \expandafter{\pgph@tmpedge}%
 }
 \newcommand\pgph@recordref[1]{%
   \ifx\pgph@curproof\@empty\else
@@ -231,15 +252,20 @@
 \protected\def\pgph@cap@ref#1{\pgph@recordref{#1}\pgph@saved@ref{#1}}
 \protected\def\pgph@cap@cref#1{\pgph@recordref{#1}\pgph@saved@cref{#1}}
 \protected\def\pgph@cap@Cref#1{\pgph@recordref{#1}\pgph@saved@Cref{#1}}
-\protected\def\pgph@cap@autoref#1{\pgph@recordref{#1}\pgph@saved@autoref{#1}}
-\protected\def\pgph@cap@eqref#1{\pgph@recordref{#1}\pgph@saved@eqref{#1}}
+\protected\def\pgph@cap@autoref#1{%
+  \pgph@recordref{#1}\pgph@saved@autoref{#1}}
+\protected\def\pgph@cap@eqref#1{%
+  \pgph@recordref{#1}\pgph@saved@eqref{#1}}
 \protected\def\pgph@cap@vref#1{\pgph@recordref{#1}\pgph@saved@vref{#1}}
 \newcommand\pgph@install[1]{%
   \ifcsname #1\endcsname
-    \expandafter\ifx\csname #1\expandafter\endcsname\csname pgph@cap@#1\endcsname
+    \expandafter\ifx\csname #1%
+      \expandafter\endcsname\csname pgph@cap@#1\endcsname
     \else
-      \expandafter\let\csname pgph@saved@#1\expandafter\endcsname\csname #1\endcsname
-      \expandafter\let\csname #1\expandafter\endcsname\csname pgph@cap@#1\endcsname
+      \expandafter\let\csname pgph@saved@#1%
+        \expandafter\endcsname\csname #1\endcsname
+      \expandafter\let\csname #1%
+        \expandafter\endcsname\csname pgph@cap@#1\endcsname
     \fi
   \fi
 }
@@ -259,7 +285,8 @@
   \ifdefined\@spopargbegintheorem
     \let\pgph@orig@spobtp\@spopargbegintheorem
     \def\@spopargbegintheorem##1##2##3##4##5{%
-      \pgph@scanproofarg{##3}\pgph@orig@spobtp{##1}{##2}{##3}{##4}{##5}}%
+      \pgph@scanproofarg{##3}%
+      \pgph@orig@spobtp{##1}{##2}{##3}{##4}{##5}}%
   \fi
   \ifdefined\@Opargbegintheorem
     \let\pgph@orig@Obtp\@Opargbegintheorem
@@ -285,7 +312,8 @@
   \fi
 }
 \newcommand\pgph@redefproof{%
-  \expandafter\let\expandafter\pgph@proofinner\csname\string\proof\endcsname
+  \expandafter\let\expandafter\pgph@proofinner%
+    \csname\string\proof\endcsname
   \def\proof{\pgph@beginproof
     \@ifnextchar[{\pgph@proofopt}{\pgph@proofinner[\proofname]}}%
   \def\pgph@proofopt[##1]{\pgph@scanproofarg{##1}\pgph@proofinner[##1]}%
@@ -296,7 +324,8 @@
     {\pgph@apxprooftrue\pgph@apxinit}%
     {\pgph@wrapproof}%
 }
-\newcommand\pgph@apxinit{\def\apxproofhook##1{\pgph@apxproofcapture{##1}}}
+\newcommand\pgph@apxinit{%
+  \def\apxproofhook##1{\pgph@apxproofcapture{##1}}}
 \newcommand\pgph@apxproofcapture[1]{%
   \edef\pgph@curproof{\pgph@resolve{#1}}%
   \ifx\pgph@curproof\@empty\else
@@ -305,25 +334,37 @@
     \ifpgph@cite\pgph@installcite\fi
   \fi
 }
-\newcommand\pgph@cap@cite[2][]{%
+\newcommand\pgph@gxdefcs[2]{%
+  \global\expandafter\edef\csname#1\endcsname{#2}}
+\newcommand\pgph@cap@cite{%
+  \@ifnextchar[\pgph@cap@cite@opt\pgph@cap@cite@noopt}
+\def\pgph@cap@cite@opt[#1]#2{%
+  \pgph@cap@citerec{#1}{#2}\pgph@saved@cite[#1]{#2}}
+\def\pgph@cap@cite@noopt#1{\pgph@cap@citerec{}{#1}\pgph@saved@cite{#1}}
+\newcommand\pgph@cap@citerec[2]{%
   \ifx\pgph@curproof\@empty\else
-    \def\pgph@citenotearg{#1}%
     \@for\pgph@one:=#2\do{%
       \edef\pgph@k{\expandafter\pgph@trimsp\expandafter{\pgph@one}}%
-      \pgph@addedge{\pgph@curproof}{cite:\pgph@k}%
-      \ifx\pgph@citenotearg\@empty\else
-        \expandafter\pgph@recordcitenote\expandafter{\pgph@k}{#1}%
-      \fi}%
+      \pgph@citeslot{\pgph@k}{#1}%
+      \pgph@addedge{\pgph@curproof}{cite:\pgph@curslot}}%
   \fi
-  \pgph@saved@cite[#1]{#2}%
 }
-\newcommand\pgph@recordcitenote[2]{%
-  \ifcsname pgph@citenote@#1\endcsname\else
-    \begingroup
-      \pgph@citesanitize
-      \edef\pgph@tmpnote{#2}%
-      \global\expandafter\let\csname pgph@citenote@#1\endcsname\pgph@tmpnote
-    \endgroup
+\newcommand\pgph@citeslot[2]{%
+  \begingroup
+    \pgph@citesanitize
+    \xdef\pgph@gnotestr{#2}%
+  \endgroup
+  \edef\pgph@sig{#1@@\detokenize\expandafter{\pgph@gnotestr}}%
+  \ifcsname pgph@cslot@\pgph@sig\endcsname
+    \edef\pgph@curslot{\csname pgph@cslot@\pgph@sig\endcsname}%
+  \else
+    \global\advance\pgph@citeslotcnt\@ne
+    \edef\pgph@curslot{\the\pgph@citeslotcnt}%
+    \pgph@gxdefcs{pgph@cslot@\pgph@sig}{\pgph@curslot}%
+    \pgph@gxdefcs{pgph@cskey@\pgph@curslot}{#1}%
+    \ifx\pgph@gnotestr\@empty\else
+      \pgph@gxdefcs{pgph@citenote@\pgph@curslot}{\pgph@gnotestr}%
+    \fi
   \fi
 }
 \newcommand\pgph@installcite{%
@@ -371,9 +412,20 @@
   \edef\pgph@x{\pgph@resolve{#1}}%
   \ifx\pgph@x\@empty\else\@namedef{pgph@ex@\pgph@x}{}\fi
 }
+\begingroup
+  \catcode`\|=0 \catcode`\"=12 \catcode`\\=12
+  |gdef|pgph@bschar{\}%
+  |gdef|pgph@dqchar{"}%
+|endgroup
+\newcommand\pgph@dotesc[1]{%
+  \saveexpandmode\expandarg
+  \StrSubstitute{#1}{\pgph@bschar}{\pgph@bschar\pgph@bschar}[#1]%
+  \StrSubstitute{#1}{\pgph@dqchar}{\pgph@bschar\pgph@dqchar}[#1]%
+  \restoreexpandmode}
 \newcommand\pgph@node[3]{%
   \ifcsname pgph@ex@#1\endcsname\else
-    \edef\pgph@nm{\ifcsname pgph@num@#1\endcsname\csname pgph@num@#1\endcsname\fi}%
+    \edef\pgph@nm{\ifcsname pgph@num@#1\endcsname%
+      \csname pgph@num@#1\endcsname\fi}%
     \ifx\pgph@nm\@empty
       \ifcsname pgph@force@#2\endcsname
         \pgph@emitnode{#1}{#2}{#3}%
@@ -390,8 +442,10 @@
     , \csname pgph@style@#2\endcsname\fi}%
   \edef\pgph@dn{\ifcsname pgph@name@#1\endcsname
     \csname pgph@name@#1\endcsname\else#3\fi}%
+  \edef\pgph@lbl{\pgph@dn\space\pgph@nm}%
+  \pgph@dotesc\pgph@lbl
   \immediate\write\pgph@out{%
-    \space\space"n#1" [label="\pgph@dn\space\pgph@nm"\pgph@s];}%
+    \space\space"n#1" [label="\pgph@lbl"\pgph@s];}%
   \ifcsname pgph@rmap@#1\endcsname
     \immediate\write\pgph@mapout{%
       \string\pgphnodemap{n#1}{\csname pgph@rmap@#1\endcsname}}%
@@ -427,14 +481,19 @@
 }
 \newcommand\pgph@citeedge[2]{%
   \ifcsname pgph@ex@#1\endcsname\else
-    \StrBehind{#2}{cite:}[\pgph@key]%
-    \ifcsname pgph@extnode@\pgph@key\endcsname\else
-      \@namedef{pgph@extnode@\pgph@key}{}%
-      \expandafter\pgph@setcitelabel\expandafter{\pgph@key}%
+    \StrBehind{#2}{cite:}[\pgph@slot]%
+    \edef\pgph@key{\csname pgph@cskey@\pgph@slot\endcsname}%
+    \ifcsname pgph@extnode@\pgph@slot\endcsname\else
+      \@namedef{pgph@extnode@\pgph@slot}{}%
+      \expandafter\pgph@setcitelabel\expandafter{\pgph@slot}%
+      \pgph@dotesc\pgph@clabel
       \immediate\write\pgph@out{%
-        \space\space"c@\pgph@key" [label="\pgph@clabel",\pgph@citestyle];}%
+        \space\space"c@\pgph@slot"
+        [label="\pgph@clabel",\pgph@citestyle];}%
+      \immediate\write\pgph@mapout{%
+        \string\pgphnodemapcite{c@\pgph@slot}{\pgph@key}}%
     \fi
-    \pgph@emitedge{n#1}{c@\pgph@key}%
+    \pgph@emitedge{n#1}{c@\pgph@slot}%
   \fi
 }
 \edef\pgph@obrace{\expandafter\@gobble\string\{}
@@ -452,13 +511,14 @@
   \ifpgph@natnum\def\pgph@x{#1}\else\def\pgph@x{#3 #2}\fi}
 \newcommand\pgph@natdo{\expandafter\pgph@natpick\pgph@x{}{}{}\pgph@nil}
 \newcommand\pgph@setcitelabel[1]{%
-  \edef\pgph@cbase{#1}%
+  \edef\pgph@ckey{\csname pgph@cskey@#1\endcsname}%
+  \edef\pgph@cbase{\pgph@ckey}%
   \ifdefstring{\pgph@citelabel}{tag}{%
-    \ifcsname b@#1\endcsname
+    \ifcsname b@\pgph@ckey\endcsname
       \global\let\pgph@cbaseg\relax
       \begingroup
         \pgph@citesanitize
-        \edef\pgph@x{\csname b@#1\endcsname}%
+        \edef\pgph@x{\csname b@\pgph@ckey\endcsname}%
         \edef\pgph@dx{\detokenize\expandafter{\pgph@x}}%
         \IfBeginWith\pgph@dx\pgph@obrace{%
           \pgph@natnumfalse
@@ -507,8 +567,11 @@
 \AtBeginDocument{\AtEndDocument{\pgph@emit}}
 \AtBeginDocument{\@ifpackageloaded{tikz}{\usetikzlibrary{calc}}{}}
 \newcommand\pgphnodemap[2]{\global\@namedef{pgph@lbl@#1}{#2}}
+\newcommand\pgphnodemapcite[2]{\global\@namedef{pgph@clbl@#1}{#2}}
 \newif\ifpgph@canlink
+\newif\ifpgph@link
 \newsavebox\pgph@imgbox
+\newsavebox\pgph@natbox
 \newread\pgph@plainin
 \def\pgph@stop{}
 \newcommand\proofgraph[1][]{%
@@ -523,7 +586,8 @@
   \ifpgph@hyperlinks
     \@ifpackageloaded{hyperref}%
       {\@ifpackageloaded{tikz}%
-         {\IfFileExists{\pgph@file-proofgraph.plain}{\pgph@canlinktrue}{}}{}}{}%
+         {\IfFileExists{\pgph@file-proofgraph.plain}%
+            {\pgph@canlinktrue}{}}{}}{}%
   \fi
   \ifpgph@canlink
     \pgph@graphlinked{#1}%
@@ -537,9 +601,14 @@
     \catcode`\?=12 \catcode`\&=12 \catcode`\^=12 \catcode`\~=12
     \InputIfFileExists{\pgph@file-proofgraph.map}{}{}%
   \endgroup
-  \sbox\pgph@imgbox{\includegraphics[#1]{\pgph@file-proofgraph.\pgph@format}}%
+  \sbox\pgph@imgbox{%
+    \includegraphics[#1]{\pgph@file-proofgraph.\pgph@format}}%
+  \sbox\pgph@natbox{%
+    \includegraphics{\pgph@file-proofgraph.\pgph@format}}%
   \edef\pgph@imgw{\the\wd\pgph@imgbox}%
   \edef\pgph@imgh{\the\dimexpr\ht\pgph@imgbox+\dp\pgph@imgbox\relax}%
+  \edef\pgph@natw{\the\wd\pgph@natbox}%
+  \edef\pgph@nath{\the\dimexpr\ht\pgph@natbox+\dp\pgph@natbox\relax}%
   \begin{tikzpicture}
     \node[inner sep=\z@,outer sep=\z@](pgph@P){\usebox\pgph@imgbox};
     \openin\pgph@plainin=\pgph@file-proofgraph.plain\relax
@@ -563,15 +632,32 @@
 \def\pgph@dograph graph #1 #2 #3 #4\pgph@stop{%
   \def\pgph@gw{#2}\def\pgph@gh{#3}}
 \def\pgph@donode node #1 #2 #3 #4 #5 #6\pgph@stop{%
-  \ifcsname pgph@lbl@#1\endcsname
-    \pgfmathsetmacro\pgph@fx{#2/\pgph@gw}%
-    \pgfmathsetmacro\pgph@fy{#3/\pgph@gh}%
-    \pgfmathsetlengthmacro\pgph@bw{#4/\pgph@gw*\pgph@imgw*0.9}%
-    \pgfmathsetlengthmacro\pgph@bh{#5/\pgph@gh*\pgph@imgh*0.85}%
-    \edef\pgph@thislbl{\csname pgph@lbl@#1\endcsname}%
-    \node[anchor=center] at ($($(pgph@P.south west)!\pgph@fx!(pgph@P.south east)$)%
+  \StrDel{#1}{"}[\pgph@nid]%
+  \pgph@linkfalse
+  \ifcsname pgph@lbl@\pgph@nid\endcsname
+    \edef\pgph@tgt{\csname pgph@lbl@\pgph@nid\endcsname}%
+    \edef\pgph@thislink{\noexpand\hyperref[\pgph@tgt]}%
+    \pgph@linktrue
+  \else
+    \ifcsname pgph@clbl@\pgph@nid\endcsname
+      \edef\pgph@tgt{\csname pgph@clbl@\pgph@nid\endcsname}%
+      \edef\pgph@thislink{\noexpand\hyperlink{cite.\pgph@tgt}}%
+      \pgph@linktrue
+    \fi
+  \fi
+  \ifpgph@link
+    % Per-side Graphviz margin: half the natural-minus-layout size.
+    \pgfmathsetmacro\pgph@mx{(\pgph@natw-\pgph@gw*72)/2}%
+    \pgfmathsetmacro\pgph@my{(\pgph@nath-\pgph@gh*72)/2}%
+    % Node centre as a fraction of the natural image.
+    \pgfmathsetmacro\pgph@fx{(\pgph@mx+#2*72)/\pgph@natw}%
+    \pgfmathsetmacro\pgph@fy{(\pgph@my+#3*72)/\pgph@nath}%
+    \pgfmathsetlengthmacro\pgph@bw{#4*72/\pgph@natw*\pgph@imgw*0.92}%
+    \pgfmathsetlengthmacro\pgph@bh{#5*72/\pgph@nath*\pgph@imgh*0.9}%
+    \node[anchor=center]
+      at ($($(pgph@P.south west)!\pgph@fx!(pgph@P.south east)$)%
       !\pgph@fy!($(pgph@P.north west)!\pgph@fx!(pgph@P.north east)$)$)
-      {\hyperref[\pgph@thislbl]{\phantom{\rule{\pgph@bw}{\pgph@bh}}}};%
+      {\pgph@thislink{\phantom{\rule{\pgph@bw}{\pgph@bh}}}};%
   \fi
 }
 \endinput

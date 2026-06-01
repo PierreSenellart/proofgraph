@@ -1,0 +1,15 @@
+% Exercises detection of theorem-like environments predefined BEFORE proofgraph
+% is loaded -- the situation with document classes (lipics, acmart, the Springer
+% classes) that provide theorem environments for you. proofgraph cannot wrap
+% their \newtheorem, but at \begin{document} it probes the common result names
+% and hooks those that exist, so the predefined environments still become nodes.
+\documentclass{article}
+\usepackage{amsthm}
+\newtheorem{theorem}{Theorem}     % declared before proofgraph, as a class would
+\newtheorem{lemma}{Lemma}
+\usepackage{proofgraph}
+\begin{document}
+\begin{lemma}\label{l}A lemma.\end{lemma}
+\begin{theorem}\label{t}A theorem.\end{theorem}
+\begin{proof}By \ref{l}.\end{proof}
+\end{document}

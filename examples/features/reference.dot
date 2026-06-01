@@ -1,0 +1,14 @@
+digraph proofgraph {
+  rankdir="LR";
+  "n5" [label="Corollary 5"];
+  "n4" [label="Theorem 4", shape=box,style=filled,fillcolor=gold];
+  "n2" [label="Lemma 2"];
+  "n1" [label="A \"named\" definition 1"];
+  "n1" -> "n4";
+  "c@1" [label="Ch. 1, bk",shape=note,color=gray];
+  "c@1" -> "n4";
+  "c@2" [label="bk",shape=note,color=gray];
+  "c@2" -> "n4";
+  "n4" -> "n5";
+  "n1" -> "n5";
+}

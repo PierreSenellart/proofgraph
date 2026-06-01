@@ -26,10 +26,11 @@
 \documentclass{ltxdoc}
 \usepackage{hypdoc}
 \usepackage{tikz}
-\usepackage[autorun]{proofgraph}
+\usepackage[autorun,cite,citelabel=tag]{proofgraph}
 % This documentation is itself a proofgraph document: the example results in
 % the introduction are typeset with the package enabled, and the graph shown
 % there is the one they produce (rendered automatically thanks to autorun).
+% The cite option is on, so the \cite in the example proof becomes a node too.
 % TikZ and hyperref (via hypdoc) are loaded, so the nodes of that graph are
 % clickable: each links to the result it represents.
 \newtheorem{theorem}{Theorem}
@@ -39,12 +40,38 @@
 \proofgraphstyle{corollary}{shape=box,style="rounded,filled",fillcolor=palegoldenrod}
 \proofgraphstyle{lemma}{shape=ellipse,style=filled,fillcolor=lightgray}
 \makeatletter
-\newcommand\DescribeOption[1]{\leavevmode\@bsphack
-  \marginpar{\raggedleft\strut\emph{option}\\\MacroFont #1\ }%
-  \@esphack\ignorespaces}
+% Verb-free renderers for the command-syntax labels of the description lists in
+% the Usage section (\verb / |...| is not allowed inside \item[...]).
+\newcommand\cmdname[1]{{\normalfont\ttfamily\char`\\#1}}
+\newcommand\cmdarg[1]{{\normalfont\ttfamily\char`\{}\meta{#1}%
+  {\normalfont\ttfamily\char`\}}}
+\newcommand\optname[1]{{\normalfont\ttfamily#1}}
+\newcommand\cmdoarg[1]{{\normalfont\ttfamily[}\meta{#1}{\normalfont\ttfamily]}}
+% The code examples are set as verbatim, sometimes wrapped in quote for
+% indentation; give every display a small, balanced vertical margin (about half
+% a line). The outermost environment governs the spacing: a quote-wrapped
+% verbatim takes it from \quote (the inner verbatim is the first list item, whose
+% top \topsep is suppressed), a bare verbatim from \verbatim itself, so both are
+% set to the same \topsep. \quote is a \list, which re-applies \@listi after any
+% \pretocmd, so its spacing goes inside the \list parameter argument; \verbatim
+% is a \trivlist, where a \pretocmd suffices. A verbatim display leaves more
+% space below than above (the return to the surrounding baselineskip), so a small
+% negative skip after every verbatim trims the bottom to match the top.
+\newskip\pgphvbskip
+\AtBeginDocument{\pgphvbskip=.5\baselineskip}
+\renewcommand\quote{\list{}{\rightmargin\leftmargin
+  \topsep\pgphvbskip\partopsep\z@\parsep\z@}\item\relax}
+\pretocmd{\@verbatim}{\topsep\pgphvbskip\partopsep\z@}{}{}
+\AfterEndEnvironment{verbatim}{\vspace{-11.5\p@}}
 \makeatother
+% Long unbreakable inline code spans (|\proofgraphedge{...}|, URLs) would
+% otherwise stick into the margin; let TeX loosen lines enough to rebreak.
+\setlength\emergencystretch{3em}
 \EnableCrossrefs
 \CodelineIndex
+% Two index columns rather than three, so long control-sequence names
+% (\@spopargbegintheorem, \pgfmathsetlengthmacro) fit without overflowing.
+\setcounter{IndexColumns}{2}
 \RecordChanges
 \begin{document}
   \DocInput{proofgraph.dtx}
@@ -101,32 +128,38 @@
 %   dependencies between the results (theorems, lemmas, propositions)
 %   of a mathematical article. It infers an edge from one result to
 %   another whenever the proof of the former refers to the latter
-%   through an ordinary cross-reference, requiring no manual
-%   annotation. The graph is written as a \Graphviz\ |.dot| file,
-%   which can be rendered externally or, optionally, embedded into the
-%   document automatically.
+%   through an ordinary cross-reference, so that most dependencies need
+%   no manual annotation; commands are provided for those a visible
+%   reference does not capture. The graph is written as a \Graphviz\
+%   |.dot| file, which can be rendered externally or, optionally,
+%   embedded into the document automatically.
 % \end{abstract}
 %
 % \section{Introduction}
 %
-% When writing a mathematical article, it is often useful to visualise
+% When writing or reading a mathematical article, it is often useful to visualise
 % how the results depend on one another: which lemma is used in the
 % proof of which theorem, and so on. \proofgraph\ builds such a
 % dependency graph automatically. Each theorem-like environment becomes
-% a node; each cross-reference (|\ref|, |\cref|, \ldots) appearing
+% a node; each cross-reference (|\ref|, |\cref|\ldots) appearing
 % \emph{inside a proof} becomes an edge from the proved result to the
-% referred-to result. No manual annotation is required.
+% referred-to result. Usually no manual annotation is required, and commands
+% are provided for the dependencies a visible reference does not capture.
 %
 % The package is best explained by a small example of its use. This manual is
-% itself a \proofgraph\ document, so the results stated below are really typeset
+% itself a \proofgraph\ document, so the results stated below are typeset
 % with the package enabled, and the graph shown at the end of this section is
 % the one they produce.
 %
-% Load \proofgraph\ after the theorem-providing package, and declare the usual
-% theorem-like environments:
+% Load \proofgraph\ in the preamble, before the |\newtheorem| commands that
+% declare your theorem-like environments (so it sees them as they are created).
+% Here, as in this manual, we pass three options: |autorun| renders the graph
+% with \Graphviz\ and embeds it automatically (it needs shell-escape); |cite|
+% captures the |\cite|s made inside proofs as dependencies on external work; and
+% |citelabel=tag| labels those citation nodes by their printed tag:
 % \begin{quote}
 % \begin{verbatim}
-% \usepackage{proofgraph}
+% \usepackage[autorun,cite,citelabel=tag]{proofgraph}
 % \newtheorem{theorem}{Theorem}
 % \newtheorem{lemma}{Lemma}
 % \newtheorem{corollary}{Corollary}
@@ -145,7 +178,7 @@
 %   The sum of two integers of the same parity is even.
 % \end{theorem}
 % \begin{proof}
-%   By Lemma~\ref{lem:even} and Lemma~\ref{lem:odd}.
+%   By Lemmas~\ref{lem:even} and~\ref{lem:odd}; see~\cite{euclid}.
 % \end{proof}
 % \begin{corollary}\label{cor:double}
 %   For every integer $n$, the number $2n$ is even.
@@ -166,7 +199,7 @@
 %   The sum of two integers of the same parity is even.
 % \end{theorem}
 % \begin{proof}
-%   By Lemma~\ref{lem:even} and Lemma~\ref{lem:odd}.
+%   By Lemmas~\ref{lem:even} and~\ref{lem:odd}; see~\cite{euclid}.
 % \end{proof}
 % \begin{corollary}\label{cor:double}
 %   For every integer $n$, the number $2n$ is even.
@@ -174,25 +207,121 @@
 % \begin{proof}
 %   Apply Theorem~\ref{thm:parity} to $n$ and $n$.
 % \end{proof}
-% In addition, \proofgraph\ writes out the dependency graph below.
-% Here it is rendered with \Graphviz\ and embedded automatically, thanks to the
-% |autorun| option:
+% In addition, \proofgraph\ writes out the dependency graph. With the |autorun|
+% option it is rendered with \Graphviz\ and included wherever you call
+% |\proofgraph|:
+% \begin{quote}
+% \begin{verbatim}
+% \proofgraph[width=0.7\textwidth]
+% \end{verbatim}
+% \end{quote}
+% which here produces:
 % \begin{center}
 % \embedproofgraph[width=0.7\textwidth]
 % \end{center}
 % Each cross-reference made inside a proof becomes an arrow \emph{into} the
 % result that proof establishes: the two lemmas point to
 % Theorem~\ref{thm:parity}, which in turn points to Corollary~\ref{cor:double}.
+% The |\cite| in the proof of Theorem~\ref{thm:parity} is captured in the same
+% way, thanks to the |cite| option: the external work appears as a distinct
+% node (drawn note-shaped, and labelled here by its printed citation tag,
+% ``\texttt{[1]}'', because of |citelabel=tag|) with an arrow into the theorem
+% it helps prove.
 % Moreover, since this manual loads \textsf{hyperref} and \textsf{TikZ}, the
-% nodes of the graph above are \emph{clickable}: try clicking one to jump to the
-% result it represents (see |\proofgraph| and the |hyperlinks| option below).
-% The rest of this manual explains how to obtain, tune and extend such graphs.
+% graph's nodes are \emph{clickable}: try clicking one to jump to the
+% result it represents (see |\proofgraph| and the |hyperlinks| option).
+%
+% A handful of commands tune such a graph: |\proofgraphstyle| sets the
+% appearance of each kind of node (the colours here come from it); |\uses| and
+% |\proofgraphedge| record a dependency that no visible |\ref| expresses;
+% |\proofof| attaches a proof to its result; |\proofgraphuntrack| keeps an
+% environment out of the graph; and |\proofgraphignore| and |\proofgraphexclude|
+% drop an unwanted edge or node. The next section puts several of these to work
+% on a real article; Section~\ref{sec:usage} then documents them, and the
+% package options, in full.
+%
+% \section{A real-world example}
+% \label{sec:realworld}
+% The introductory example is deliberately tiny. To show what \proofgraph\
+% produces on a genuine article, the graph in Figure~\ref{fig:realworld} is the
+% one obtained from \emph{Connecting Knowledge Compilation Classes and Width
+% Parameters}~\cite{AmarilliCMS20}. It has 62 numbered results, drawn
+% from five environments (|result|, |theorem|, |proposition|, |corollary| and
+% |lemma|), depends on 19 external works cited inside proofs, and contains 106
+% edges in all.
+%
+% \begin{figure}[p]
+% \centering
+% \makebox[\linewidth]{%
+%   \includegraphics[width=\dimexpr\linewidth+2cm\relax]{example-realworld}}
+% \caption{The graph \proofgraph\ produces for~\cite{AmarilliCMS20}. The colours
+%   and shapes make the
+%   structure legible, with the orange double-bordered introduction
+%   \texttt{result}s on the right, fed by the gold theorems, the blue and
+%   pale-gold propositions and corollaries, and the grey lemmas.}
+% \label{fig:realworld}
+% \end{figure}
+%
+% The graph was produced from the paper essentially as published. Beyond loading
+% the package, the only additions were the following.
+% \begin{itemize}
+% \item The |cite| option was switched on, and citation nodes labelled by their
+%   printed tag, by loading the package as
+%   |\usepackage[cite=true,citelabel=tag]{proofgraph}|. The |\cite|s made inside
+%   proofs then appear as the note-shaped nodes (``\texttt{[17]}'',
+%   ``\texttt{Theorem 4.10, [46]}''\dots) along the left of the graph; a work
+%   cited for two different results, or for two of its own theorems, gives one
+%   node per |\cite| note, so the 19~works appear as 32~nodes.
+% \item One environment was kept out of the graph with a single
+%   |\proofgraphuntrack{observation}| (a lone preliminary observation that
+%   nothing else uses).
+% \item The five result kinds were styled, with decreasing prominence, by five
+%   |\proofgraphstyle| declarations:
+% \begin{quote}
+% \begin{verbatim}
+% \proofgraphstyle{result}{shape=box,style="filled,bold",%
+%                          fillcolor=orange,peripheries=2}
+% \proofgraphstyle{theorem}{shape=box,style=filled,%
+%                           fillcolor=gold,penwidth=2}
+% \proofgraphstyle{corollary}{shape=box,style="rounded,filled",%
+%                             fillcolor=palegoldenrod}
+% \proofgraphstyle{proposition}{shape=box,style="rounded,filled",%
+%                               fillcolor=lightblue}
+% \proofgraphstyle{lemma}{shape=ellipse,style=filled,%
+%                         fillcolor=lightgray}
+% \end{verbatim}
+% \end{quote}
+% \item Eleven |\proofgraphedge| commands, recording 27 edges in total, were
+%   added for the dependencies that no |\ref| inside a |proof| expresses:
+%   eight ``obvious'' corollaries stated without a |proof| environment
+%   (|\proofgraphedge{cor:upper_bound}{thm:upper_bound,...}|), and three theorems
+%   whose proof is developed across a whole section rather than inside a single
+%   |proof|.
+% \end{itemize}
+% Nothing else was annotated: every other edge, and the numbering of all 62
+% nodes, was inferred automatically from the ordinary cross-references the proofs
+% already contained. In particular, no |\uses|, |\proofof|, |\proofgraphignore|
+% or |\proofgraphexclude| was needed. The five |result| environments that restate
+% the headline results in the introduction
+% (|\begin{result}[(Corollary~\ref{cor:obdd_omega})]|\dots) are linked to the
+% body results they preview through the |\ref| in their optional title, captured
+% automatically (see the note on reference-carrying titles in
+% Section~\ref{sec:usage}). Two compilation runs (plus \BibTeX, needed once for
+% the |tag| labels) suffice; the |.dot| file is then rendered with \Graphviz,
+% |dot -Tpdf main.dot -o main.pdf|, as with any other document.
 %
 % \section{Usage}
+% \label{sec:usage}
 %
-% Load the package after any theorem-providing package (such as
-% \textsf{amsthm}) and \emph{before} your |\newtheorem| declarations:
+% \subsection{Default behaviour}
+% Load \proofgraph\ in the preamble. It only needs to come \emph{after} whatever
+% provides your theorem environments, that is, after |\usepackage{amsthm}| if you
+% load it yourself (some classes, such as \textsf{lipics} or \textsf{acmart},
+% provide theorems for you, in which case there is nothing to load first), and
+% \emph{before} the |\newtheorem| commands that declare your theorem-like
+% environments, so that \proofgraph\ sees them as they are created:
 % \begin{verbatim}
+%   \usepackage{amsthm}      % or nothing, if your class provides theorems
 %   \usepackage{proofgraph}
 %   \newtheorem{theorem}{Theorem}
 %   \newtheorem{lemma}{Lemma}
@@ -202,121 +331,139 @@
 % \begin{verbatim}
 %   dot -Tpdf myfile.dot -o mygraph.pdf
 % \end{verbatim}
+% Every \emph{numbered} result of a theorem-like environment you declare becomes
+% a node, and every cross-reference (|\ref|, |\cref|\dots) inside a proof becomes
+% an edge into the result that proof establishes, with no annotation. Nodes are
+% labelled by the result's formatted name and number (``Theorem~1''), not the
+% environment name. Unnumbered (starred) results are skipped, as they are usually
+% expository or repeated statements; |\proofgraphtrack| draws a chosen one anyway.
+% A cross-reference in the \emph{optional title} of a result is captured the same
+% way:
+% |\begin{theorem}[(generalises~\ref{thm:x})]| in a result labelled \meta{A} adds
+% an edge from \meta{A} to |thm:x|, handy for restatements (e.g., an introduction
+% that previews results with |\begin{result}[(Corollary~\ref{cor:y})]|).
 %
-% \DescribeMacro{\uses}
-% Inside a proof, |\uses{|\meta{label}|}| records a dependency on the
-% result labelled \meta{label} even when no visible reference is made.
-% A comma-separated list is accepted: |\uses{lem:a,lem:b}|.
+% \subsection{Recording dependencies by hand}
+% \begin{description}
+% \item[\cmdname{uses}\cmdarg{label}]\SpecialUsageIndex{\uses}%
+%   Inside a proof, records a dependency on the result labelled \meta{label} even
+%   when no visible reference is made. A comma-separated list is accepted, as in
+%   |\uses{lem:a,lem:b}|.
+% \item[\cmdname{proofgraphedge}\cmdarg{A}\cmdarg{labels}]%
+%   \SpecialUsageIndex{\proofgraphedge}%
+%   Adds edges recording that result \meta{A} depends on the result(s)
+%   \meta{labels} (a comma-separated list), like a |\uses| but stated outside any
+%   proof. Handy for an ``obvious'' corollary that relies on earlier results
+%   without a |proof| environment, as in |\proofgraphedge{cor:x}{thm:y,lem:z}|. It
+%   may appear anywhere; all labels are resolved when the graph is written.
+% \item[\cmdname{proofof}\cmdarg{label}]\SpecialUsageIndex{\proofof}%
+%   By default a proof is attached to the most recently started result. A
+%   detached proof whose optional title names its result is attached
+%   automatically: |\begin{proof}| with |[of Theorem~\ref{thm:x}]| attaches the
+%   proof to |thm:x| (for the |amsthm| |proof| environment, for |proof| defined
+%   as a theorem in the Springer classes, and for deferred proofs as with
+%   \apxproof). When none of this applies, |\proofof| inside the proof pins it to
+%   the result labelled \meta{label}.
+% \end{description}
 %
-% A cross-reference in the \emph{optional title} of a result is captured
-% automatically as a dependency: |\begin{theorem}[(generalises~\ref{thm:x})]| in
-% a result labelled \meta{A} adds an edge from \meta{A} to |thm:x|. This is handy
-% for restatements (e.g.\ an introduction that previews results with
-% |\begin{result}[(Corollary~\ref{cor:y})]|).
+% \subsection{Choosing what appears in the graph}
+% Result environments are detected automatically; these commands adjust which
+% results, and which edges, are kept.
+% \begin{description}
+% \item[\cmdname{proofgraphtrack}\cmdarg{names}]%
+%   \SpecialUsageIndex{\proofgraphtrack}%
+%   Forces the listed environment types to be tracked, overriding the default
+%   exclusions, which are |definition|, |example|, |remark| and |note|. Use it in
+%   the preamble.
+% \item[\cmdname{proofgraphuntrack}\cmdarg{names}]%
+%   \SpecialUsageIndex{\proofgraphuntrack}%
+%   Excludes further environment types, as in |\proofgraphuntrack{observation}|.
+%   Use it in the preamble.
+% \item[\cmdname{proofgraphignore}\cmdarg{from}\cmdarg{to}]%
+%   \SpecialUsageIndex{\proofgraphignore}%
+%   Suppresses the edge from \meta{from} to \meta{to} (e.g., an unwanted forward
+%   citation).
+% \item[\cmdname{proofgraphexclude}\cmdarg{label}]%
+%   \SpecialUsageIndex{\proofgraphexclude}%
+%   Removes the result labelled \meta{label}, together with all its incident
+%   edges, from the graph.
+% \end{description}
 %
-% \DescribeMacro{\proofgraphedge}
-% |\proofgraphedge{|\meta{A}|}{|\meta{labels}|}| adds edges recording that result
-% \meta{A} depends on the result(s) \meta{labels} (a comma-separated list), like
-% a |\uses| but stated outside any proof. This is handy for an ``obvious''
-% corollary that relies on earlier results without a |proof| environment:
-% |\proofgraphedge{cor:x}{thm:y,lem:z}|. It may appear anywhere; all labels are
-% resolved when the graph is written.
+% \subsection{Styling the graph}
+% The attributes are passed verbatim to \Graphviz; see its attribute reference,
+% \url{https://graphviz.org/doc/info/attrs.html}, for the node attributes
+% available (and \url{https://graphviz.org/doc/info/shapes.html} for the shapes).
+% \begin{description}
+% \item[\cmdname{proofgraphstyle}\cmdarg{env}\cmdarg{attrs}]%
+%   \SpecialUsageIndex{\proofgraphstyle}%
+%   Sets \Graphviz\ node attributes for all results of the environment
+%   \meta{env}, e.g., |shape=ellipse| or |style=filled,fillcolor=gold|.
+% \item[\cmdname{proofgraphstylecite}\cmdarg{attrs}]%
+%   \SpecialUsageIndex{\proofgraphstylecite}%
+%   Sets the \Graphviz\ attributes of the external citation nodes added by the
+%   |cite| option (default |shape=note|), as in
+%   |\proofgraphstylecite{shape=box,style=dashed,color=gray}|.
+% \end{description}
 %
-% \DescribeMacro{\proofof}
-% By default a proof is attached to the most recently started result. A detached
-% proof whose optional title names its result is attached automatically to that
-% result: writing |\begin{proof}| with the optional argument
-% |[of Theorem~\ref{thm:x}]| attaches the proof to |thm:x|. This works for the
-% |amsthm| |proof| environment and for |proof| defined as a theorem (the Springer
-% classes); deferred proofs (as with \apxproof) are likewise attached
-% automatically. When none of this applies, |\proofof{|\meta{label}|}| inside the
-% proof pins it to the result labelled \meta{label}.
-%
-% \DescribeMacro{\proofgraphtrack}
-% \DescribeMacro{\proofgraphuntrack}
-% Result environments are detected automatically. Expository environments are
-% excluded from the graph by default (|definition|, |example|, |remark|,
-% |note|). In the preamble, |\proofgraphuntrack{|\meta{names}|}| excludes further
-% environment types and |\proofgraphtrack{|\meta{names}|}| forces environments to
-% be tracked (overriding the default exclusions), e.g.\
-% |\proofgraphuntrack{observation}| or |\proofgraphtrack{definition}|.
-% Nodes are labelled by the result's formatted name and number (``Theorem~1''),
-% not by the environment name.
-%
-% \DescribeMacro{\proofgraphignore}
-% |\proofgraphignore{|\meta{from}|}{|\meta{to}|}| suppresses the edge
-% from \meta{from} to \meta{to} (e.g.\ an unwanted forward citation).
-%
-% \DescribeMacro{\proofgraphexclude}
-% |\proofgraphexclude{|\meta{label}|}| removes the result labelled
-% \meta{label}, together with all its incident edges, from the graph.
-%
-% \DescribeMacro{\proofgraphstyle}
-% |\proofgraphstyle{|\meta{env}|}{|\meta{attrs}|}| sets \Graphviz\ node
-% attributes for all results of the environment \meta{env}, e.g.\
-% |\proofgraphstyle{lemma}{shape=ellipse,color=blue}|.
-%
-% \DescribeMacro{\proofgraphstylecite}
-% |\proofgraphstylecite{|\meta{attrs}|}| sets the \Graphviz\ attributes of the
-% external citation nodes added by the |cite| option (default |shape=note|),
-% e.g.\ |\proofgraphstylecite{shape=box,style=dashed,color=gray}|.
-%
-% \DescribeMacro{\proofgraph}
-% In |autorun| mode, |\proofgraph| includes the rendered graph at that
-% point (using the image produced on the previous run). If \textsf{hyperref}
-% and \textsf{TikZ} are both loaded (and |hyperlinks| is left on), every node is
-% turned into an internal hyperlink to the result it represents: \Graphviz\
-% writes the node positions to a |-Tplain| file, and |\proofgraph| overlays a
-% transparent |\hyperref| area on each node over the image. This is needed
-% because the link annotations \Graphviz\ puts in the |.pdf| would be discarded
-% by |\includegraphics|. An optional argument is passed to the underlying
-% |\includegraphics|, e.g.\ |\proofgraph[width=\linewidth]|.
+% \subsection{Embedding the rendered graph}
+% \begin{description}
+% \item[\cmdname{proofgraph}\cmdoarg{options}]\SpecialUsageIndex{\proofgraph}%
+%   Includes the rendered graph image at this point, passing the optional
+%   \meta{options} to the underlying |\includegraphics| (e.g.,
+%   |\proofgraph[width=\linewidth]|). With the |autorun| option, \Graphviz\ is run
+%   at the end of every compilation (shell-escape required) to produce that image,
+%   so |\proofgraph| embeds the graph from the previous run and is up to date
+%   after two runs. Without |autorun|, no \Graphviz\ is run: |\proofgraph| embeds
+%   a pre-existing |\jobname-proofgraph.|\meta{format} file if you have rendered
+%   one under that name, and otherwise warns. When \textsf{hyperref} and
+%   \textsf{TikZ} are both loaded (with |hyperlinks| on and the |-Tplain| file
+%   from |autorun| present), every node becomes an internal hyperlink to the
+%   result it represents: \Graphviz\ writes the node positions to that |-Tplain|
+%   file and |\proofgraph| overlays a transparent |\hyperref| area on each node
+%   (needed because the link annotations \Graphviz\ puts in the |.pdf| are
+%   discarded by |\includegraphics|).
+% \end{description}
 %
 % \subsection{Options}
-%
-% \DescribeOption{selfloops}
-% |selfloops=remove| (default) drops edges from a result to itself;
-% |selfloops=keep| retains them.
-%
-% \DescribeOption{autorun}
-% |autorun| (boolean, default false) runs \Graphviz\ automatically at
-% the end of the run; requires compilation with shell-escape enabled.
-%
-% \DescribeOption{engine}
-% Graphviz layout engine (default |dot|).
-%
-% \DescribeOption{format}
-% Output format for |autorun|/|\proofgraph| (default |pdf|).
-%
-% \DescribeOption{hyperlinks}
-% |hyperlinks| (boolean, default true) makes the nodes of an embedded graph
-% clickable when \textsf{hyperref} and \textsf{TikZ} are available (see
-% |\proofgraph|). Set |hyperlinks=false| to embed the graph as a plain image.
-%
-% \DescribeOption{direction}
-% |direction=usedby| (default) orients an edge from the result that is used to
-% the result that uses it, so an arrow \texttt{a->b} reads ``\texttt{a} is used
-% by \texttt{b}'' (\texttt{b} relies on \texttt{a}). |direction=uses| reverses
-% it (\texttt{a->b} means ``\texttt{a} uses \texttt{b}'').
-%
-% \DescribeOption{rankdir}
-% Graph direction (default |LR|).
-%
-% \DescribeOption{cite}
-% |cite| (boolean, default false) also captures |\cite| inside proofs
-% as dependencies on external work, drawn as distinct nodes. A |\cite| optional
-% note is kept: |\cite[Thm~3]{key}| labels the node ``Thm~3, \dots''.
-%
-% \DescribeOption{citelabel}
-% |citelabel=key| (default) labels citation nodes by their \BibTeX\ key;
-% |citelabel=tag| uses the printed citation tag instead (``[1]'', ``[Knu74]'',
-% ``[Abiteboul et al.\ 1995]'', \dots), recovered from the |.aux| (so it needs two
-% runs). It supports the standard, \textsf{hyperref}-wrapped and \textsf{natbib}
-% (numeric and author--year) bibliographies; if no clean tag can be recovered
-% (e.g.\ before the first \BibTeX\ run) it keeps the key.
-%
-% \DescribeOption{file}
-% Base name of the output file (default |\jobname|).
+% \begin{description}
+% \item[\optname{selfloops}]
+%   Either |remove| (default), dropping edges from a result to itself, or |keep|,
+%   retaining them.
+% \item[\optname{autorun}]
+%   Boolean (default false). Runs \Graphviz\ automatically at the end of the run;
+%   requires compilation with shell-escape enabled.
+% \item[\optname{engine}]
+%   \Graphviz\ layout engine (default |dot|); any \Graphviz\ engine works, such as
+%   |neato|, |fdp|, |sfdp|, |circo| or |twopi| (see
+%   \url{https://graphviz.org/docs/layouts/}).
+% \item[\optname{format}]
+%   Output format for |autorun| and |\proofgraph| (default |pdf|); any \Graphviz\
+%   output format works, such as |png|, |svg| or |ps| (see
+%   \url{https://graphviz.org/docs/outputs/}).
+% \item[\optname{hyperlinks}]
+%   Boolean (default true). Makes the nodes of an embedded graph clickable when
+%   \textsf{hyperref} and \textsf{TikZ} are available (see |\proofgraph|); set it
+%   false to embed the graph as a plain image.
+% \item[\optname{direction}]
+%   Either |usedby| (default), orienting an edge from the result that is used to
+%   the result that uses it (so an arrow |a->b| reads ``|a| is used by |b|''), or
+%   |uses|, the reverse.
+% \item[\optname{rankdir}]
+%   \Graphviz\ graph direction (default |LR|).
+% \item[\optname{cite}]
+%   Boolean (default false). Also captures |\cite| inside proofs as dependencies
+%   on external work, drawn as distinct nodes (Section~\ref{sec:realworld}). A
+%   |\cite| note is kept: |\cite[Thm~3]{key}| labels the node ``Thm~3, \dots''.
+% \item[\optname{citelabel}]
+%   Either |key| (default), labelling citation nodes by their \BibTeX\ key, or
+%   |tag|, using the printed citation tag instead (``[1]'', ``[Knu74]'',
+%   ``[Abiteboul et al.\ 1995]''\dots), recovered from the |.aux| (so it needs two
+%   runs). It supports the standard, \textsf{hyperref}-wrapped and \textsf{natbib}
+%   (numeric and author--year) bibliographies; if no clean tag can be recovered it
+%   keeps the key.
+% \item[\optname{file}]
+%   Base name of the output file (default |\jobname|).
+% \end{description}
 %
 % \subsection{Use with \apxproof}
 % \label{sec:apxproof}
@@ -328,20 +475,37 @@
 % either order and no further setup is needed.
 %
 % With an \emph{earlier} \apxproof\ the document still compiles cleanly and every
-% result still becomes a node, but \emph{no proof dependencies are captured}
-% (the graph has nodes but no proof edges), because \textsf{proofgraph} cannot
-% tell which appendix proof belongs to which result. In that case, add the
-% dependencies manually with |\uses| (and |\proofof| to pin a proof to its
-% result), or upgrade \apxproof.
+% result still becomes a node, but \emph{no proof dependencies are captured for
+% the proofs deferred to the appendix}, because \textsf{proofgraph} cannot tell
+% which appendix proof belongs to which result (dependencies from any proofs left
+% in the main text are still captured as usual). In that case, add the deferred
+% ones manually with |\uses| (and |\proofof| to pin a proof to its result), or
+% upgrade \apxproof.
 %
 % \section{Limitations}
+% \begin{itemize}
+% \item Environments declared through |\newtheorem| (or |\spnewtheorem|)
+%   \emph{after} the package is loaded are tracked automatically. Environments
+%   predefined by the document class \emph{before} that (as in \textsf{lipics},
+%   \textsf{acmart} or the Springer classes) are also detected, provided their
+%   name is one of the common result names \proofgraph\ probes at
+%   |\begin{document}| (|theorem|, |lemma|, |proposition|, |corollary|\dots); an
+%   environment with an unusual name predefined before the package is loaded must
+%   be added with |\proofgraphtrack|.
+% \item Results must be labelled for references to them to be resolved.
+% \item Two compilation runs are required, as for any cross-reference.
+% \end{itemize}
 %
-% Nodes are created only for environments declared through |\newtheorem|
-% \emph{after} the package is loaded. Results must be labelled for
-% references to them to be resolved. Two compilation runs are required,
-% as for any cross-reference. Theorem titles containing the characters
-% |"| or |\| in the node label are not escaped in this version.
+% \begin{thebibliography}{9}
+% \bibitem{euclid} Euclid. \emph{Elements}, Book~IX. c.~300~BCE.
+% \bibitem{AmarilliCMS20} A.~Amarilli, F.~Capelli, M.~Monet, and P.~Senellart.
+%   Connecting knowledge compilation classes and width parameters.
+%   \emph{Theory of Computing Systems}, \textbf{64}(5):861--914, 2020.
+%   \href{https://doi.org/10.1007/s00224-019-09930-2}%
+%   {\texttt{doi:10.1007/s00224-019-09930-2}}.
+% \end{thebibliography}
 %
+% \clearpage
 % \section{Implementation}
 %
 %    \begin{macrocode}
@@ -352,8 +516,22 @@
 %    \end{macrocode}
 %
 % \subsection{Dependencies}
+% \textsf{amsthm} (loaded for its heading hooks) defines the |proof| environment
+% with |\newenvironment|, which aborts with ``Command |\proof| already defined''
+% under a class that already provides one (e.g.\ the Springer |svjour3| |\proof|).
+% When we are about to load \textsf{amsthm} ourselves (it is not already loaded),
+% we save the class's |proof|/|\endproof| and free them so \textsf{amsthm} loads
+% cleanly, then restore the class's versions afterwards, so its proof styling is
+% kept (and \proofgraph\ still hooks that |proof| environment). If \textsf{amsthm}
+% is already loaded, |\RequirePackage| is a no-op and |\proof| is left untouched.
 %    \begin{macrocode}
+\@ifpackageloaded{amsthm}{}{%
+  \@ifundefined{proof}{}{%
+    \let\pgph@class@proof\proof \let\pgph@class@endproof\endproof}%
+  \let\proof\relax \let\endproof\relax}
 \RequirePackage{amsthm}
+\@ifundefined{pgph@class@proof}{}{%
+  \let\proof\pgph@class@proof \let\endproof\pgph@class@endproof}
 \RequirePackage{etoolbox}
 \RequirePackage{xstring}
 \RequirePackage{kvoptions}
@@ -405,6 +583,7 @@
 % be applied to the complete graph regardless of where they appear.
 %    \begin{macrocode}
 \newcount\pgph@idcnt
+\newcount\pgph@citeslotcnt
 \def\pgph@nodes{}
 \def\pgph@edges{}
 \def\pgph@ignores{}
@@ -419,7 +598,8 @@
 % id, so references resolve independently of \textsf{hyperref}.
 %    \begin{macrocode}
 \newcommand\pgph@auxmap[2]{\global\@namedef{pgph@map@#1}{#2}%
-  \ifcsname pgph@rmap@#2\endcsname\else\global\@namedef{pgph@rmap@#2}{#1}\fi}
+  \ifcsname pgph@rmap@#2\endcsname\else
+    \global\@namedef{pgph@rmap@#2}{#1}\fi}
 \newcommand\pgph@setmap[2]{%
   \edef\pgph@tmpid{#2}%
   \global\expandafter\edef\csname pgph@map@#1\endcsname{\pgph@tmpid}%
@@ -463,19 +643,22 @@
 % register each newly declared environment, replaying the original command so
 % its own argument parsing is untouched. The starred (unnumbered) forms are
 % \emph{not} auto-registered: a results graph wants numbered statements, and
-% these forms are commonly used for unnumbered repeats of a result (e.g.\ the
+% these forms are commonly used for unnumbered repeats of a result (e.g., the
 % appendix copies produced by \apxproof\ and \textsf{myproofs}), which would
 % otherwise appear as spurious unnumbered duplicate nodes. Use |\proofgraphtrack|
 % to track an unnumbered environment deliberately.
 %    \begin{macrocode}
 \let\pgph@orig@newtheorem\newtheorem
 \renewcommand\newtheorem{\@ifstar{\pgph@nt@star}{\pgph@nt@plain}}
-\newcommand\pgph@nt@plain[1]{\pgph@register{#1}\pgph@orig@newtheorem{#1}}
+\newcommand\pgph@nt@plain[1]{%
+  \pgph@register{#1}\pgph@orig@newtheorem{#1}}
 \newcommand\pgph@nt@star[1]{\pgph@orig@newtheorem*{#1}}
 \ifdefined\spnewtheorem
   \let\pgph@orig@spnewtheorem\spnewtheorem
-  \renewcommand\spnewtheorem{\@ifstar{\pgph@spnt@star}{\pgph@spnt@plain}}
-  \newcommand\pgph@spnt@plain[1]{\pgph@register{#1}\pgph@orig@spnewtheorem{#1}}
+  \renewcommand\spnewtheorem{%
+    \@ifstar{\pgph@spnt@star}{\pgph@spnt@plain}}
+  \newcommand\pgph@spnt@plain[1]{%
+    \pgph@register{#1}\pgph@orig@spnewtheorem{#1}}
   \newcommand\pgph@spnt@star[1]{\pgph@orig@spnewtheorem*{#1}}
 \fi
 %    \end{macrocode}
@@ -493,9 +676,9 @@
 % names probed at |\begin{document}|; |\pgph@defaultexclude| seeds the exclusion
 % set.
 %    \begin{macrocode}
-\newcommand\pgph@defaultenvs{theorem,lemma,proposition,corollary,definition,%
-  conjecture,claim,fact,remark,example,observation,notation,problem,%
-  question,property,assumption,hypothesis,principle}
+\newcommand\pgph@defaultenvs{theorem,lemma,proposition,corollary,%
+  definition,conjecture,claim,fact,remark,example,observation,%
+  notation,problem,question,property,assumption,hypothesis,principle}
 \newcommand\pgph@defaultexclude{definition,example,remark,note}
 \newcommand\proofgraphtrack[1]{%
   \@for\pgph@one:=#1\do{%
@@ -536,7 +719,8 @@
 }
 \newcommand\pgph@resolveregistration[1]{%
   \@for\pgph@one:=#1\do{%
-    \ifcsname\pgph@one\endcsname\expandafter\pgph@register\expandafter{\pgph@one}\fi}%
+    \ifcsname\pgph@one\endcsname%
+      \expandafter\pgph@register\expandafter{\pgph@one}\fi}%
   \ifx\pgph@candidates\@empty\else
     \@for\pgph@one:=\pgph@candidates\do{%
       \expandafter\pgph@maybehook\expandafter{\pgph@one}}%
@@ -552,12 +736,20 @@
 % Start a result: allocate an id and record the node. The node is keyed and
 % styled by the environment name (third argument, also a fallback label), but
 % displayed by the result's \emph{formatted} name (``Theorem'', ``Lemma''),
-% captured from the heading. We get that name by locally wrapping
-% |\@begintheorem|/|\@opargbegintheorem| (the hooks every |amsthm|- and
-% |\newtheorem|-based class routes its heading through), whose first argument is
-% the title. These redefinitions are confined to the current environment group,
-% so they revert at |\end|. We also locally redefine |\label| to populate the
-% map.
+% captured from the heading. We get that name by locally wrapping the heading
+% macros, whose first two arguments are the formatted name and the number. Which
+% macro carries the \emph{optional note} (where a restatement's cross-reference
+% lives) depends on the setup: \textsf{amsthm}, which \proofgraph\ always loads,
+% routes every heading through |\@begintheorem|, defined as |#1#2[#3]| with the
+% note as the bracketed |#3| (and leaves |\@opargbegintheorem| |\relax|); the
+% \LaTeX\ kernel instead uses a two-argument |\@begintheorem| with a separate
+% three-argument |\@opargbegintheorem| for the note; the Springer classes use
+% |\@spbegintheorem|/|\@spopargbegintheorem|. We detect the \textsf{amsthm} form
+% (|\@opargbegintheorem| is |\relax|) and read the bracketed note there,
+% otherwise we hook |\@opargbegintheorem|; either way the note goes to
+% |\pgph@scanrefs|. These redefinitions are confined to the current environment
+% group, so they revert at |\end|. We also locally redefine |\label| to populate
+% the map.
 %
 % Nodes are accumulated in \emph{reverse} order of appearance
 % (|\pgph@prependnode|). With |rankdir=LR|, \Graphviz\ stacks disconnected
@@ -582,14 +774,21 @@
 \newcommand\pgph@hooknames{%
   \ifdefined\@begintheorem
     \let\pgph@orig@bt\@begintheorem
-    \def\@begintheorem##1##2{\pgph@recordresult{##1}{##2}\pgph@orig@bt{##1}{##2}}%
+    \ifx\@opargbegintheorem\relax
+      \def\@begintheorem##1##2[##3]{%
+        \pgph@recordresult{##1}{##2}\pgph@scanrefs{##3}%
+        \pgph@orig@bt{##1}{##2}[##3]}%
+    \else
+      \def\@begintheorem##1##2{%
+        \pgph@recordresult{##1}{##2}\pgph@orig@bt{##1}{##2}}%
+    \fi
   \fi
-  \ifdefined\@opargbegintheorem
+  \ifdefined\@opargbegintheorem\ifx\@opargbegintheorem\relax\else
     \let\pgph@orig@obt\@opargbegintheorem
     \def\@opargbegintheorem##1##2##3{%
       \pgph@recordresult{##1}{##2}\pgph@scanrefs{##3}%
       \pgph@orig@obt{##1}{##2}{##3}}%
-  \fi
+  \fi\fi
   \ifdefined\@spbegintheorem
     \let\pgph@orig@spbt\@spbegintheorem
     \def\@spbegintheorem##1##2##3##4{%
@@ -604,8 +803,8 @@
 }
 %    \end{macrocode}
 % \begin{macro}{\pgph@scanrefs}
-% A result whose optional title carries a cross-reference, e.g.\
-% |\begin{result}[(Corollary~\ref{cor:x})]\label{res:y}|, is understood to
+% A result whose optional title carries a cross-reference, e.g., a |result|
+% whose title is |[(Corollary~\ref{cor:x})]|, is understood to
 % restate or build on that result: we record an edge from the current result to
 % each label referenced in the title. We capture these by typesetting the title
 % once into a discarded box with the reference-capturing commands installed and
@@ -634,7 +833,7 @@
 % unnumbered forms): an unnumbered result records no number, so it is dropped at
 % emission unless tracked explicitly. The number \emph{value}, when present, is
 % read from |\@currentlabel| rather than from that argument, which some classes
-% pollute (e.g.\ \textsf{lipics} injects |\advance\par@deathcycles\@ne|).
+% pollute (e.g., \textsf{lipics} injects |\advance\par@deathcycles\@ne|).
 % |\@currentlabel|, set by the result's |\refstepcounter| just before the
 % heading, is the clean number and needs no |\label|. Values are reduced to plain
 % strings now, with fragile wrappers neutralized (notably \apxproof's
@@ -654,8 +853,8 @@
       \def\pgph@tmphn{#2}%
       \ifx\pgph@tmphn\@empty\else
         \edef\pgph@tmpnum{\@currentlabel}%
-        \global\expandafter\let\csname pgph@num@\pgph@curresult\endcsname
-                                \pgph@tmpnum
+      \global\expandafter\let\csname pgph@num@\pgph@curresult%
+        \endcsname\pgph@tmpnum
       \fi
     \endgroup
   \fi
@@ -686,7 +885,8 @@
       \let\protect\@empty
       \def\axp@forward@link##1##2{##2}%
       \edef\pgph@tmpnum{\@currentlabel}%
-      \global\expandafter\let\csname pgph@num@\pgph@curresult\endcsname\pgph@tmpnum
+      \global\expandafter\let\csname pgph@num@\pgph@curresult%
+        \endcsname\pgph@tmpnum
     \endgroup
    \fi
   \fi
@@ -701,7 +901,8 @@
 %    \begin{macrocode}
 \newcommand\pgph@addedge[2]{%
   \protected@edef\pgph@tmpedge{\noexpand\pgph@edge{#1}{#2}}%
-  \expandafter\g@addto@macro\expandafter\pgph@edges\expandafter{\pgph@tmpedge}%
+  \expandafter\g@addto@macro\expandafter\pgph@edges%
+    \expandafter{\pgph@tmpedge}%
 }
 \newcommand\pgph@recordref[1]{%
   \ifx\pgph@curproof\@empty\else
@@ -718,21 +919,26 @@
 %    \begin{macrocode}
 %    \end{macrocode}
 % The capturing commands are |\protected| so that, when a reference appears
-% in a moving argument inside a proof (e.g.\ a |\caption|), they do not
+% in a moving argument inside a proof (e.g., a |\caption|), they do not
 % expand into the |.aux|/|.lof| and leak internal tokens.
 %    \begin{macrocode}
 \protected\def\pgph@cap@ref#1{\pgph@recordref{#1}\pgph@saved@ref{#1}}
 \protected\def\pgph@cap@cref#1{\pgph@recordref{#1}\pgph@saved@cref{#1}}
 \protected\def\pgph@cap@Cref#1{\pgph@recordref{#1}\pgph@saved@Cref{#1}}
-\protected\def\pgph@cap@autoref#1{\pgph@recordref{#1}\pgph@saved@autoref{#1}}
-\protected\def\pgph@cap@eqref#1{\pgph@recordref{#1}\pgph@saved@eqref{#1}}
+\protected\def\pgph@cap@autoref#1{%
+  \pgph@recordref{#1}\pgph@saved@autoref{#1}}
+\protected\def\pgph@cap@eqref#1{%
+  \pgph@recordref{#1}\pgph@saved@eqref{#1}}
 \protected\def\pgph@cap@vref#1{\pgph@recordref{#1}\pgph@saved@vref{#1}}
 \newcommand\pgph@install[1]{%
   \ifcsname #1\endcsname
-    \expandafter\ifx\csname #1\expandafter\endcsname\csname pgph@cap@#1\endcsname
+    \expandafter\ifx\csname #1%
+      \expandafter\endcsname\csname pgph@cap@#1\endcsname
     \else
-      \expandafter\let\csname pgph@saved@#1\expandafter\endcsname\csname #1\endcsname
-      \expandafter\let\csname #1\expandafter\endcsname\csname pgph@cap@#1\endcsname
+      \expandafter\let\csname pgph@saved@#1%
+        \expandafter\endcsname\csname #1\endcsname
+      \expandafter\let\csname #1%
+        \expandafter\endcsname\csname pgph@cap@#1\endcsname
     \fi
   \fi
 }
@@ -759,7 +965,8 @@
   \ifdefined\@spopargbegintheorem
     \let\pgph@orig@spobtp\@spopargbegintheorem
     \def\@spopargbegintheorem##1##2##3##4##5{%
-      \pgph@scanproofarg{##3}\pgph@orig@spobtp{##1}{##2}{##3}{##4}{##5}}%
+      \pgph@scanproofarg{##3}%
+      \pgph@orig@spobtp{##1}{##2}{##3}{##4}{##5}}%
   \fi
   \ifdefined\@Opargbegintheorem
     \let\pgph@orig@Obtp\@Opargbegintheorem
@@ -772,7 +979,7 @@
 % \begin{macro}{\pgph@scanproofarg}
 % \begin{macro}{\pgph@wrapproof}
 % A proof whose optional title names its result (a detached proof) has its
-% result given by that title, e.g.\ \texttt{thm:x} for an optional argument
+% result given by that title, e.g., \texttt{thm:x} for an optional argument
 % |[of Theorem~\ref{thm:x}]|, rather than by the most recently opened result.
 % We capture this by wrapping the |proof|
 % environment so that, when an optional title is given, the cross-reference it
@@ -790,7 +997,7 @@
 }
 %    \end{macrocode}
 % To capture the optional title of a detached |amsthm| proof
-% (|\begin{proof}[of Theorem~\ref{thm:x}]|) we redefine the outer |\proof| to read
+% (an optional |[of Theorem~\ref{thm:x}]|) we redefine the outer |\proof| to read
 % the optional argument and delegate to the original inner macro (saved as
 % |\pgph@proofinner|), so no recursion occurs. We must do this \emph{only} for a
 % genuine optional-argument environment: a package that captures the proof body
@@ -811,7 +1018,8 @@
   \fi
 }
 \newcommand\pgph@redefproof{%
-  \expandafter\let\expandafter\pgph@proofinner\csname\string\proof\endcsname
+  \expandafter\let\expandafter\pgph@proofinner%
+    \csname\string\proof\endcsname
   \def\proof{\pgph@beginproof
     \@ifnextchar[{\pgph@proofopt}{\pgph@proofinner[\proofname]}}%
   \def\pgph@proofopt[##1]{\pgph@scanproofarg{##1}\pgph@proofinner[##1]}%
@@ -843,7 +1051,8 @@
 % text) is already in our map. We resolve it to the source node and install
 % the reference-capturing commands for the duration of the proof.
 %    \begin{macrocode}
-\newcommand\pgph@apxinit{\def\apxproofhook##1{\pgph@apxproofcapture{##1}}}
+\newcommand\pgph@apxinit{%
+  \def\apxproofhook##1{\pgph@apxproofcapture{##1}}}
 \newcommand\pgph@apxproofcapture[1]{%
   \edef\pgph@curproof{\pgph@resolve{#1}}%
   \ifx\pgph@curproof\@empty\else
@@ -857,32 +1066,53 @@
 % \end{macro}
 %
 % \begin{macro}{\pgph@hookcite}
-% Optional |\cite| capture: external references become |cite:|-prefixed
-% target labels, drawn later as distinct nodes. A |\cite| optional note,
-% |\cite[|\meta{note}|]{|\meta{key}|}|, is recorded for the key(s) and shown in
-% the node label as ``\meta{note}, \meta{key}''. The note is reduced to a plain
-% string at capture time (fragile wrappers neutralized); the first note seen for
-% a key wins.
+% Optional |\cite| capture: external references become |cite:|-prefixed target
+% labels, drawn later as distinct nodes. The node identity is the pair (key,
+% note): a |\cite[|\meta{note}|]{|\meta{key}|}| inside a proof is distinguished
+% from a |\cite| of the same key with a \emph{different} note, so that citing two
+% different results of the same work (say two theorems of one book) yields two
+% nodes rather than one mislabelled with whichever note was seen first. Each pair
+% is assigned a numeric \emph{slot} (|\pgph@citeslot|); the edge target is
+% |cite:|\meta{slot}, and the slot remembers the key (for the tag and the
+% bibliography hyperlink) and the note (for the label). The note is reduced to a
+% plain string at capture time (fragile wrappers neutralized, |~|~normalised to a
+% space), which also serves as the signature so |[Thm 1]| and |[Thm~1]| coincide.
+% We peek for the optional argument with |\@ifnextchar| rather than declaring
+% one, so that a note-less |\cite{|\meta{key}|}| is passed on \emph{as written}:
+% re-emitting it as |\cite[]{|\meta{key}|}| would make the typeset citation grow a
+% spurious empty note (``[1, ]'').
 %    \begin{macrocode}
-\newcommand\pgph@cap@cite[2][]{%
+\newcommand\pgph@gxdefcs[2]{%
+  \global\expandafter\edef\csname#1\endcsname{#2}}
+\newcommand\pgph@cap@cite{%
+  \@ifnextchar[\pgph@cap@cite@opt\pgph@cap@cite@noopt}
+\def\pgph@cap@cite@opt[#1]#2{%
+  \pgph@cap@citerec{#1}{#2}\pgph@saved@cite[#1]{#2}}
+\def\pgph@cap@cite@noopt#1{\pgph@cap@citerec{}{#1}\pgph@saved@cite{#1}}
+\newcommand\pgph@cap@citerec[2]{%
   \ifx\pgph@curproof\@empty\else
-    \def\pgph@citenotearg{#1}%
     \@for\pgph@one:=#2\do{%
       \edef\pgph@k{\expandafter\pgph@trimsp\expandafter{\pgph@one}}%
-      \pgph@addedge{\pgph@curproof}{cite:\pgph@k}%
-      \ifx\pgph@citenotearg\@empty\else
-        \expandafter\pgph@recordcitenote\expandafter{\pgph@k}{#1}%
-      \fi}%
+      \pgph@citeslot{\pgph@k}{#1}%
+      \pgph@addedge{\pgph@curproof}{cite:\pgph@curslot}}%
   \fi
-  \pgph@saved@cite[#1]{#2}%
 }
-\newcommand\pgph@recordcitenote[2]{%
-  \ifcsname pgph@citenote@#1\endcsname\else
-    \begingroup
-      \pgph@citesanitize
-      \edef\pgph@tmpnote{#2}%
-      \global\expandafter\let\csname pgph@citenote@#1\endcsname\pgph@tmpnote
-    \endgroup
+\newcommand\pgph@citeslot[2]{%
+  \begingroup
+    \pgph@citesanitize
+    \xdef\pgph@gnotestr{#2}%
+  \endgroup
+  \edef\pgph@sig{#1@@\detokenize\expandafter{\pgph@gnotestr}}%
+  \ifcsname pgph@cslot@\pgph@sig\endcsname
+    \edef\pgph@curslot{\csname pgph@cslot@\pgph@sig\endcsname}%
+  \else
+    \global\advance\pgph@citeslotcnt\@ne
+    \edef\pgph@curslot{\the\pgph@citeslotcnt}%
+    \pgph@gxdefcs{pgph@cslot@\pgph@sig}{\pgph@curslot}%
+    \pgph@gxdefcs{pgph@cskey@\pgph@curslot}{#1}%
+    \ifx\pgph@gnotestr\@empty\else
+      \pgph@gxdefcs{pgph@citenote@\pgph@curslot}{\pgph@gnotestr}%
+    \fi
   \fi
 }
 \newcommand\pgph@installcite{%
@@ -948,18 +1178,39 @@
 %    \end{macrocode}
 %
 % \subsection{Emission}
+% \begin{macro}{\pgph@dotesc}
+% Escape the two characters that are special in a \Graphviz\ double-quoted string,
+% so a theorem name, number or citation note containing them does not corrupt the
+% |.dot|: a backslash is doubled and a double quote is backslash-escaped (in that
+% order). |\pgph@bschar| and |\pgph@dqchar| hold the catcode-12 backslash and
+% double quote to search for; \textsf{xstring}'s expansion mode is saved and
+% restored around the two substitutions.
+%    \begin{macrocode}
+\begingroup
+  \catcode`\|=0 \catcode`\"=12 \catcode`\\=12
+  |gdef|pgph@bschar{\}%
+  |gdef|pgph@dqchar{"}%
+|endgroup
+\newcommand\pgph@dotesc[1]{%
+  \saveexpandmode\expandarg
+  \StrSubstitute{#1}{\pgph@bschar}{\pgph@bschar\pgph@bschar}[#1]%
+  \StrSubstitute{#1}{\pgph@dqchar}{\pgph@bschar\pgph@dqchar}[#1]%
+  \restoreexpandmode}
+%    \end{macrocode}
+% \end{macro}
 % \begin{macro}{\pgph@node}
 % Emit one node line, honouring exclusions and per-environment styling.
 % External (|cite:|) targets are emitted separately as a pass over edges.
 % An \emph{unnumbered} result (no number captured) is omitted: a results graph
 % is about numbered statements, and unnumbered theorem-like environments are
-% typically expository or repeated copies (e.g.\ a class-predefined
+% typically expository or repeated copies (e.g., a class-predefined
 % |\spnewtheorem*{claim}|). |\proofgraphtrack{|\meta{env}|}| overrides this, so a
 % deliberately unnumbered environment is still drawn.
 %    \begin{macrocode}
 \newcommand\pgph@node[3]{%
   \ifcsname pgph@ex@#1\endcsname\else
-    \edef\pgph@nm{\ifcsname pgph@num@#1\endcsname\csname pgph@num@#1\endcsname\fi}%
+    \edef\pgph@nm{\ifcsname pgph@num@#1\endcsname%
+      \csname pgph@num@#1\endcsname\fi}%
     \ifx\pgph@nm\@empty
       \ifcsname pgph@force@#2\endcsname
         \pgph@emitnode{#1}{#2}{#3}%
@@ -976,8 +1227,10 @@
     , \csname pgph@style@#2\endcsname\fi}%
   \edef\pgph@dn{\ifcsname pgph@name@#1\endcsname
     \csname pgph@name@#1\endcsname\else#3\fi}%
+  \edef\pgph@lbl{\pgph@dn\space\pgph@nm}%
+  \pgph@dotesc\pgph@lbl
   \immediate\write\pgph@out{%
-    \space\space"n#1" [label="\pgph@dn\space\pgph@nm"\pgph@s];}%
+    \space\space"n#1" [label="\pgph@lbl"\pgph@s];}%
   \ifcsname pgph@rmap@#1\endcsname
     \immediate\write\pgph@mapout{%
       \string\pgphnodemap{n#1}{\csname pgph@rmap@#1\endcsname}}%
@@ -1039,25 +1292,32 @@
 %
 % \begin{macro}{\pgph@citeedge}
 % \begin{macro}{\pgph@setcitelabel}
-% A |cite:key| target: declare the external node once (keyed, as a stable id, by
-% the \BibTeX\ key), then draw the edge. The node \emph{label} is built by
-% |\pgph@setcitelabel|: it is the key by default, or, with |citelabel=tag|, the
+% A |cite:|\meta{slot} target: recover the slot's \BibTeX\ key, declare the
+% external node once per slot, then draw the edge. The node \emph{label} is built
+% by |\pgph@setcitelabel|: it is the key by default, or, with |citelabel=tag|, the
 % printed citation tag (the ``[42]''/``[Knu74]'' text) recovered from the
 % |\b@|\meta{key} macro that |\bibcite| writes to the |.aux| (so two runs are
-% needed, and it falls back to the key when no tag is known, e.g.\ on the first
-% run or with citation packages that do not populate |\b@|\meta{key}). A |\cite|
-% note, when present, is prepended as ``\meta{note}, \dots''.
+% needed, and it falls back to the key when no tag is known, e.g., on the first
+% run or with citation packages that do not populate |\b@|\meta{key}). The slot's
+% |\cite| note, when present, is prepended as ``\meta{note}, \dots''. The
+% node-to-label map records the \emph{key}, so all slots of one work hyperlink to
+% the same bibliography entry.
 %    \begin{macrocode}
 \newcommand\pgph@citeedge[2]{%
   \ifcsname pgph@ex@#1\endcsname\else
-    \StrBehind{#2}{cite:}[\pgph@key]%
-    \ifcsname pgph@extnode@\pgph@key\endcsname\else
-      \@namedef{pgph@extnode@\pgph@key}{}%
-      \expandafter\pgph@setcitelabel\expandafter{\pgph@key}%
+    \StrBehind{#2}{cite:}[\pgph@slot]%
+    \edef\pgph@key{\csname pgph@cskey@\pgph@slot\endcsname}%
+    \ifcsname pgph@extnode@\pgph@slot\endcsname\else
+      \@namedef{pgph@extnode@\pgph@slot}{}%
+      \expandafter\pgph@setcitelabel\expandafter{\pgph@slot}%
+      \pgph@dotesc\pgph@clabel
       \immediate\write\pgph@out{%
-        \space\space"c@\pgph@key" [label="\pgph@clabel",\pgph@citestyle];}%
+        \space\space"c@\pgph@slot"
+        [label="\pgph@clabel",\pgph@citestyle];}%
+      \immediate\write\pgph@mapout{%
+        \string\pgphnodemapcite{c@\pgph@slot}{\pgph@key}}%
     \fi
-    \pgph@emitedge{n#1}{c@\pgph@key}%
+    \pgph@emitedge{n#1}{c@\pgph@slot}%
   \fi
 }
 \edef\pgph@obrace{\expandafter\@gobble\string\{}
@@ -1087,13 +1347,14 @@
   \ifpgph@natnum\def\pgph@x{#1}\else\def\pgph@x{#3 #2}\fi}
 \newcommand\pgph@natdo{\expandafter\pgph@natpick\pgph@x{}{}{}\pgph@nil}
 \newcommand\pgph@setcitelabel[1]{%
-  \edef\pgph@cbase{#1}%
+  \edef\pgph@ckey{\csname pgph@cskey@#1\endcsname}%
+  \edef\pgph@cbase{\pgph@ckey}%
   \ifdefstring{\pgph@citelabel}{tag}{%
-    \ifcsname b@#1\endcsname
+    \ifcsname b@\pgph@ckey\endcsname
       \global\let\pgph@cbaseg\relax
       \begingroup
         \pgph@citesanitize
-        \edef\pgph@x{\csname b@#1\endcsname}%
+        \edef\pgph@x{\csname b@\pgph@ckey\endcsname}%
         \edef\pgph@dx{\detokenize\expandafter{\pgph@x}}%
         \IfBeginWith\pgph@dx\pgph@obrace{%
           \pgph@natnumfalse
@@ -1166,25 +1427,38 @@
 % \end{macro}
 %
 % \begin{macro}{\pgphnodemap}
-% One entry of the node-to-label map written by |\pgph@emit|: it records, for a
-% \Graphviz\ node identifier, the user label of the result it represents. The map
-% is read back when the graph is embedded, to turn each node into a hyperlink.
+% \begin{macro}{\pgphnodemapcite}
+% One entry of the node-to-target map written by |\pgph@emit|: it records, for a
+% \Graphviz\ node identifier, what the node should link to. |\pgphnodemap| records
+% the user \emph{label} of the result a node represents; |\pgphnodemapcite| records
+% the \BibTeX\ \emph{key} of an external citation node, so that (when the cited
+% work is in the same document) the node can link to its bibliography entry,
+% \textsf{hyperref}'s |cite.|\meta{key} destination. The map is read back when the
+% graph is embedded, to turn each node into a hyperlink.
 %    \begin{macrocode}
 \newcommand\pgphnodemap[2]{\global\@namedef{pgph@lbl@#1}{#2}}
+\newcommand\pgphnodemapcite[2]{\global\@namedef{pgph@clbl@#1}{#2}}
 %    \end{macrocode}
+% \end{macro}
 % \end{macro}
 %
 % \begin{macro}{\proofgraph}
 % Include the rendered graph (from a previous run) in |autorun| mode. When
 % \textsf{hyperref} and \textsf{TikZ} are both available (and |hyperlinks| is not
-% switched off), each node is made into an internal hyperlink to the result it
-% represents: \Graphviz\ produces a |.pdf| whose link annotations would be lost
-% by |\includegraphics| (they sit inside a form \textsc{xobject}), so instead we
-% overlay transparent |\hyperref| areas at the node positions, which we read from
-% the |-Tplain| output. Without those packages we fall back to a plain inclusion.
+% switched off), each node is made into an internal hyperlink to what it
+% represents: a result node links to the result (its |\label|), and an external
+% citation node (from the |cite| option) links to the cited work's bibliography
+% entry, \textsf{hyperref}'s |cite.|\meta{key} destination, when that work is
+% cited in the same document. \Graphviz\ produces a |.pdf| whose link annotations
+% would be lost by |\includegraphics| (they sit inside a form \textsc{xobject}),
+% so instead we overlay transparent link areas at the node positions, which we
+% read from the |-Tplain| output. Without those packages we fall back to a plain
+% inclusion.
 %    \begin{macrocode}
 \newif\ifpgph@canlink
+\newif\ifpgph@link
 \newsavebox\pgph@imgbox
+\newsavebox\pgph@natbox
 \newread\pgph@plainin
 \def\pgph@stop{}
 \newcommand\proofgraph[1][]{%
@@ -1199,7 +1473,8 @@
   \ifpgph@hyperlinks
     \@ifpackageloaded{hyperref}%
       {\@ifpackageloaded{tikz}%
-         {\IfFileExists{\pgph@file-proofgraph.plain}{\pgph@canlinktrue}{}}{}}{}%
+         {\IfFileExists{\pgph@file-proofgraph.plain}%
+            {\pgph@canlinktrue}{}}{}}{}%
   \fi
   \ifpgph@canlink
     \pgph@graphlinked{#1}%
@@ -1208,12 +1483,16 @@
   \fi
 }
 %    \end{macrocode}
-% The linked version. We read the node-to-label map under safe category codes (a
+% The linked version. We read the node-to-target map under safe category codes (a
 % label may contain |_| or, under \textsf{babel}, an active |:|), measure the
 % rendered image, place it in a \textsf{TikZ} node, then read the |-Tplain| file
-% and drop one transparent |\hyperref| box on each labelled node. Positions are
-% expressed as fractions of the bounding box, so they follow whatever size the
-% image is scaled to.
+% and drop one transparent link box on each mapped node. \Graphviz\ draws the
+% graph inset by a margin, so the image is larger than the layout bounding box
+% the |-Tplain| coordinates live in; we recover that margin by also measuring the
+% image at its \emph{natural} size and comparing it with the |-Tplain| graph size
+% (the |graph| line gives it in inches, hence the factor~72). Node positions are
+% then expressed as fractions of the natural image, so they line up with the
+% drawn nodes whatever size the image is finally scaled to.
 %    \begin{macrocode}
 \newcommand\pgph@graphlinked[1]{%
   \begingroup
@@ -1221,9 +1500,14 @@
     \catcode`\?=12 \catcode`\&=12 \catcode`\^=12 \catcode`\~=12
     \InputIfFileExists{\pgph@file-proofgraph.map}{}{}%
   \endgroup
-  \sbox\pgph@imgbox{\includegraphics[#1]{\pgph@file-proofgraph.\pgph@format}}%
+  \sbox\pgph@imgbox{%
+    \includegraphics[#1]{\pgph@file-proofgraph.\pgph@format}}%
+  \sbox\pgph@natbox{%
+    \includegraphics{\pgph@file-proofgraph.\pgph@format}}%
   \edef\pgph@imgw{\the\wd\pgph@imgbox}%
   \edef\pgph@imgh{\the\dimexpr\ht\pgph@imgbox+\dp\pgph@imgbox\relax}%
+  \edef\pgph@natw{\the\wd\pgph@natbox}%
+  \edef\pgph@nath{\the\dimexpr\ht\pgph@natbox+\dp\pgph@natbox\relax}%
   \begin{tikzpicture}
     \node[inner sep=\z@,outer sep=\z@](pgph@P){\usebox\pgph@imgbox};
     \openin\pgph@plainin=\pgph@file-proofgraph.plain\relax
@@ -1247,15 +1531,32 @@
 \def\pgph@dograph graph #1 #2 #3 #4\pgph@stop{%
   \def\pgph@gw{#2}\def\pgph@gh{#3}}
 \def\pgph@donode node #1 #2 #3 #4 #5 #6\pgph@stop{%
-  \ifcsname pgph@lbl@#1\endcsname
-    \pgfmathsetmacro\pgph@fx{#2/\pgph@gw}%
-    \pgfmathsetmacro\pgph@fy{#3/\pgph@gh}%
-    \pgfmathsetlengthmacro\pgph@bw{#4/\pgph@gw*\pgph@imgw*0.9}%
-    \pgfmathsetlengthmacro\pgph@bh{#5/\pgph@gh*\pgph@imgh*0.85}%
-    \edef\pgph@thislbl{\csname pgph@lbl@#1\endcsname}%
-    \node[anchor=center] at ($($(pgph@P.south west)!\pgph@fx!(pgph@P.south east)$)%
+  \StrDel{#1}{"}[\pgph@nid]%
+  \pgph@linkfalse
+  \ifcsname pgph@lbl@\pgph@nid\endcsname
+    \edef\pgph@tgt{\csname pgph@lbl@\pgph@nid\endcsname}%
+    \edef\pgph@thislink{\noexpand\hyperref[\pgph@tgt]}%
+    \pgph@linktrue
+  \else
+    \ifcsname pgph@clbl@\pgph@nid\endcsname
+      \edef\pgph@tgt{\csname pgph@clbl@\pgph@nid\endcsname}%
+      \edef\pgph@thislink{\noexpand\hyperlink{cite.\pgph@tgt}}%
+      \pgph@linktrue
+    \fi
+  \fi
+  \ifpgph@link
+    % Per-side Graphviz margin: half the natural-minus-layout size.
+    \pgfmathsetmacro\pgph@mx{(\pgph@natw-\pgph@gw*72)/2}%
+    \pgfmathsetmacro\pgph@my{(\pgph@nath-\pgph@gh*72)/2}%
+    % Node centre as a fraction of the natural image.
+    \pgfmathsetmacro\pgph@fx{(\pgph@mx+#2*72)/\pgph@natw}%
+    \pgfmathsetmacro\pgph@fy{(\pgph@my+#3*72)/\pgph@nath}%
+    \pgfmathsetlengthmacro\pgph@bw{#4*72/\pgph@natw*\pgph@imgw*0.92}%
+    \pgfmathsetlengthmacro\pgph@bh{#5*72/\pgph@nath*\pgph@imgh*0.9}%
+    \node[anchor=center]
+      at ($($(pgph@P.south west)!\pgph@fx!(pgph@P.south east)$)%
       !\pgph@fy!($(pgph@P.north west)!\pgph@fx!(pgph@P.north east)$)$)
-      {\hyperref[\pgph@thislbl]{\phantom{\rule{\pgph@bw}{\pgph@bh}}}};%
+      {\pgph@thislink{\phantom{\rule{\pgph@bw}{\pgph@bh}}}};%
   \fi
 }
 %    \end{macrocode}

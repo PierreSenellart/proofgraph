@@ -1,0 +1,7 @@
+digraph proofgraph {
+  rankdir="TB";
+  "n2" [label="Theorem 1"];
+  "n1" [label="Lemma 1"];
+  "n2" -> "n1";
+  "n2" -> "n2";
+}

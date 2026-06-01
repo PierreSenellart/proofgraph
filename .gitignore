@@ -3,6 +3,7 @@
 
 # LaTeX / l3build / docs auxiliary files
 *.aux
+*.axp
 *.glo
 *.gls
 *.glg
@@ -24,6 +25,10 @@ build/
 # Graphviz output written by the package
 *.dot
 !**/reference.dot
+*-proofgraph.map
+*-proofgraph.plain
+*-proofgraph.pdf
+examples/*/*.pdf
 
 # Claude artifacts (kept local, never tracked)
 PLAN.md

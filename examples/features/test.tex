@@ -1,0 +1,54 @@
+% Comprehensive synthetic fixture exercising the .dot-affecting documented
+% features at their defaults (selfloops=remove, direction=usedby, rankdir=LR),
+% plus cite. Checked against reference.dot. Features exercised (see comments):
+%   automatic \ref capture (the same install path serves \cref, \autoref, etc.);
+%   optional-title capture (restatement); \uses; \proofgraphedge; \proofof;
+%   \proofgraphtrack overriding a default exclusion; \proofgraphuntrack excluding
+%   a tracked kind; \proofgraphignore; \proofgraphexclude; \proofgraphstyle;
+%   \proofgraphstylecite; cite + citelabel=key with per-(key,note) node splitting;
+%   self-loop removal; unnumbered (starred) result excluded; "/\ label escaping.
+% Uses only amsthm (which proofgraph loads anyway), so it compiles everywhere;
+% single-pass and bibtex-free (citelabel=key, manual \bibitem) for determinism.
+\documentclass{article}
+\usepackage{amsthm}
+\usepackage[cite,citelabel=key]{proofgraph}
+
+\proofgraphtrack{definition}          % include the normally-excluded definition
+\proofgraphuntrack{proposition}       % exclude a normally-tracked kind
+\proofgraphstyle{theorem}{shape=box,style=filled,fillcolor=gold}
+\proofgraphstylecite{shape=note,color=gray}
+
+\newtheorem{theorem}{Theorem}
+\newtheorem{lemma}[theorem]{Lemma}
+\newtheorem{corollary}[theorem]{Corollary}
+\newtheorem{proposition}[theorem]{Proposition}
+\theoremstyle{definition}
+\newtheorem{definition}[theorem]{A "named" definition}  % default-excluded; "->escape
+\newtheorem*{remark}{Remark}                            % unnumbered -> excluded
+
+\begin{document}
+
+\begin{definition}\label{def:d}A definition.\end{definition}   % tracked -> node
+\begin{lemma}\label{lem:a}First.\end{lemma}
+\begin{lemma}\label{lem:b}Second.\end{lemma}
+
+\begin{theorem}\label{thm:m}Main.\end{theorem}
+\begin{proof}
+  By \ref{lem:a} and \ref{lem:b}; \uses{def:d}; see \cite[Ch.~1]{bk}
+  and \cite{bk}.
+\end{proof}
+
+\begin{corollary}[(restates \ref{thm:m})]\label{cor:c}A corollary.\end{corollary}
+\begin{proof}\proofof{cor:c}
+  Trivial; see also \ref{cor:c}.        % self-reference -> self-loop removed
+\end{proof}
+
+\begin{remark}\label{rem:r}Hidden.\end{remark}            % unnumbered -> excluded
+\begin{proposition}\label{prp:p}Untracked.\end{proposition}  % \proofgraphuntrack
+
+\proofgraphedge{cor:c}{def:d}           % manual edge def:d -> cor:c
+\proofgraphignore{thm:m}{lem:a}         % drop thm:m's dependency on lem:a
+\proofgraphexclude{lem:b}               % remove lem:b and its edges
+
+\begin{thebibliography}{9}\bibitem{bk}A book.\end{thebibliography}
+\end{document}
