@@ -16,12 +16,16 @@
 #   citetag   citelabel=tag.
 #   predefined detection of theorem environments predefined before the package.
 #   apxproof  deferred-proof capture via \apxproofhook (bundled apxproof.sty).
+#   nestedproof \cite capture in a proof nested inside another proof (the
+#             capture once reinstalled over itself there and recursed forever,
+#             which is why pdflatex runs under timeout below: a regression
+#             fails fast instead of hanging the suite).
 # The autorun, engine, format, hyperlinks options and \proofgraph itself are
 # exercised by the manual build (l3build doc), which is an autorun proofgraph
 # document with clickable embedded graphs.
 SHELL  := /bin/bash
 REPO   := $(CURDIR)/..
-TESTS  := apxproof features options citetag predefined
+TESTS  := apxproof features options citetag predefined nestedproof
 
 .PHONY: all clean $(TESTS)
 all: $(TESTS)
@@ -29,8 +33,8 @@ all: $(TESTS)
 $(TESTS):
 	@cd $@ ; \
 	  latexmk -C test >/dev/null 2>&1 ; rm -f test.dot mygraph.dot ; \
-	  TEXINPUTS=".:$(REPO):" pdflatex -interaction=nonstopmode test >/dev/null 2>&1 ; \
-	  TEXINPUTS=".:$(REPO):" pdflatex -interaction=nonstopmode test >/dev/null 2>&1 ; \
+	  TEXINPUTS=".:$(REPO):" timeout 120 pdflatex -interaction=nonstopmode test >/dev/null 2>&1 ; \
+	  TEXINPUTS=".:$(REPO):" timeout 120 pdflatex -interaction=nonstopmode test >/dev/null 2>&1 ; \
 	  d=$$(ls *.dot 2>/dev/null | grep -v '^reference\.dot$$' | head -1) ; \
 	  if [ -n "$$d" ] && diff -q "$$d" reference.dot >/dev/null 2>&1 ; then \
 	    echo "ok   $@ ($$d)" ; \

@@ -1,0 +1,30 @@
+% Regression test: a proof nested inside another proof (a claim's proof) with
+% \cite capture active. \pgph@installcite used to reinstall over its own
+% capture macro in the inner proof, making \pgph@saved@cite the capture itself,
+% so the first \cite inside the nested proof recursed forever (pdflatex hung;
+% the harness runs pdflatex under timeout so a regression fails fast instead).
+% Both cites must be attributed to the enclosing result, and the repeated outer
+% \cite must reuse its slot without emitting a duplicate edge. The keys carry
+% underscores on purpose: they must survive capture and .dot emission verbatim.
+% Uses only amsthm; single-pass and bibtex-free (citelabel=key, manual
+% \bibitem) for determinism.
+\documentclass{article}
+\usepackage{amsthm}
+\usepackage[cite,citelabel=key]{proofgraph}
+\newtheorem{theorem}{Theorem}
+\begin{document}
+
+\begin{theorem}\label{thm:main_result}Main.\end{theorem}
+\begin{proof}
+  Outer argument, using \cite{Outer_Ref_2011}.
+  \begin{proof}[Proof of claim]
+    Inner argument, using \cite[Lemma 2]{Inner_Ref_2020}.
+  \end{proof}
+  Outer again, with \cite{Outer_Ref_2011} reusing its slot.
+\end{proof}
+
+\begin{thebibliography}{9}
+\bibitem{Outer_Ref_2011}An outer reference.
+\bibitem{Inner_Ref_2020}An inner reference.
+\end{thebibliography}
+\end{document}

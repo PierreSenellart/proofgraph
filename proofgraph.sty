@@ -368,8 +368,12 @@
 }
 \newcommand\pgph@installcite{%
   \ifcsname cite\endcsname
-    \let\pgph@saved@cite\cite
-    \let\cite\pgph@cap@cite
+    \expandafter\ifx\csname cite\expandafter\endcsname
+                    \csname pgph@cap@cite\endcsname
+    \else
+      \let\pgph@saved@cite\cite
+      \let\cite\pgph@cap@cite
+    \fi
   \fi
 }
 \newcommand\uses[1]{\pgph@recordref{#1}}

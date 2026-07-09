@@ -79,7 +79,7 @@
 %</driver>
 % \fi
 %
-% \CheckSum{1515}
+% \CheckSum{1524}
 %
 % \CharacterTable
 %  {Upper-case    \A\B\C\D\E\F\G\H\I\J\K\L\M\N\O\P\Q\R\S\T\U\V\W\X\Y\Z
@@ -99,6 +99,9 @@
 %
 % \changes{v0.1.0}{2026/05/31}{Initial version}
 % \changes{v1.0.0}{2026/06/02}{First released version}
+% \changes{v1.0.1-dev}{2026/07/09}{Fix an infinite loop when, with the
+%   \texttt{cite} option, a citation occurred in a proof nested within
+%   another proof: the capture no longer reinstalls over itself}
 %
 % \DoNotIndex{\newcommand,\renewcommand,\providecommand,\def,\edef,\gdef,\xdef}
 % \DoNotIndex{\let,\global,\long,\relax,\expandafter,\csname,\endcsname}
@@ -1092,7 +1095,10 @@
 % We peek for the optional argument with |\@ifnextchar| rather than declaring
 % one, so that a note-less |\cite{|\meta{key}|}| is passed on \emph{as written}:
 % re-emitting it as |\cite[]{|\meta{key}|}| would make the typeset citation grow a
-% spurious empty note (``[1, ]'').
+% spurious empty note (``[1, ]''). As in |\pgph@install|, installation is skipped
+% when |\cite| is already the capture macro; otherwise a proof nested inside
+% another proof would save the capture as |\pgph@saved@cite|, and the first
+% |\cite| in the inner proof would recurse forever.
 %    \begin{macrocode}
 \newcommand\pgph@gxdefcs[2]{%
   \global\expandafter\edef\csname#1\endcsname{#2}}
@@ -1129,8 +1135,12 @@
 }
 \newcommand\pgph@installcite{%
   \ifcsname cite\endcsname
-    \let\pgph@saved@cite\cite
-    \let\cite\pgph@cap@cite
+    \expandafter\ifx\csname cite\expandafter\endcsname
+                    \csname pgph@cap@cite\endcsname
+    \else
+      \let\pgph@saved@cite\cite
+      \let\cite\pgph@cap@cite
+    \fi
   \fi
 }
 %    \end{macrocode}
