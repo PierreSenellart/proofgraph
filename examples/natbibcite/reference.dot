@@ -5,4 +5,10 @@ digraph proofgraph {
   "c@1" -> "n1";
   "c@2" [label="Other_Work_2020",shape=note];
   "c@2" -> "n1";
+  "c@3" [label="Section 4, Lachal_Class_2011",shape=note];
+  "c@3" -> "n1";
+  "c@4" [label="Lachal_Class_2011",shape=note];
+  "c@4" -> "n1";
+  "c@5" [label="Third_Item_1999",shape=note];
+  "c@5" -> "n1";
 }

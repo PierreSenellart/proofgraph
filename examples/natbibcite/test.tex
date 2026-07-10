@@ -6,9 +6,11 @@
 % in the key) deep inside the proof body. The post-note must be recorded as
 % the node's note (matching the one-argument semantics) and the pre-note
 % ignored: \cite[see][Section 3]{k} and \cite[Section 3]{k} must share one
-% slot, as must \cite[see][]{k2} and \cite{k2}. Uses natbib with manual
-% author-year \bibitem entries; single-pass and bibtex-free (citelabel=key)
-% for determinism.
+% slot, as must \cite[see][]{k2} and \cite{k2}. Also exercises the capture of
+% \citet and \citep (which coincide with \cite on the same (key, note) pair),
+% the starred \citep* (star affects rendering only, not slot identity), and a
+% multi-key \citep. Uses natbib with manual author-year \bibitem entries;
+% single-pass and bibtex-free (citelabel=key) for determinism.
 \documentclass{article}
 \usepackage{amsthm}
 \usepackage{natbib}
@@ -23,10 +25,15 @@
   reusing its slot.
   With a pre-note only, \cite[see][]{Other_Work_2020}, then the same work
   cited plainly, \cite{Other_Work_2020}, reusing its slot too.
+  A textual \citet[Section 4]{Lachal_Class_2011} opens a new slot (new note),
+  while \citep[cf.][Section 3]{Lachal_Class_2011} reuses the first slot and
+  the starred \citep*{Other_Work_2020} the second.
+  A multi-key \citep{Lachal_Class_2011,Third_Item_1999} adds one slot per key.
 \end{proof}
 
 \begin{thebibliography}{9}
 \bibitem[Lachal(2011)]{Lachal_Class_2011}A reference.
 \bibitem[Other(2020)]{Other_Work_2020}Another reference.
+\bibitem[Third(1999)]{Third_Item_1999}A third reference.
 \end{thebibliography}
 \end{document}

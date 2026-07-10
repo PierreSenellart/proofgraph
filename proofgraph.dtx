@@ -79,7 +79,7 @@
 %</driver>
 % \fi
 %
-% \CheckSum{1533}
+% \CheckSum{1569}
 %
 % \CharacterTable
 %  {Upper-case    \A\B\C\D\E\F\G\H\I\J\K\L\M\N\O\P\Q\R\S\T\U\V\W\X\Y\Z
@@ -106,6 +106,8 @@
 %   the two-optional-argument citation form
 %   \texttt{[pre][post]\{key\}} of natbib and biblatex; it
 %   previously broke compilation with confusing errors inside proofs}
+% \changes{v1.0.1-dev}{2026/07/10}{Capture \texttt{citet} and \texttt{citep}
+%   (including starred variants) like \texttt{cite} when they are defined}
 %
 % \DoNotIndex{\newcommand,\renewcommand,\providecommand,\def,\edef,\gdef,\xdef}
 % \DoNotIndex{\let,\global,\long,\relax,\expandafter,\csname,\endcsname}
@@ -465,7 +467,9 @@
 %   |\cite| note is kept: |\cite[Thm~3]{key}| labels the node ``Thm~3, \dots''.
 %   In the two-optional-argument form of \textsf{natbib} and \textsf{biblatex},
 %   |\cite[see][Thm~3]{key}|, the post-note likewise labels the node and the
-%   pre-note is ignored.
+%   pre-note is ignored. When |\citet| and |\citep| are defined
+%   (\textsf{natbib}, \textsf{biblatex}), they are captured in the same way,
+%   including their starred variants.
 % \item[\optname{citelabel}]
 %   Either |key| (default), labelling citation nodes by their \BibTeX\ key, or
 %   |tag|, using the printed citation tag instead (``[1]'', ``[Knu74]'',
@@ -1088,7 +1092,10 @@
 % \end{macro}
 %
 % \begin{macro}{\pgph@hookcite}
-% Optional |\cite| capture: external references become |cite:|-prefixed target
+% Optional citation capture, applied to |\cite| and, when they are defined
+% (\textsf{natbib}, \textsf{biblatex}), to |\citet| and |\citep| as well, all
+% sharing one capture chain parameterized by the command name: external
+% references become |cite:|-prefixed target
 % labels, drawn later as distinct nodes. The node identity is the pair (key,
 % note): a |\cite[|\meta{note}|]{|\meta{key}|}| inside a proof is distinguished
 % from a |\cite| of the same key with a \emph{different} note, so that citing two
@@ -1111,23 +1118,35 @@
 % rather than identifying the cited result, and is only replayed to the saved
 % |\cite|. Without this peek, the mandatory-argument scan would grab the bare
 % token |[| as the key and typeset the rest of the citation as text, giving
-% confusing errors (``Missing \$ inserted'') deep in the proof body. As in
-% |\pgph@install|, installation is skipped
-% when |\cite| is already the capture macro; otherwise a proof nested inside
-% another proof would save the capture as |\pgph@saved@cite|, and the first
-% |\cite| in the inner proof would recurse forever.
+% confusing errors (``Missing \$ inserted'') deep in the proof body. A star
+% (|\citet*|, |\citep*|: full author list) is likewise peeked for and replayed;
+% it affects rendering only, not the recorded (key, note) pair. The replay head
+% (saved command plus optional star) is frozen in |\pgph@replay| by the
+% star-peek before the arguments are scanned. As in
+% |\pgph@install|, installation is skipped (per command)
+% when the command is already the capture macro; otherwise a proof nested inside
+% another proof would save the capture as the saved command, and the first
+% citation in the inner proof would recurse forever.
 %    \begin{macrocode}
 \newcommand\pgph@gxdefcs[2]{%
   \global\expandafter\edef\csname#1\endcsname{#2}}
-\newcommand\pgph@cap@cite{%
+\newcommand\pgph@cap@cite{\pgph@cap@citegen{cite}}
+\newcommand\pgph@cap@citet{\pgph@cap@citegen{citet}}
+\newcommand\pgph@cap@citep{\pgph@cap@citegen{citep}}
+\newcommand\pgph@cap@citegen[1]{%
+  \def\pgph@citecmd{#1}%
+  \@ifstar{\pgph@cap@cite@x*}{\pgph@cap@cite@x{}}}
+\def\pgph@cap@cite@x#1{%
+  \edef\pgph@replay{%
+    \expandafter\noexpand\csname pgph@saved@\pgph@citecmd\endcsname#1}%
   \@ifnextchar[\pgph@cap@cite@opt\pgph@cap@cite@noopt}
 \def\pgph@cap@cite@opt[#1]{%
   \@ifnextchar[{\pgph@cap@cite@optii{#1}}{\pgph@cap@cite@opti{#1}}}
 \def\pgph@cap@cite@opti#1#2{%
-  \pgph@cap@citerec{#1}{#2}\pgph@saved@cite[#1]{#2}}
+  \pgph@cap@citerec{#1}{#2}\pgph@replay[#1]{#2}}
 \def\pgph@cap@cite@optii#1[#2]#3{%
-  \pgph@cap@citerec{#2}{#3}\pgph@saved@cite[#1][#2]{#3}}
-\def\pgph@cap@cite@noopt#1{\pgph@cap@citerec{}{#1}\pgph@saved@cite{#1}}
+  \pgph@cap@citerec{#2}{#3}\pgph@replay[#1][#2]{#3}}
+\def\pgph@cap@cite@noopt#1{\pgph@cap@citerec{}{#1}\pgph@replay{#1}}
 \newcommand\pgph@cap@citerec[2]{%
   \ifx\pgph@curproof\@empty\else
     \@for\pgph@one:=#2\do{%
@@ -1155,12 +1174,19 @@
   \fi
 }
 \newcommand\pgph@installcite{%
-  \ifcsname cite\endcsname
-    \expandafter\ifx\csname cite\expandafter\endcsname
-                    \csname pgph@cap@cite\endcsname
+  \pgph@installciteone{cite}%
+  \pgph@installciteone{citet}%
+  \pgph@installciteone{citep}%
+}
+\newcommand\pgph@installciteone[1]{%
+  \ifcsname #1\endcsname
+    \expandafter\ifx\csname #1\expandafter\endcsname
+                    \csname pgph@cap@#1\endcsname
     \else
-      \let\pgph@saved@cite\cite
-      \let\cite\pgph@cap@cite
+      \expandafter\let\csname pgph@saved@#1\expandafter\endcsname
+                      \csname #1\endcsname
+      \expandafter\let\csname #1\expandafter\endcsname
+                      \csname pgph@cap@#1\endcsname
     \fi
   \fi
 }
