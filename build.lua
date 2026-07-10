@@ -6,6 +6,24 @@ typesetexe = "pdflatex"
 typesetopts = " --interaction=nonstopmode --shell-escape"
 textfiles = {"README.md", "LICENSE"}
 
+-- Metadata for `l3build upload`. Update `version` at each release; set
+-- `announcement` for feature releases, keep it empty for bugfix releases
+-- (an empty announcement means the CTAN update is not announced).
+uploadconfig = {
+  pkg          = "proofgraph",
+  version      = "1.0.1",
+  author       = "Pierre Senellart",
+  uploader     = "Pierre Senellart",
+  email        = "pierre@senellart.com",
+  license      = "lppl1.3c",
+  summary      = "Dependency graph of the results of a mathematical article",
+  ctanPath     = "/macros/latex/contrib/proofgraph",
+  repository   = "https://github.com/PierreSenellart/proofgraph",
+  bugtracker   = "https://github.com/PierreSenellart/proofgraph/issues",
+  update       = true,
+  announcement = "",
+}
+
 -- The pre-rendered real-world example graph (Section "A real-world example" of
 -- the manual) is committed as an image and embedded with \includegraphics: the
 -- paper it comes from is private, so the graph cannot be regenerated at
