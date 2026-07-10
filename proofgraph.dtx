@@ -79,7 +79,7 @@
 %</driver>
 % \fi
 %
-% \CheckSum{1524}
+% \CheckSum{1533}
 %
 % \CharacterTable
 %  {Upper-case    \A\B\C\D\E\F\G\H\I\J\K\L\M\N\O\P\Q\R\S\T\U\V\W\X\Y\Z
@@ -102,6 +102,10 @@
 % \changes{v1.0.1-dev}{2026/07/09}{Fix an infinite loop when, with the
 %   \texttt{cite} option, a citation occurred in a proof nested within
 %   another proof: the capture no longer reinstalls over itself}
+% \changes{v1.0.1-dev}{2026/07/10}{Support, with the \texttt{cite} option,
+%   the two-optional-argument citation form
+%   \texttt{[pre][post]\{key\}} of natbib and biblatex; it
+%   previously broke compilation with confusing errors inside proofs}
 %
 % \DoNotIndex{\newcommand,\renewcommand,\providecommand,\def,\edef,\gdef,\xdef}
 % \DoNotIndex{\let,\global,\long,\relax,\expandafter,\csname,\endcsname}
@@ -459,6 +463,9 @@
 %   Boolean (default false). Also captures |\cite| inside proofs as dependencies
 %   on external work, drawn as distinct nodes (Section~\ref{sec:realworld}). A
 %   |\cite| note is kept: |\cite[Thm~3]{key}| labels the node ``Thm~3, \dots''.
+%   In the two-optional-argument form of \textsf{natbib} and \textsf{biblatex},
+%   |\cite[see][Thm~3]{key}|, the post-note likewise labels the node and the
+%   pre-note is ignored.
 % \item[\optname{citelabel}]
 %   Either |key| (default), labelling citation nodes by their \BibTeX\ key, or
 %   |tag|, using the printed citation tag instead (``[1]'', ``[Knu74]'',
@@ -1095,7 +1102,17 @@
 % We peek for the optional argument with |\@ifnextchar| rather than declaring
 % one, so that a note-less |\cite{|\meta{key}|}| is passed on \emph{as written}:
 % re-emitting it as |\cite[]{|\meta{key}|}| would make the typeset citation grow a
-% spurious empty note (``[1, ]''). As in |\pgph@install|, installation is skipped
+% spurious empty note (``[1, ]''). A second optional argument is peeked for in
+% the same way, to support the two-argument form
+% |\cite[|\meta{pre-note}|][|\meta{note}|]{|\meta{key}|}| of \textsf{natbib} and
+% \textsf{biblatex}; there the \emph{second} argument is the note recorded for the
+% node (matching the one-argument semantics, where the lone argument is the
+% post-note), while the pre-note (``see'', ``e.g.'') qualifies the act of citing
+% rather than identifying the cited result, and is only replayed to the saved
+% |\cite|. Without this peek, the mandatory-argument scan would grab the bare
+% token |[| as the key and typeset the rest of the citation as text, giving
+% confusing errors (``Missing \$ inserted'') deep in the proof body. As in
+% |\pgph@install|, installation is skipped
 % when |\cite| is already the capture macro; otherwise a proof nested inside
 % another proof would save the capture as |\pgph@saved@cite|, and the first
 % |\cite| in the inner proof would recurse forever.
@@ -1104,8 +1121,12 @@
   \global\expandafter\edef\csname#1\endcsname{#2}}
 \newcommand\pgph@cap@cite{%
   \@ifnextchar[\pgph@cap@cite@opt\pgph@cap@cite@noopt}
-\def\pgph@cap@cite@opt[#1]#2{%
+\def\pgph@cap@cite@opt[#1]{%
+  \@ifnextchar[{\pgph@cap@cite@optii{#1}}{\pgph@cap@cite@opti{#1}}}
+\def\pgph@cap@cite@opti#1#2{%
   \pgph@cap@citerec{#1}{#2}\pgph@saved@cite[#1]{#2}}
+\def\pgph@cap@cite@optii#1[#2]#3{%
+  \pgph@cap@citerec{#2}{#3}\pgph@saved@cite[#1][#2]{#3}}
 \def\pgph@cap@cite@noopt#1{\pgph@cap@citerec{}{#1}\pgph@saved@cite{#1}}
 \newcommand\pgph@cap@citerec[2]{%
   \ifx\pgph@curproof\@empty\else

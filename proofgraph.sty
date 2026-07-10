@@ -337,8 +337,12 @@
   \global\expandafter\edef\csname#1\endcsname{#2}}
 \newcommand\pgph@cap@cite{%
   \@ifnextchar[\pgph@cap@cite@opt\pgph@cap@cite@noopt}
-\def\pgph@cap@cite@opt[#1]#2{%
+\def\pgph@cap@cite@opt[#1]{%
+  \@ifnextchar[{\pgph@cap@cite@optii{#1}}{\pgph@cap@cite@opti{#1}}}
+\def\pgph@cap@cite@opti#1#2{%
   \pgph@cap@citerec{#1}{#2}\pgph@saved@cite[#1]{#2}}
+\def\pgph@cap@cite@optii#1[#2]#3{%
+  \pgph@cap@citerec{#2}{#3}\pgph@saved@cite[#1][#2]{#3}}
 \def\pgph@cap@cite@noopt#1{\pgph@cap@citerec{}{#1}\pgph@saved@cite{#1}}
 \newcommand\pgph@cap@citerec[2]{%
   \ifx\pgph@curproof\@empty\else

@@ -20,12 +20,15 @@
 #             capture once reinstalled over itself there and recursed forever,
 #             which is why pdflatex runs under timeout below: a regression
 #             fails fast instead of hanging the suite).
+#   natbibcite the two-optional-argument \cite[pre][post]{key} form of natbib
+#             and biblatex: the post-note is the recorded note (sharing a slot
+#             with the equivalent one-argument \cite), the pre-note is ignored.
 # The autorun, engine, format, hyperlinks options and \proofgraph itself are
 # exercised by the manual build (l3build doc), which is an autorun proofgraph
 # document with clickable embedded graphs.
 SHELL  := /bin/bash
 REPO   := $(CURDIR)/..
-TESTS  := apxproof features options citetag predefined nestedproof
+TESTS  := apxproof features options citetag predefined nestedproof natbibcite
 
 .PHONY: all clean $(TESTS)
 all: $(TESTS)

@@ -1,0 +1,32 @@
+% Regression test: natbib's (and biblatex's) two-optional-argument citation
+% form \cite[pre][post]{key} with \cite capture active. The capture used to
+% peek for a single optional argument only, so the mandatory-argument scan
+% grabbed the bare token "[" as the key and typeset the rest of the citation
+% as text, breaking compilation with "Missing $ inserted" (from the underscore
+% in the key) deep inside the proof body. The post-note must be recorded as
+% the node's note (matching the one-argument semantics) and the pre-note
+% ignored: \cite[see][Section 3]{k} and \cite[Section 3]{k} must share one
+% slot, as must \cite[see][]{k2} and \cite{k2}. Uses natbib with manual
+% author-year \bibitem entries; single-pass and bibtex-free (citelabel=key)
+% for determinism.
+\documentclass{article}
+\usepackage{amsthm}
+\usepackage{natbib}
+\usepackage[cite,citelabel=key]{proofgraph}
+\newtheorem{theorem}{Theorem}
+\begin{document}
+
+\begin{theorem}\label{thm:main}Main.\end{theorem}
+\begin{proof}
+  With pre- and post-note, \cite[see][Section 3]{Lachal_Class_2011}, then the
+  same result cited post-note only, \cite[Section 3]{Lachal_Class_2011},
+  reusing its slot.
+  With a pre-note only, \cite[see][]{Other_Work_2020}, then the same work
+  cited plainly, \cite{Other_Work_2020}, reusing its slot too.
+\end{proof}
+
+\begin{thebibliography}{9}
+\bibitem[Lachal(2011)]{Lachal_Class_2011}A reference.
+\bibitem[Other(2020)]{Other_Work_2020}Another reference.
+\end{thebibliography}
+\end{document}
