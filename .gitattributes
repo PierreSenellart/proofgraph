@@ -1,0 +1,4 @@
+# Keep GitHub's "Languages" bar representative of the package itself
+# (proofgraph.dtx / proofgraph.sty). examples/ is the test suite and bundles
+# third-party styles (apxproof.sty, ...), not authored code.
+examples/** linguist-vendored
