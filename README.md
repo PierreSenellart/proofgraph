@@ -27,8 +27,9 @@ produced from the documented source `proofgraph.dtx`.
 
 ## Prerequisites
 
-In addition to a working installation of LaTeX2e, `proofgraph` relies on a few
-other packages, which should be provided by all reasonable LaTeX distributions:
+In addition to a working installation of LaTeX2e (October 2020 or later),
+`proofgraph` relies on a few other packages, which should be provided by all
+reasonable LaTeX distributions:
 
 - `amsthm`
 - `etoolbox`

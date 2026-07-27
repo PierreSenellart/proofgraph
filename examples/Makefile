@@ -26,13 +26,16 @@
 #   biblatex  citelabel=tag under biblatex, whose tags no \b@<key> in the .aux
 #             records: numeric style, tag taken from the labelnumber field.
 #   biblatexalpha same, alphabetic style, tag taken from labelalpha.
+#   zrefclever zref-clever's \zcref, the one captured cross-reference that is
+#             not simply \cs{labels}: plain, starred, with an option, with a
+#             comma-separated label list, and in an optional proof title.
 # The autorun, engine, format, hyperlinks options and \proofgraph itself are
 # exercised by the manual build (l3build doc), which is an autorun proofgraph
 # document with clickable embedded graphs.
 SHELL  := /bin/bash
 REPO   := $(CURDIR)/..
 TESTS  := apxproof features options citetag predefined nestedproof natbibcite \
-          biblatex biblatexalpha
+          biblatex biblatexalpha zrefclever
 
 .PHONY: all clean $(TESTS)
 all: $(TESTS)

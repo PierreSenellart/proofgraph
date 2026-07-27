@@ -25,7 +25,7 @@
 %% This work consists of the files proofgraph.dtx and proofgraph.ins
 %% and the derived file proofgraph.sty.
 %% 
-\NeedsTeXFormat{LaTeX2e}[2005/12/01]
+\NeedsTeXFormat{LaTeX2e}[2020/10/01]
 \ProvidesPackage{proofgraph}
   [2026/07/27 v1.0.1-dev Dependency graph of results]
 \@ifpackageloaded{amsthm}{}{%
@@ -197,8 +197,7 @@
     \begingroup
       \global\let\pgph@savedcurproof\pgph@curproof
       \global\let\pgph@curproof\pgph@curresult
-      \pgph@install{ref}\pgph@install{cref}\pgph@install{Cref}%
-      \pgph@install{autoref}\pgph@install{eqref}\pgph@install{vref}%
+      \pgph@installrefs
       \setbox\z@\hbox{#1}%
       \global\let\pgph@curproof\pgph@savedcurproof
     \endgroup
@@ -257,6 +256,10 @@
 \protected\def\pgph@cap@eqref#1{%
   \pgph@recordref{#1}\pgph@saved@eqref{#1}}
 \protected\def\pgph@cap@vref#1{\pgph@recordref{#1}\pgph@saved@vref{#1}}
+\NewDocumentCommand\pgph@cap@zcref{sO{}m}{%
+  \pgph@recordref{#3}%
+  \IfBooleanTF{#1}{\pgph@saved@zcref*[#2]{#3}}{\pgph@saved@zcref[#2]{#3}}%
+}
 \newcommand\pgph@install[1]{%
   \ifcsname #1\endcsname
     \expandafter\ifx\csname #1%
@@ -269,10 +272,14 @@
     \fi
   \fi
 }
-\newcommand\pgph@beginproof{%
-  \let\pgph@curproof\pgph@curresult
+\newcommand\pgph@installrefs{%
   \pgph@install{ref}\pgph@install{cref}\pgph@install{Cref}%
   \pgph@install{autoref}\pgph@install{eqref}\pgph@install{vref}%
+  \pgph@install{zcref}%
+}
+\newcommand\pgph@beginproof{%
+  \let\pgph@curproof\pgph@curresult
+  \pgph@installrefs
   \ifpgph@cite\pgph@installcite\fi
   \pgph@hookproofhead
 }
@@ -294,11 +301,13 @@
       \pgph@scanproofarg{##2}\pgph@orig@Obtp{##1}{##2}{##3}{##4}}%
   \fi
 }
+\NewDocumentCommand\pgph@zcproofof{sO{}m}{\proofof{#3}}
 \newcommand\pgph@scanproofarg[1]{%
   \begingroup
     \let\protect\@empty
     \def\ref##1{\proofof{##1}}\def\cref##1{\proofof{##1}}%
     \def\Cref##1{\proofof{##1}}\def\autoref##1{\proofof{##1}}%
+    \let\zcref\pgph@zcproofof
     \setbox\z@\hbox{#1}%
   \endgroup
 }
@@ -329,8 +338,7 @@
 \newcommand\pgph@apxproofcapture[1]{%
   \edef\pgph@curproof{\pgph@resolve{#1}}%
   \ifx\pgph@curproof\@empty\else
-    \pgph@install{ref}\pgph@install{cref}\pgph@install{Cref}%
-    \pgph@install{autoref}\pgph@install{eqref}\pgph@install{vref}%
+    \pgph@installrefs
     \ifpgph@cite\pgph@installcite\fi
   \fi
 }

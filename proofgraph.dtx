@@ -79,7 +79,7 @@
 %</driver>
 % \fi
 %
-% \CheckSum{1683}
+% \CheckSum{1689}
 %
 % \CharacterTable
 %  {Upper-case    \A\B\C\D\E\F\G\H\I\J\K\L\M\N\O\P\Q\R\S\T\U\V\W\X\Y\Z
@@ -114,6 +114,12 @@
 %   creation date into its \textsf{cairo}-based outputs, and
 %   \textsf{latexmk} would then rerun until it reported that too many passes
 %   were needed}
+% \changes{v1.0.1-dev}{2026/07/27}{Require a LaTeX2e format of October 2020 or
+%   later, which the use of \textsf{expl3} and \texttt{NewDocumentCommand}
+%   already implied}
+% \changes{v1.0.1-dev}{2026/07/27}{Capture \texttt{zcref} of
+%   \textsf{zref-clever}, in its starred, optional-argument and multiple-label
+%   forms, like the other cross-referencing commands}
 % \changes{v1.0.1-dev}{2026/07/27}{Emit citation nodes again when
 %   \texttt{citelabel!=tag} finds no tag to use. A stray \texttt{iftrue}, counted
 %   as a conditional while a false conditional was being skipped over, made the
@@ -356,7 +362,15 @@
 % \end{verbatim}
 % Every \emph{numbered} result of a theorem-like environment you declare becomes
 % a node, and every cross-reference (|\ref|, |\cref|\dots) inside a proof becomes
-% an edge into the result that proof establishes, with no annotation. Nodes are
+% an edge into the result that proof establishes, with no annotation. The
+% commands captured are |\ref|, |\cref| and |\Cref| (\textsf{cleveref}),
+% |\autoref| (\textsf{hyperref}), |\eqref| (\textsf{amsmath}), |\vref|
+% (\textsf{varioref}) and |\zcref| (\textsf{zref-clever}, in every form:
+% starred, with options, and with a comma-separated list of labels), each of
+% them whenever it is defined. Purely page-related references (|\pageref|,
+% |\cpageref|, |\zcpageref|) are not captured, as they point at a place rather
+% than at a result; |\uses| records a dependency they would have expressed.
+% Nodes are
 % labelled by the result's formatted name and number (``Theorem~1''), not the
 % environment name. Unnumbered (starred) results are skipped, as they are usually
 % expository or repeated statements; |\proofgraphtrack| draws a chosen one anyway.
@@ -553,9 +567,12 @@
 % \clearpage
 % \section{Implementation}
 %
+% The format required is that of October 2020, the first to provide
+% |\NewDocumentCommand| in the kernel; \textsf{expl3}, which the package also
+% uses, has been preloaded since the February 2020 release.
 %    \begin{macrocode}
 %<*package>
-\NeedsTeXFormat{LaTeX2e}[2005/12/01]
+\NeedsTeXFormat{LaTeX2e}[2020/10/01]
 \ProvidesPackage{proofgraph}
   [2026/07/27 v1.0.1-dev Dependency graph of results]
 %    \end{macrocode}
@@ -871,8 +888,7 @@
     \begingroup
       \global\let\pgph@savedcurproof\pgph@curproof
       \global\let\pgph@curproof\pgph@curresult
-      \pgph@install{ref}\pgph@install{cref}\pgph@install{Cref}%
-      \pgph@install{autoref}\pgph@install{eqref}\pgph@install{vref}%
+      \pgph@installrefs
       \setbox\z@\hbox{#1}%
       \global\let\pgph@curproof\pgph@savedcurproof
     \endgroup
@@ -985,6 +1001,16 @@
 \protected\def\pgph@cap@eqref#1{%
   \pgph@recordref{#1}\pgph@saved@eqref{#1}}
 \protected\def\pgph@cap@vref#1{\pgph@recordref{#1}\pgph@saved@vref{#1}}
+%    \end{macrocode}
+% \textsf{zref-clever}'s |\zcref| is the one captured command that is not simply
+% \meta{cs}\marg{labels}: it is |\zcref*[|\meta{options}|]|\marg{labels}, and
+% both the star and the options have to be handed on unchanged. Its mandatory
+% argument is a comma-separated list, which |\pgph@recordref| already splits.
+%    \begin{macrocode}
+\NewDocumentCommand\pgph@cap@zcref{sO{}m}{%
+  \pgph@recordref{#3}%
+  \IfBooleanTF{#1}{\pgph@saved@zcref*[#2]{#3}}{\pgph@saved@zcref[#2]{#3}}%
+}
 \newcommand\pgph@install[1]{%
   \ifcsname #1\endcsname
     \expandafter\ifx\csname #1%
@@ -997,10 +1023,20 @@
     \fi
   \fi
 }
-\newcommand\pgph@beginproof{%
-  \let\pgph@curproof\pgph@curresult
+%    \end{macrocode}
+% The set of captured commands is needed in three places (a proof, the optional
+% title of a result, and an \apxproof\ deferred proof), so it is named once
+% here: adding a command to the list must not be a matter of remembering three
+% call sites.
+%    \begin{macrocode}
+\newcommand\pgph@installrefs{%
   \pgph@install{ref}\pgph@install{cref}\pgph@install{Cref}%
   \pgph@install{autoref}\pgph@install{eqref}\pgph@install{vref}%
+  \pgph@install{zcref}%
+}
+\newcommand\pgph@beginproof{%
+  \let\pgph@curproof\pgph@curresult
+  \pgph@installrefs
   \ifpgph@cite\pgph@installcite\fi
   \pgph@hookproofhead
 }
@@ -1042,11 +1078,13 @@
 % discarded box with |\ref| and friends redefined). Without an optional title
 % the original environment is used unchanged.
 %    \begin{macrocode}
+\NewDocumentCommand\pgph@zcproofof{sO{}m}{\proofof{#3}}
 \newcommand\pgph@scanproofarg[1]{%
   \begingroup
     \let\protect\@empty
     \def\ref##1{\proofof{##1}}\def\cref##1{\proofof{##1}}%
     \def\Cref##1{\proofof{##1}}\def\autoref##1{\proofof{##1}}%
+    \let\zcref\pgph@zcproofof
     \setbox\z@\hbox{#1}%
   \endgroup
 }
@@ -1111,8 +1149,7 @@
 \newcommand\pgph@apxproofcapture[1]{%
   \edef\pgph@curproof{\pgph@resolve{#1}}%
   \ifx\pgph@curproof\@empty\else
-    \pgph@install{ref}\pgph@install{cref}\pgph@install{Cref}%
-    \pgph@install{autoref}\pgph@install{eqref}\pgph@install{vref}%
+    \pgph@installrefs
     \ifpgph@cite\pgph@installcite\fi
   \fi
 }

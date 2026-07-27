@@ -1,0 +1,20 @@
+% Exercises capture of zref-clever's \zcref, whose signature differs from every
+% other captured cross-reference: \zcref*[options]{labels}. All three forms are
+% used below (plain, starred, with an option, and with a comma-separated list of
+% labels), plus a \zcref in an optional proof title, which \proofof must read.
+\documentclass{article}
+\usepackage{amsthm}
+\usepackage{zref-clever}
+\usepackage{proofgraph}
+\newtheorem{theorem}{Theorem}
+\newtheorem{lemma}{Lemma}
+\begin{document}
+\begin{lemma}\label{l1}First lemma.\end{lemma}
+\begin{lemma}\label{l2}Second lemma.\end{lemma}
+\begin{theorem}\label{t1}A theorem.\end{theorem}
+\begin{proof}By \zcref{l1} and \zcref*{l2}.\end{proof}
+\begin{theorem}\label{t2}Another theorem.\end{theorem}
+\begin{proof}By \zcref[noname]{l1,l2}.\end{proof}
+\begin{theorem}\label{t3}A third theorem.\end{theorem}
+\begin{proof}[Proof of \zcref{t3}]By \zcref{t1}.\end{proof}
+\end{document}
