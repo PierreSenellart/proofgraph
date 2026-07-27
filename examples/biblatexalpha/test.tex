@@ -1,0 +1,15 @@
+% Exercises citelabel=tag with biblatex, alphabetic style: the tag ([Knu68],
+% [Tur36]) is not in the .aux under biblatex (there is no \b@<key> to read), and
+% is instead recorded from the labelalpha field as each citation is typeset,
+% the alphabetic counterpart of the labelnumber the biblatex test uses.
+\documentclass{article}
+\usepackage{amsthm}
+\usepackage[backend=biber,style=alphabetic]{biblatex}
+\addbibresource{refs.bib}
+\usepackage[cite,citelabel=tag]{proofgraph}
+\newtheorem{theorem}{Theorem}
+\begin{document}
+\begin{theorem}\label{t}A theorem.\end{theorem}
+\begin{proof}See \cite{knuth} and \cite{turing}.\end{proof}
+\printbibliography
+\end{document}

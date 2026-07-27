@@ -1,0 +1,17 @@
+% Exercises citelabel=tag with biblatex, numeric style: the tag ([1], [2]) is
+% not in the .aux under biblatex (there is no \b@<key> to read), and is instead
+% recorded from the labelnumber field as each citation is typeset. Two cites of
+% distinct works also check that a citation node is emitted at all: a citation
+% whose tag is unknown once lost its whole node statement, leaving Graphviz to
+% invent an unstyled node from the edges alone.
+\documentclass{article}
+\usepackage{amsthm}
+\usepackage[backend=biber,style=numeric]{biblatex}
+\addbibresource{refs.bib}
+\usepackage[cite,citelabel=tag]{proofgraph}
+\newtheorem{theorem}{Theorem}
+\begin{document}
+\begin{theorem}\label{t}A theorem.\end{theorem}
+\begin{proof}See \cite{knuth} and \cite{turing}.\end{proof}
+\printbibliography
+\end{document}

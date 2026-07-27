@@ -79,7 +79,7 @@
 %</driver>
 % \fi
 %
-% \CheckSum{1628}
+% \CheckSum{1683}
 %
 % \CharacterTable
 %  {Upper-case    \A\B\C\D\E\F\G\H\I\J\K\L\M\N\O\P\Q\R\S\T\U\V\W\X\Y\Z
@@ -114,6 +114,16 @@
 %   creation date into its \textsf{cairo}-based outputs, and
 %   \textsf{latexmk} would then rerun until it reported that too many passes
 %   were needed}
+% \changes{v1.0.1-dev}{2026/07/27}{Emit citation nodes again when
+%   \texttt{citelabel!=tag} finds no tag to use. A stray \texttt{iftrue}, counted
+%   as a conditional while a false conditional was being skipped over, made the
+%   skip overshoot and swallow the writes emitting the node, which Graphviz then
+%   drew from its edges alone: unstyled, labelled by its internal name and
+%   without a hyperlink. It affected every first run, and \textsf{biblatex}
+%   documents always}
+% \changes{v1.0.1-dev}{2026/07/27}{Recover the citation tag of the numeric and
+%   alphabetic \textsf{biblatex} styles for \texttt{citelabel!=tag}, which
+%   records no citation tag in the \texttt{.aux} for it to read}
 %
 % \DoNotIndex{\newcommand,\renewcommand,\providecommand,\def,\edef,\gdef,\xdef}
 % \DoNotIndex{\let,\global,\long,\relax,\expandafter,\csname,\endcsname}
@@ -482,10 +492,14 @@
 % \item[\optname{citelabel}]
 %   Either |key| (default), labelling citation nodes by their \BibTeX\ key, or
 %   |tag|, using the printed citation tag instead (``[1]'', ``[Knu74]'',
-%   ``[Abiteboul et al.\ 1995]''\dots), recovered from the |.aux| (so it needs two
-%   runs). It supports the standard, \textsf{hyperref}-wrapped and \textsf{natbib}
-%   (numeric and author--year) bibliographies; if no clean tag can be recovered it
-%   keeps the key.
+%   ``[Abiteboul et al.\ 1995]''\dots), which is only known after a first run (so
+%   it needs two runs). It supports the standard, \textsf{hyperref}-wrapped and
+%   \textsf{natbib} (numeric and author--year) bibliographies. \textsf{biblatex}
+%   is supported in part: the tag is recovered for its numeric styles (|[1]|) and
+%   its alphabetic ones (|[Knu68]|), but not for its author--year styles, whose
+%   tag is a formatted name list that \textsf{biblatex} exposes as no single
+%   field. Whenever no clean tag can be recovered the node keeps the key, which
+%   is always a correct, if terser, label.
 % \item[\optname{file}]
 %   Base name of the output file (default |\jobname|).
 % \end{description}
@@ -1206,6 +1220,18 @@
   \fi
 }
 %    \end{macrocode}
+% The \textsf{biblatex} tag recorder is needed only when tags are actually
+% wanted, and is registered at the end of the preamble, once \textsf{biblatex}
+% has certainly been loaded (it is a preamble-only package) but while
+% |\AtEveryCitekey| still accepts additions.
+%    \begin{macrocode}
+\AtEndPreamble{%
+  \ifpgph@cite
+    \ifdefstring{\pgph@citelabel}{tag}%
+      {\@ifpackageloaded{biblatex}{\AtEveryCitekey{\pgph@blxrecord}}{}}{}%
+  \fi
+}
+%    \end{macrocode}
 % \end{macro}
 %
 % \subsection{User commands}
@@ -1379,10 +1405,11 @@
 % A |cite:|\meta{slot} target: recover the slot's \BibTeX\ key, declare the
 % external node once per slot, then draw the edge. The node \emph{label} is built
 % by |\pgph@setcitelabel|: it is the key by default, or, with |citelabel=tag|, the
-% printed citation tag (the ``[42]''/``[Knu74]'' text) recovered from the
+% printed citation tag (the ``[42]''/``[Knu74]'' text), recovered either from a
+% tag recorded by |\pgph@blxrecord| under \textsf{biblatex} or from the
 % |\b@|\meta{key} macro that |\bibcite| writes to the |.aux| (so two runs are
 % needed, and it falls back to the key when no tag is known, e.g., on the first
-% run or with citation packages that do not populate |\b@|\meta{key}). The slot's
+% run or with citation packages neither path covers). The slot's
 % |\cite| note, when present, is prepended as ``\meta{note}, \dots''. The
 % node-to-label map records the \emph{key}, so all slots of one work hyperlink to
 % the same bibliography entry.
@@ -1430,10 +1457,61 @@
 \def\pgph@natpick#1#2#3#4\pgph@nil{%
   \ifpgph@natnum\def\pgph@x{#1}\else\def\pgph@x{#3 #2}\fi}
 \newcommand\pgph@natdo{\expandafter\pgph@natpick\pgph@x{}{}{}\pgph@nil}
+%    \end{macrocode}
+% \begin{macro}{\pgph@natnumset}
+% Which of the two \textsf{natbib} modes is in force is read off
+% |\ifNAT@numbers|, by comparing it with |\iftrue|. That comparison
+% \emph{must} live in a macro of its own rather than inline in
+% |\pgph@setcitelabel|, because the code around it can be skipped by a false
+% conditional: skipping does not expand anything, it merely counts conditional
+% tokens, and the |\iftrue| here -- an operand of |\ifx|, not a conditional --
+% would be counted as one more |\if| to be closed. The skip would then eat one
+% |\fi| too many and run past the end of |\pgph@setcitelabel| into its caller,
+% silently swallowing the very writes that emit the citation node. Inside a
+% macro the token is never seen by the skipping scanner.
+%    \begin{macrocode}
+\newcommand\pgph@natnumset{%
+  \pgph@natnumfalse
+  \@ifundefined{ifNAT@numbers}{}{%
+    \expandafter\ifx\csname ifNAT@numbers\endcsname\iftrue
+      \pgph@natnumtrue\fi}%
+}
+%    \end{macrocode}
+% \end{macro}
+%
+% \begin{macro}{\pgph@blxrecord}
+% \textsf{biblatex} writes no |\b@|\meta{key}: its tags are assembled while the
+% citation is typeset, from data the |.bbl| holds. We therefore record them as
+% they go by, from |\AtEveryCitekey| (installed below), where the entry is the
+% current one and its fields are readable. |labelnumber| carries the tag of the
+% numeric styles and |labelalpha| that of the alphabetic ones; the author--year
+% styles have neither, as their tag is a formatted name list rather than a
+% field, and are left to the |key| fallback. A field that survives sanitizing
+% with a backslash still in it is not plain text, and is likewise declined.
+%    \begin{macrocode}
+\newcommand\pgph@blxrecord{%
+  \begingroup
+    \pgph@citesanitize
+    \edef\pgph@blxkey{\thefield{entrykey}}%
+    \edef\pgph@x{\thefield{labelnumber}}%
+    \ifx\pgph@x\@empty \edef\pgph@x{\thefield{labelalpha}}\fi
+    \edef\pgph@dx{\detokenize\expandafter{\pgph@x}}%
+    \ifx\pgph@x\@empty\else
+      \IfSubStr\pgph@dx\@backslashchar{}{%
+        \pgph@gxdefcs{pgph@blxtag@\pgph@blxkey}{\pgph@x}}%
+    \fi
+  \endgroup
+}
+%    \end{macrocode}
+% \end{macro}
+%    \begin{macrocode}
 \newcommand\pgph@setcitelabel[1]{%
   \edef\pgph@ckey{\csname pgph@cskey@#1\endcsname}%
   \edef\pgph@cbase{\pgph@ckey}%
   \ifdefstring{\pgph@citelabel}{tag}{%
+    \ifcsname pgph@blxtag@\pgph@ckey\endcsname
+      \edef\pgph@cbase{[\csname pgph@blxtag@\pgph@ckey\endcsname]}%
+    \else
     \ifcsname b@\pgph@ckey\endcsname
       \global\let\pgph@cbaseg\relax
       \begingroup
@@ -1441,10 +1519,7 @@
         \edef\pgph@x{\csname b@\pgph@ckey\endcsname}%
         \edef\pgph@dx{\detokenize\expandafter{\pgph@x}}%
         \IfBeginWith\pgph@dx\pgph@obrace{%
-          \pgph@natnumfalse
-          \@ifundefined{ifNAT@numbers}{}{%
-            \expandafter\ifx\csname ifNAT@numbers\endcsname\iftrue
-              \pgph@natnumtrue\fi}%
+          \pgph@natnumset
           \pgph@natdo
           \edef\pgph@dx{\detokenize\expandafter{\pgph@x}}%
         }{}%
@@ -1454,7 +1529,7 @@
         \fi
       \endgroup
       \ifx\pgph@cbaseg\relax\else\edef\pgph@cbase{[\pgph@cbaseg]}\fi
-    \fi
+    \fi\fi
   }{}%
   \edef\pgph@clabel{%
     \ifcsname pgph@citenote@#1\endcsname

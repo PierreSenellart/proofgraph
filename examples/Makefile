@@ -23,20 +23,29 @@
 #   natbibcite the two-optional-argument \cite[pre][post]{key} form of natbib
 #             and biblatex: the post-note is the recorded note (sharing a slot
 #             with the equivalent one-argument \cite), the pre-note is ignored.
+#   biblatex  citelabel=tag under biblatex, whose tags no \b@<key> in the .aux
+#             records: numeric style, tag taken from the labelnumber field.
+#   biblatexalpha same, alphabetic style, tag taken from labelalpha.
 # The autorun, engine, format, hyperlinks options and \proofgraph itself are
 # exercised by the manual build (l3build doc), which is an autorun proofgraph
 # document with clickable embedded graphs.
 SHELL  := /bin/bash
 REPO   := $(CURDIR)/..
-TESTS  := apxproof features options citetag predefined nestedproof natbibcite
+TESTS  := apxproof features options citetag predefined nestedproof natbibcite \
+          biblatex biblatexalpha
 
 .PHONY: all clean $(TESTS)
 all: $(TESTS)
 
+# A fixture that runs biblatex leaves a .bcf behind on its first pass; biber is
+# then run in between, so that the second pass has the tags the first could not
+# know. The .bbl is generated rather than committed: its format is tied to the
+# biblatex version, and a stale committed one would break on a newer TeX Live.
 $(TESTS):
 	@cd $@ ; \
 	  latexmk -C test >/dev/null 2>&1 ; rm -f test.dot mygraph.dot ; \
 	  TEXINPUTS=".:$(REPO):" timeout 120 pdflatex -interaction=nonstopmode test >/dev/null 2>&1 ; \
+	  if [ -f test.bcf ] ; then timeout 120 biber test >/dev/null 2>&1 ; fi ; \
 	  TEXINPUTS=".:$(REPO):" timeout 120 pdflatex -interaction=nonstopmode test >/dev/null 2>&1 ; \
 	  d=$$(ls *.dot 2>/dev/null | grep -v '^reference\.dot$$' | head -1) ; \
 	  if [ -n "$$d" ] && diff -q "$$d" reference.dot >/dev/null 2>&1 ; then \

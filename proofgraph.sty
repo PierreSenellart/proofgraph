@@ -396,6 +396,12 @@
     \fi
   \fi
 }
+\AtEndPreamble{%
+  \ifpgph@cite
+    \ifdefstring{\pgph@citelabel}{tag}%
+      {\@ifpackageloaded{biblatex}{\AtEveryCitekey{\pgph@blxrecord}}{}}{}%
+  \fi
+}
 \newcommand\uses[1]{\pgph@recordref{#1}}
 \newcommand\proofof[1]{%
   \ifcsname pgph@map@#1\endcsname
@@ -533,10 +539,32 @@
 \def\pgph@natpick#1#2#3#4\pgph@nil{%
   \ifpgph@natnum\def\pgph@x{#1}\else\def\pgph@x{#3 #2}\fi}
 \newcommand\pgph@natdo{\expandafter\pgph@natpick\pgph@x{}{}{}\pgph@nil}
+\newcommand\pgph@natnumset{%
+  \pgph@natnumfalse
+  \@ifundefined{ifNAT@numbers}{}{%
+    \expandafter\ifx\csname ifNAT@numbers\endcsname\iftrue
+      \pgph@natnumtrue\fi}%
+}
+\newcommand\pgph@blxrecord{%
+  \begingroup
+    \pgph@citesanitize
+    \edef\pgph@blxkey{\thefield{entrykey}}%
+    \edef\pgph@x{\thefield{labelnumber}}%
+    \ifx\pgph@x\@empty \edef\pgph@x{\thefield{labelalpha}}\fi
+    \edef\pgph@dx{\detokenize\expandafter{\pgph@x}}%
+    \ifx\pgph@x\@empty\else
+      \IfSubStr\pgph@dx\@backslashchar{}{%
+        \pgph@gxdefcs{pgph@blxtag@\pgph@blxkey}{\pgph@x}}%
+    \fi
+  \endgroup
+}
 \newcommand\pgph@setcitelabel[1]{%
   \edef\pgph@ckey{\csname pgph@cskey@#1\endcsname}%
   \edef\pgph@cbase{\pgph@ckey}%
   \ifdefstring{\pgph@citelabel}{tag}{%
+    \ifcsname pgph@blxtag@\pgph@ckey\endcsname
+      \edef\pgph@cbase{[\csname pgph@blxtag@\pgph@ckey\endcsname]}%
+    \else
     \ifcsname b@\pgph@ckey\endcsname
       \global\let\pgph@cbaseg\relax
       \begingroup
@@ -544,10 +572,7 @@
         \edef\pgph@x{\csname b@\pgph@ckey\endcsname}%
         \edef\pgph@dx{\detokenize\expandafter{\pgph@x}}%
         \IfBeginWith\pgph@dx\pgph@obrace{%
-          \pgph@natnumfalse
-          \@ifundefined{ifNAT@numbers}{}{%
-            \expandafter\ifx\csname ifNAT@numbers\endcsname\iftrue
-              \pgph@natnumtrue\fi}%
+          \pgph@natnumset
           \pgph@natdo
           \edef\pgph@dx{\detokenize\expandafter{\pgph@x}}%
         }{}%
@@ -557,7 +582,7 @@
         \fi
       \endgroup
       \ifx\pgph@cbaseg\relax\else\edef\pgph@cbase{[\pgph@cbaseg]}\fi
-    \fi
+    \fi\fi
   }{}%
   \edef\pgph@clabel{%
     \ifcsname pgph@citenote@#1\endcsname
