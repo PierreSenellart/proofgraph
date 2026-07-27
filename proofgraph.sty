@@ -27,7 +27,7 @@
 %% 
 \NeedsTeXFormat{LaTeX2e}[2005/12/01]
 \ProvidesPackage{proofgraph}
-  [2026/07/10 v1.0.1 Dependency graph of results]
+  [2026/07/27 v1.0.1-dev Dependency graph of results]
 \@ifpackageloaded{amsthm}{}{%
   \@ifundefined{proof}{}{%
     \let\pgph@class@proof\proof \let\pgph@class@endproof\endproof}%
@@ -38,6 +38,7 @@
 \RequirePackage{etoolbox}
 \RequirePackage{xstring}
 \RequirePackage{kvoptions}
+\RequirePackage{pdftexcmds}
 \ExplSyntaxOn
 \cs_new:Npn \pgph@trimsp #1 { \tl_trim_spaces:n {#1} }
 \ExplSyntaxOff
@@ -563,6 +564,32 @@
       \csname pgph@citenote@#1\endcsname, \fi
     \pgph@cbase}%
 }
+\let\pgph@prevsig\relax
+\newcommand\pgph@lastrender[1]{\xdef\pgph@prevsig{\detokenize{#1}}}
+\newcommand\pgph@render{%
+  \immediate\write18{\pgph@engine\space -T\pgph@format\space
+    \pgph@file.dot -o \pgph@file-proofgraph.\pgph@format}%
+  \immediate\write18{\pgph@engine\space -Tplain\space
+    \pgph@file.dot -o \pgph@file-proofgraph.plain}%
+}
+\newcommand\pgph@maybrender{%
+  \edef\pgph@sig{\ifdefined\pdf@filemdfivesum
+    \pdf@filemdfivesum{\pgph@file.dot}\fi}%
+  \ifx\pgph@sig\@empty
+    \pgph@render
+  \else
+    \edef\pgph@sig{\pgph@sig-\pgph@engine-\pgph@format}%
+    \edef\pgph@sig{\expandafter\detokenize\expandafter{\pgph@sig}}%
+    \IfFileExists{\pgph@file-proofgraph.\pgph@format}%
+      {\IfFileExists{\pgph@file-proofgraph.plain}%
+        {\ifx\pgph@sig\pgph@prevsig\else\pgph@render\fi}%
+        {\pgph@render}}%
+      {\pgph@render}%
+    \if@filesw
+      \immediate\write\@auxout{\string\pgph@lastrender{\pgph@sig}}%
+    \fi
+  \fi
+}
 \newwrite\pgph@out
 \newwrite\pgph@mapout
 \newcommand\pgph@emit{%
@@ -579,12 +606,7 @@
   \immediate\write\pgph@out{\pgph@cb}%
   \immediate\closeout\pgph@out
   \immediate\closeout\pgph@mapout
-  \ifpgph@autorun
-    \immediate\write18{\pgph@engine\space -T\pgph@format\space
-      \pgph@file.dot -o \pgph@file-proofgraph.\pgph@format}%
-    \immediate\write18{\pgph@engine\space -Tplain\space
-      \pgph@file.dot -o \pgph@file-proofgraph.plain}%
-  \fi
+  \ifpgph@autorun\pgph@maybrender\fi
 }
 \AtBeginDocument{\AtEndDocument{\pgph@emit}}
 \AtBeginDocument{\@ifpackageloaded{tikz}{\usetikzlibrary{calc}}{}}

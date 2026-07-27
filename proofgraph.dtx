@@ -79,7 +79,7 @@
 %</driver>
 % \fi
 %
-% \CheckSum{1569}
+% \CheckSum{1628}
 %
 % \CharacterTable
 %  {Upper-case    \A\B\C\D\E\F\G\H\I\J\K\L\M\N\O\P\Q\R\S\T\U\V\W\X\Y\Z
@@ -108,6 +108,12 @@
 %   previously broke compilation with confusing errors inside proofs}
 % \changes{v1.0.1}{2026/07/10}{Capture \texttt{citet} and \texttt{citep}
 %   (including starred variants) like \texttt{cite} when they are defined}
+% \changes{v1.0.1-dev}{2026/07/27}{With \texttt{autorun}, run Graphviz only when
+%   the graph, the engine or the format has changed. Rendering at every
+%   compilation kept producing a different image, since Graphviz stamps a
+%   creation date into its \textsf{cairo}-based outputs, and
+%   \textsf{latexmk} would then rerun until it reported that too many passes
+%   were needed}
 %
 % \DoNotIndex{\newcommand,\renewcommand,\providecommand,\def,\edef,\gdef,\xdef}
 % \DoNotIndex{\let,\global,\long,\relax,\expandafter,\csname,\endcsname}
@@ -421,8 +427,8 @@
 %   \textsf{graphicx}, which the package therefore does not load on its own: a
 %   document that uses |\proofgraph| must load \textsf{graphicx} itself (loading
 %   \textsf{tikz} for the |hyperlinks| overlay also suffices). With the |autorun|
-%   option, \Graphviz\ is run
-%   at the end of every compilation (shell-escape required) to produce that image,
+%   option, \Graphviz\ is run at the end of a compilation in which the graph
+%   changed (shell-escape required) to produce that image,
 %   so |\proofgraph| embeds the graph from the previous run and is up to date
 %   after two runs. Without |autorun|, no \Graphviz\ is run: |\proofgraph| embeds
 %   a pre-existing |\jobname-proofgraph.|\meta{format} file if you have rendered
@@ -442,7 +448,10 @@
 %   retaining them.
 % \item[\optname{autorun}]
 %   Boolean (default false). Runs \Graphviz\ automatically at the end of the run;
-%   requires compilation with shell-escape enabled.
+%   requires compilation with shell-escape enabled. \Graphviz\ is run only when
+%   the graph, the engine or the format has changed since the last rendering, so
+%   that repeated compilations converge and a build tool such as
+%   \textsf{latexmk} settles instead of rerunning indefinitely.
 % \item[\optname{engine}]
 %   \Graphviz\ layout engine (default |dot|); any \Graphviz\ engine works, such as
 %   |neato|, |fdp|, |sfdp|, |circo| or |twopi| (see
@@ -534,7 +543,7 @@
 %<*package>
 \NeedsTeXFormat{LaTeX2e}[2005/12/01]
 \ProvidesPackage{proofgraph}
-  [2026/07/10 v1.0.1 Dependency graph of results]
+  [2026/07/27 v1.0.1-dev Dependency graph of results]
 %    \end{macrocode}
 %
 % \subsection{Dependencies}
@@ -557,7 +566,13 @@
 \RequirePackage{etoolbox}
 \RequirePackage{xstring}
 \RequirePackage{kvoptions}
+\RequirePackage{pdftexcmds}
 %    \end{macrocode}
+% \textsf{pdftexcmds} provides |\pdf@filemdfivesum|, with which |autorun|
+% recognises an unchanged graph and skips the \Graphviz\ run
+% (see |\pgph@maybrender|). On an engine that offers no file checksum the
+% package still works, only without that optimisation.
+%
 % \textsf{graphicx} is needed only to embed a rendered graph with |\proofgraph|;
 % the core |.dot|-writing machinery does not use it. Rather than burden every
 % document with it, we leave it unloaded and check for |\includegraphics| at the
@@ -1450,6 +1465,68 @@
 % \end{macro}
 % \end{macro}
 %
+% \begin{macro}{\pgph@render}
+% \begin{macro}{\pgph@maybrender}
+% \begin{macro}{\pgph@lastrender}
+% |autorun| must not re-render a graph that has not changed. Rendering
+% unconditionally is not merely wasteful: the image \Graphviz\ produces is not
+% guaranteed to be reproducible (its \textsf{cairo}-based outputs, |pdf| among
+% them, carry a creation date), so an unconditional run makes the embedded image
+% differ at every compilation. A build tool such as \textsf{latexmk} then sees an
+% input file that never settles and reruns until it gives up, reporting that too
+% many passes were needed.
+%
+% We therefore render only when something relevant has changed. The signature of
+% a rendering is the checksum of the |.dot| file just written, together with the
+% engine and the format, which the |.dot| does not record; it is stored in the
+% |.aux| by |\pgph@lastrender| and compared with the signature of the next run.
+% \Graphviz\ is run when the signature differs, when no signature is known yet
+% (first run), when either output file is missing, and, as a safe fallback, when
+% the engine provides no file checksum.
+%
+% Both signatures are |\detokenize|d before being compared. The checksum comes
+% out of |\pdf@filemdfivesum| as characters of category \emph{other}, while the
+% same string read back from the |.aux| has its letters as category
+% \emph{letter}, so an |\ifx| on the raw strings would never see two runs as
+% equal.
+%    \begin{macrocode}
+\let\pgph@prevsig\relax
+\newcommand\pgph@lastrender[1]{\xdef\pgph@prevsig{\detokenize{#1}}}
+\newcommand\pgph@render{%
+  \immediate\write18{\pgph@engine\space -T\pgph@format\space
+    \pgph@file.dot -o \pgph@file-proofgraph.\pgph@format}%
+  \immediate\write18{\pgph@engine\space -Tplain\space
+    \pgph@file.dot -o \pgph@file-proofgraph.plain}%
+}
+\newcommand\pgph@maybrender{%
+  \edef\pgph@sig{\ifdefined\pdf@filemdfivesum
+    \pdf@filemdfivesum{\pgph@file.dot}\fi}%
+  \ifx\pgph@sig\@empty
+    \pgph@render
+  \else
+    \edef\pgph@sig{\pgph@sig-\pgph@engine-\pgph@format}%
+    \edef\pgph@sig{\expandafter\detokenize\expandafter{\pgph@sig}}%
+    \IfFileExists{\pgph@file-proofgraph.\pgph@format}%
+      {\IfFileExists{\pgph@file-proofgraph.plain}%
+        {\ifx\pgph@sig\pgph@prevsig\else\pgph@render\fi}%
+        {\pgph@render}}%
+      {\pgph@render}%
+%    \end{macrocode}
+% The signature is recorded whether or not we have just rendered: either way the
+% output files on disk are the ones this |.dot| produces. The write must be
+% |\immediate|, as |\pgph@emit| runs at end of document, where a deferred write
+% would have no shipout left to carry it.
+%    \begin{macrocode}
+    \if@filesw
+      \immediate\write\@auxout{\string\pgph@lastrender{\pgph@sig}}%
+    \fi
+  \fi
+}
+%    \end{macrocode}
+% \end{macro}
+% \end{macro}
+% \end{macro}
+%
 % \begin{macro}{\pgph@emit}
 % Open the file, resolve editing rules, write nodes then edges, close,
 % and optionally run \Graphviz.
@@ -1470,12 +1547,7 @@
   \immediate\write\pgph@out{\pgph@cb}%
   \immediate\closeout\pgph@out
   \immediate\closeout\pgph@mapout
-  \ifpgph@autorun
-    \immediate\write18{\pgph@engine\space -T\pgph@format\space
-      \pgph@file.dot -o \pgph@file-proofgraph.\pgph@format}%
-    \immediate\write18{\pgph@engine\space -Tplain\space
-      \pgph@file.dot -o \pgph@file-proofgraph.plain}%
-  \fi
+  \ifpgph@autorun\pgph@maybrender\fi
 }
 %    \end{macrocode}
 % The emission is registered at |\begin{document}| rather than at load time
