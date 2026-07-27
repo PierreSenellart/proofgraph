@@ -1,0 +1,20 @@
+digraph proofgraph {
+  rankdir="LR";
+  "n4" [label="Theorem 4"];
+  "n3" [label="Theorem 3"];
+  "n2" [label="Theorem 2"];
+  "n1" [label="Theorem 1"];
+  "c@1" [label="knuth",shape=note];
+  "c@1" -> "n1";
+  "c@2" [label="Thm 3, turing",shape=note];
+  "c@2" -> "n1";
+  "c@3" [label="euclid",shape=note];
+  "c@3" -> "n2";
+  "c@1" -> "n2";
+  "c@4" [label="turing",shape=note];
+  "c@4" -> "n3";
+  "c@5" [label="p. 7, euclid",shape=note];
+  "c@5" -> "n3";
+  "c@3" -> "n4";
+  "c@1" -> "n4";
+}

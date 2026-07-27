@@ -26,6 +26,9 @@
 #   biblatex  citelabel=tag under biblatex, whose tags no \b@<key> in the .aux
 #             records: numeric style, tag taken from the labelnumber field.
 #   biblatexalpha same, alphabetic style, tag taken from labelalpha.
+#   citecmds  citation commands beyond \cite: biblatex's \textcite, \parencite
+#             and \autocite, a starred form, and one command registered by hand
+#             with \proofgraphcitecommand.
 #   zrefclever zref-clever's \zcref, the one captured cross-reference that is
 #             not simply \cs{labels}: plain, starred, with an option, with a
 #             comma-separated label list, and in an optional proof title.
@@ -35,7 +38,7 @@
 SHELL  := /bin/bash
 REPO   := $(CURDIR)/..
 TESTS  := apxproof features options citetag predefined nestedproof natbibcite \
-          biblatex biblatexalpha zrefclever
+          biblatex biblatexalpha zrefclever citecmds
 
 .PHONY: all clean $(TESTS)
 all: $(TESTS)

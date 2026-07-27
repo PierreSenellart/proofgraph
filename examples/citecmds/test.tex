@@ -1,0 +1,25 @@
+% Exercises the citation commands beyond \cite: biblatex's \textcite,
+% \parencite, \autocite (and a starred form), \citeauthor as a representative of
+% the commands printing only a fragment of a citation, and a command of one's
+% own registered with \proofgraphcitecommand. The last proof cites one work
+% three ways at once, checking that this still yields a single node and edge.
+% citelabel=key keeps the reference independent of the bibliography style.
+\documentclass{article}
+\usepackage{amsthm}
+\usepackage[backend=biber,style=numeric]{biblatex}
+\addbibresource{refs.bib}
+\usepackage[cite,citelabel=key]{proofgraph}
+\newcommand\mycite[1]{(see~#1)}
+\proofgraphcitecommand{mycite}
+\newtheorem{theorem}{Theorem}
+\begin{document}
+\begin{theorem}\label{t1}One.\end{theorem}
+\begin{proof}\textcite{knuth} and \parencite[Thm~3]{turing}.\end{proof}
+\begin{theorem}\label{t2}Two.\end{theorem}
+\begin{proof}\autocite{euclid} and \textcite*{knuth}.\end{proof}
+\begin{theorem}\label{t3}Three.\end{theorem}
+\begin{proof}\citeauthor{turing} and \parencite[see][p.~7]{euclid}.\end{proof}
+\begin{theorem}\label{t4}Four.\end{theorem}
+\begin{proof}\mycite{euclid}; \citeauthor{knuth} in \textcite{knuth}.\end{proof}
+\printbibliography
+\end{document}

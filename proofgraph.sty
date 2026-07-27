@@ -344,9 +344,6 @@
 }
 \newcommand\pgph@gxdefcs[2]{%
   \global\expandafter\edef\csname#1\endcsname{#2}}
-\newcommand\pgph@cap@cite{\pgph@cap@citegen{cite}}
-\newcommand\pgph@cap@citet{\pgph@cap@citegen{citet}}
-\newcommand\pgph@cap@citep{\pgph@cap@citegen{citep}}
 \newcommand\pgph@cap@citegen[1]{%
   \def\pgph@citecmd{#1}%
   \@ifstar{\pgph@cap@cite@x*}{\pgph@cap@cite@x{}}}
@@ -387,13 +384,25 @@
     \fi
   \fi
 }
+\newcommand\pgph@citecmds{%
+  cite,Cite,citet,Citet,citep,Citep,%
+  citealt,Citealt,citealp,Citealp,%
+  parencite,Parencite,textcite,Textcite,autocite,Autocite,%
+  footcite,Footcite,footcitetext,smartcite,Smartcite,supercite,%
+  fullcite,footfullcite,%
+  citeauthor,Citeauthor,citefullauthor,citetitle,Citetitle,%
+  citeyear,Citeyear,citeyearpar,citedate,Citedate,citeurl,citenum}
+\newcommand\proofgraphcitecommand[1]{\g@addto@macro\pgph@citecmds{,#1}}
 \newcommand\pgph@installcite{%
-  \pgph@installciteone{cite}%
-  \pgph@installciteone{citet}%
-  \pgph@installciteone{citep}%
+  \@for\pgph@conename:=\pgph@citecmds\do{%
+    \edef\pgph@cone{\expandafter\pgph@trimsp\expandafter{\pgph@conename}}%
+    \expandafter\pgph@installciteone\expandafter{\pgph@cone}}%
 }
 \newcommand\pgph@installciteone[1]{%
   \ifcsname #1\endcsname
+    \ifcsname pgph@cap@#1\endcsname\else
+      \expandafter\gdef\csname pgph@cap@#1\endcsname{\pgph@cap@citegen{#1}}%
+    \fi
     \expandafter\ifx\csname #1\expandafter\endcsname
                     \csname pgph@cap@#1\endcsname
     \else

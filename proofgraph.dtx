@@ -79,7 +79,7 @@
 %</driver>
 % \fi
 %
-% \CheckSum{1689}
+% \CheckSum{1706}
 %
 % \CharacterTable
 %  {Upper-case    \A\B\C\D\E\F\G\H\I\J\K\L\M\N\O\P\Q\R\S\T\U\V\W\X\Y\Z
@@ -114,6 +114,11 @@
 %   creation date into its \textsf{cairo}-based outputs, and
 %   \textsf{latexmk} would then rerun until it reported that too many passes
 %   were needed}
+% \changes{v1.0.1-dev}{2026/07/27}{Capture, with the \texttt{cite} option, every
+%   citation command of \textsf{natbib} and \textsf{biblatex}, such as
+%   \texttt{textcite} and \texttt{parencite}, down to those printing a mere
+%   fragment of a citation such as \texttt{citeauthor}, and add
+%   \texttt{proofgraphcitecommand} to capture further ones}
 % \changes{v1.0.1-dev}{2026/07/27}{Require a LaTeX2e format of October 2020 or
 %   later, which the use of \textsf{expl3} and \texttt{NewDocumentCommand}
 %   already implied}
@@ -424,6 +429,19 @@
 %   \SpecialUsageIndex{\proofgraphexclude}%
 %   Removes the result labelled \meta{label}, together with all its incident
 %   edges, from the graph.
+% \item[\cmdname{proofgraphcitecommand}\cmdarg{names}]%
+%   \SpecialUsageIndex{\proofgraphcitecommand}%
+%   Captures further citation commands, given as a comma-separated list of names
+%   without their backslash, as in |\proofgraphcitecommand{citeauthor,citeyear}|.
+%   Use it in the preamble. Any command taking the usual
+%   \meta{cs}|*[|\meta{pre}|][|\meta{post}|]|\marg{keys} arguments works,
+%   including one you define yourself. Naming a command the document does not
+%   define is harmless.
+%
+%   It cannot help with the \textsf{biblatex} \emph{multicite} commands
+%   (|\cites|, |\parencites|, |\textcites|), whose
+%   |(|\meta{pre}|)(|\meta{post}|)| syntax and repeated key groups \proofgraph\
+%   does not parse; cite such works individually, or record them with |\uses|.
 % \end{description}
 %
 % \subsection{Styling the graph}
@@ -500,9 +518,17 @@
 %   |\cite| note is kept: |\cite[Thm~3]{key}| labels the node ``Thm~3, \dots''.
 %   In the two-optional-argument form of \textsf{natbib} and \textsf{biblatex},
 %   |\cite[see][Thm~3]{key}|, the post-note likewise labels the node and the
-%   pre-note is ignored. When |\citet| and |\citep| are defined
-%   (\textsf{natbib}, \textsf{biblatex}), they are captured in the same way,
-%   including their starred variants.
+%   pre-note is ignored. Every citation command of \LaTeX, \textsf{natbib} and
+%   \textsf{biblatex} that cites a work is captured the same way, whenever the
+%   document defines it, starred variants included: |\citet|, |\citep|,
+%   |\citealt|, |\citealp|, |\parencite|, |\textcite|, |\autocite|,
+%   |\footcite|, |\footcitetext|, |\smartcite|, |\supercite|, |\fullcite| and
+%   |\footfullcite|, together with the commands printing only a fragment of a
+%   citation (|\citeauthor|, |\citefullauthor|, |\citetitle|, |\citeyear|,
+%   |\citeyearpar|, |\citedate|, |\citeurl|, |\citenum|) and all their
+%   capitalised forms. A work invoked twice in one proof, by |\citeauthor| and
+%   by |\cite| say, still yields a single edge. |\proofgraphcitecommand| adds
+%   any further command.
 % \item[\optname{citelabel}]
 %   Either |key| (default), labelling citation nodes by their \BibTeX\ key, or
 %   |tag|, using the printed citation tag instead (``[1]'', ``[Knu74]'',
@@ -1196,9 +1222,6 @@
 %    \begin{macrocode}
 \newcommand\pgph@gxdefcs[2]{%
   \global\expandafter\edef\csname#1\endcsname{#2}}
-\newcommand\pgph@cap@cite{\pgph@cap@citegen{cite}}
-\newcommand\pgph@cap@citet{\pgph@cap@citegen{citet}}
-\newcommand\pgph@cap@citep{\pgph@cap@citegen{citep}}
 \newcommand\pgph@cap@citegen[1]{%
   \def\pgph@citecmd{#1}%
   \@ifstar{\pgph@cap@cite@x*}{\pgph@cap@cite@x{}}}
@@ -1239,13 +1262,59 @@
     \fi
   \fi
 }
+%    \end{macrocode}
+% \end{macro}
+%
+% \begin{macro}{\pgph@citecmds}
+% \begin{macro}{\proofgraphcitecommand}
+% \begin{macro}{\pgph@installcite}
+% Every citation command with the signature |\cs*[|\meta{pre}|][|\meta{post}|]|%
+% \marg{keys} is captured by the same |\pgph@cap@citegen|, so which commands are
+% captured is a list rather than code. The default list holds the citation
+% commands of \LaTeX, \textsf{natbib} and \textsf{biblatex} that cite a work;
+% |\proofgraphcitecommand| adds more. Naming a command that the document never
+% defines costs nothing, as |\pgph@installciteone| installs only over an existing
+% command, so the list may name every spelling a citation package might provide.
+%
+% The commands printing only a \emph{fragment} of a citation (|\citeauthor|,
+% |\citeyear|\dots) are in the list as well. They commonly accompany a real
+% citation of the same work, but a repetition is harmless: a (key, note) pair
+% already seen reuses its slot, and |\pgph@writeedge| draws an edge once, so the
+% second mention of a work adds nothing to the graph. Capturing them means that
+% a proof invoking a work by author or by year alone, which does happen, is not
+% silently left without its edge.
+%
+% The \textsf{biblatex} \emph{multicite} commands (|\cites|, |\parencites|,
+% |\textcites|) cannot be captured at all: their
+% |(|\meta{pre}|)(|\meta{post}|)| syntax and repeated key groups are a different
+% grammar, which |\pgph@cap@citegen| does not parse.
+%    \begin{macrocode}
+\newcommand\pgph@citecmds{%
+  cite,Cite,citet,Citet,citep,Citep,%
+  citealt,Citealt,citealp,Citealp,%
+  parencite,Parencite,textcite,Textcite,autocite,Autocite,%
+  footcite,Footcite,footcitetext,smartcite,Smartcite,supercite,%
+  fullcite,footfullcite,%
+  citeauthor,Citeauthor,citefullauthor,citetitle,Citetitle,%
+  citeyear,Citeyear,citeyearpar,citedate,Citedate,citeurl,citenum}
+\newcommand\proofgraphcitecommand[1]{\g@addto@macro\pgph@citecmds{,#1}}
 \newcommand\pgph@installcite{%
-  \pgph@installciteone{cite}%
-  \pgph@installciteone{citet}%
-  \pgph@installciteone{citep}%
+  \@for\pgph@conename:=\pgph@citecmds\do{%
+    \edef\pgph@cone{\expandafter\pgph@trimsp\expandafter{\pgph@conename}}%
+    \expandafter\pgph@installciteone\expandafter{\pgph@cone}}%
 }
+%    \end{macrocode}
+% The capture macro of a command is built on first use rather than declared: it
+% is the same |\pgph@cap@citegen| call for all of them, and building it only for
+% commands the document actually defines keeps the unused names of the list from
+% costing anything. It must be |\gdef|, the installation happening inside the
+% group of a proof.
+%    \begin{macrocode}
 \newcommand\pgph@installciteone[1]{%
   \ifcsname #1\endcsname
+    \ifcsname pgph@cap@#1\endcsname\else
+      \expandafter\gdef\csname pgph@cap@#1\endcsname{\pgph@cap@citegen{#1}}%
+    \fi
     \expandafter\ifx\csname #1\expandafter\endcsname
                     \csname pgph@cap@#1\endcsname
     \else
@@ -1257,6 +1326,10 @@
   \fi
 }
 %    \end{macrocode}
+% \end{macro}
+% \end{macro}
+% \end{macro}
+%
 % The \textsf{biblatex} tag recorder is needed only when tags are actually
 % wanted, and is registered at the end of the preamble, once \textsf{biblatex}
 % has certainly been loaded (it is a preamble-only package) but while
@@ -1269,7 +1342,6 @@
   \fi
 }
 %    \end{macrocode}
-% \end{macro}
 %
 % \subsection{User commands}
 %    \begin{macrocode}
