@@ -32,13 +32,24 @@
 #   zrefclever zref-clever's \zcref, the one captured cross-reference that is
 #             not simply \cs{labels}: plain, starred, with an option, with a
 #             comma-separated label list, and in an optional proof title.
+#   proofenv  \proofgraphproofenv, in its two shapes: an environment of one's
+#             own taking an optional title (whose default title is not
+#             \proofname, so the wrapper must not assume one), and one declared
+#             with \newtheorem, which is hooked at its beginning and kept out of
+#             the graph as a result.
+#   statements the statements option: \ref and \cite in the body of a result,
+#             the optional title still contributing its own edge, and the
+#             capture stopping at \end (text between results adds no edge).
+#   manualcite \usescite and \proofgraphciteedge, which draw citation nodes
+#             without the cite option, including for a result that has no proof.
 # The autorun, engine, format, hyperlinks options and \proofgraph itself are
 # exercised by the manual build (l3build doc), which is an autorun proofgraph
 # document with clickable embedded graphs.
 SHELL  := /bin/bash
 REPO   := $(CURDIR)/..
 TESTS  := apxproof features options citetag predefined nestedproof natbibcite \
-          biblatex biblatexalpha zrefclever citecmds
+          biblatex biblatexalpha zrefclever citecmds proofenv statements \
+          manualcite
 
 .PHONY: all clean $(TESTS)
 all: $(TESTS)

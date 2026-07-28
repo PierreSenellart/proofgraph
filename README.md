@@ -16,7 +16,11 @@ rendered and embedded into the document automatically). It can:
 
 - infer dependencies from cross-references inside proofs, with no annotation;
 - capture `\ref`, cleveref/hyperref variants (`\cref`, `\autoref`, `\eqref`…),
-  manual `\uses`, and optionally `\cite` to external work;
+  manual `\uses`, and optionally `\cite` to external work (and, on request, the
+  references made in the statements of the results themselves);
+- track proofs written in an environment of your own, not only `proof`;
+- add dependencies on cited work by hand, for a proof that does not cite it
+  visibly or a result stated without a proof;
 - remove self-loops, suppress specific (e.g. unwanted forward) citations, and
   exclude chosen nodes;
 - style nodes differently according to the type of result;

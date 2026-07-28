@@ -27,7 +27,7 @@
 %% 
 \NeedsTeXFormat{LaTeX2e}[2020/10/01]
 \ProvidesPackage{proofgraph}
-  [2026/07/27 v1.0.1-dev Dependency graph of results]
+  [2026/07/28 v1.0.1-dev Dependency graph of results]
 \@ifpackageloaded{amsthm}{}{%
   \@ifundefined{proof}{}{%
     \let\pgph@class@proof\proof \let\pgph@class@endproof\endproof}%
@@ -51,6 +51,7 @@
 \DeclareStringOption[usedby]{direction}
 \DeclareBoolOption{cite}
 \DeclareStringOption[key]{citelabel}
+\DeclareBoolOption[true]{statements}
 \DeclareBoolOption[true]{hyperlinks}
 \DeclareStringOption{file}
 \ProcessKeyvalOptions*
@@ -113,6 +114,7 @@
 \newcommand\pgph@defaultexclude{definition,example,remark,note}
 \newcommand\proofgraphtrack[1]{%
   \@for\pgph@one:=#1\do{%
+    \edef\pgph@one{\expandafter\pgph@trimsp\expandafter{\pgph@one}}%
     \csundef{pgph@xtype@\pgph@one}%
     \global\@namedef{pgph@force@\pgph@one}{}%
     \expandafter\pgph@register\expandafter{\pgph@one}%
@@ -120,6 +122,7 @@
 }
 \newcommand\proofgraphuntrack[1]{%
   \@for\pgph@one:=#1\do{%
+    \edef\pgph@one{\expandafter\pgph@trimsp\expandafter{\pgph@one}}%
     \csundef{pgph@force@\pgph@one}%
     \global\@namedef{pgph@xtype@\pgph@one}{}%
   }%
@@ -161,6 +164,7 @@
   \pgph@hooknames
   \ifx\label\pgph@maplabel\else\let\pgph@savedlabel\label\fi
   \let\label\pgph@maplabel
+  \ifpgph@statements\pgph@beginstatement\fi
 }
 \newcommand\pgph@hooknames{%
   \ifdefined\@begintheorem
@@ -195,11 +199,9 @@
 \newcommand\pgph@scanrefs[1]{%
   \ifx\pgph@curresult\@empty\else
     \begingroup
-      \global\let\pgph@savedcurproof\pgph@curproof
-      \global\let\pgph@curproof\pgph@curresult
-      \pgph@installrefs
+      \let\pgph@curproof\pgph@curresult
+      \pgph@installcapture
       \setbox\z@\hbox{#1}%
-      \global\let\pgph@curproof\pgph@savedcurproof
     \endgroup
   \fi
 }
@@ -277,18 +279,25 @@
   \pgph@install{autoref}\pgph@install{eqref}\pgph@install{vref}%
   \pgph@install{zcref}%
 }
-\newcommand\pgph@beginproof{%
-  \let\pgph@curproof\pgph@curresult
+\newcommand\pgph@installcapture{%
   \pgph@installrefs
   \ifpgph@cite\pgph@installcite\fi
+}
+\newcommand\pgph@beginproof{%
+  \let\pgph@curproof\pgph@curresult
+  \pgph@installcapture
   \pgph@hookproofhead
 }
+\newcommand\pgph@beginstatement{%
+  \let\pgph@curproof\pgph@curresult
+  \pgph@installcapture
+}
 \newcommand\pgph@hookproofhead{%
-  \ifdefined\@opargbegintheorem
+  \ifdefined\@opargbegintheorem\ifx\@opargbegintheorem\relax\else
     \let\pgph@orig@obtp\@opargbegintheorem
     \def\@opargbegintheorem##1##2##3{%
       \pgph@scanproofarg{##3}\pgph@orig@obtp{##1}{##2}{##3}}%
-  \fi
+  \fi\fi
   \ifdefined\@spopargbegintheorem
     \let\pgph@orig@spobtp\@spopargbegintheorem
     \def\@spopargbegintheorem##1##2##3##4##5{%
@@ -311,35 +320,47 @@
     \setbox\z@\hbox{#1}%
   \endgroup
 }
-\newcommand\pgph@wrapproof{%
-  \ifdefined\proof
-    \edef\pgph@proofmeaning{\meaning\proof}%
+\newcommand\pgph@wrapproofone[1]{%
+  \@ifundefined{#1}{}{%
+    \edef\pgph@proofmeaning{\expandafter\meaning\csname #1\endcsname}%
     \edef\pgph@testoptstr{\detokenize{\@protected@testopt}}%
     \IfSubStr\pgph@proofmeaning\pgph@testoptstr
-      {\pgph@redefproof}%
-      {\AtBeginEnvironment{proof}{\pgph@beginproof}}%
-  \fi
+      {\pgph@redefproof{#1}}%
+      {\AtBeginEnvironment{#1}{\pgph@beginproof}}%
+  }%
 }
-\newcommand\pgph@redefproof{%
-  \expandafter\let\expandafter\pgph@proofinner%
-    \csname\string\proof\endcsname
-  \def\proof{\pgph@beginproof
-    \@ifnextchar[{\pgph@proofopt}{\pgph@proofinner[\proofname]}}%
-  \def\pgph@proofopt[##1]{\pgph@scanproofarg{##1}\pgph@proofinner[##1]}%
+\newcommand\pgph@redefproof[1]{%
+  \expandafter\let\csname pgph@savedenv@#1\expandafter\endcsname
+    \csname #1\endcsname
+  \expandafter\def\csname #1\endcsname{\pgph@beginproof
+    \@ifnextchar[{\pgph@proofopt{#1}}%
+                 {\csname pgph@savedenv@#1\endcsname}}%
+}
+\def\pgph@proofopt#1[#2]{%
+  \pgph@scanproofarg{#2}\csname pgph@savedenv@#1\endcsname[#2]}
+\newcommand\pgph@proofenvs{proof}
+\newcommand\proofgraphproofenv[1]{%
+  \g@addto@macro\pgph@proofenvs{,#1}%
+  \proofgraphuntrack{#1}%
 }
 \newif\ifpgph@apxproof
+\newcommand\pgph@wrapproofs{%
+  \@for\pgph@one:=\pgph@proofenvs\do{%
+    \edef\pgph@pe{\expandafter\pgph@trimsp\expandafter{\pgph@one}}%
+    \ifboolexpr{ bool {pgph@apxproof} and test {\ifdefstring{\pgph@pe}{proof}} }%
+      {}{\expandafter\pgph@wrapproofone\expandafter{\pgph@pe}}%
+  }%
+}
 \AtBeginDocument{%
-  \@ifpackageloaded{apxproof}%
-    {\pgph@apxprooftrue\pgph@apxinit}%
-    {\pgph@wrapproof}%
+  \@ifpackageloaded{apxproof}{\pgph@apxprooftrue\pgph@apxinit}{}%
+  \pgph@wrapproofs
 }
 \newcommand\pgph@apxinit{%
   \def\apxproofhook##1{\pgph@apxproofcapture{##1}}}
 \newcommand\pgph@apxproofcapture[1]{%
   \edef\pgph@curproof{\pgph@resolve{#1}}%
   \ifx\pgph@curproof\@empty\else
-    \pgph@installrefs
-    \ifpgph@cite\pgph@installcite\fi
+    \pgph@installcapture
   \fi
 }
 \newcommand\pgph@gxdefcs[2]{%
@@ -414,10 +435,8 @@
   \fi
 }
 \AtEndPreamble{%
-  \ifpgph@cite
-    \ifdefstring{\pgph@citelabel}{tag}%
-      {\@ifpackageloaded{biblatex}{\AtEveryCitekey{\pgph@blxrecord}}{}}{}%
-  \fi
+  \ifdefstring{\pgph@citelabel}{tag}%
+    {\@ifpackageloaded{biblatex}{\AtEveryCitekey{\pgph@blxrecord}}{}}{}%
 }
 \newcommand\uses[1]{\pgph@recordref{#1}}
 \newcommand\proofof[1]{%
@@ -434,6 +453,21 @@
     \@for\pgph@one:=#2\do{%
       \edef\pgph@k{\expandafter\pgph@trimsp\expandafter{\pgph@one}}%
       \pgph@plainedge{\pgph@ef}{\pgph@k}}%
+  \fi
+}
+\NewDocumentCommand\usescite{O{}m}{\pgph@cap@citerec{#1}{#2}}
+\NewDocumentCommand\proofgraphciteedge{O{}mm}{%
+  \g@addto@macro\pgph@edges{\pgph@citelabeledge{#1}{#2}{#3}}%
+}
+\newcommand\pgph@citelabeledge[3]{%
+  \edef\pgph@ef{\pgph@resolve{#2}}%
+  \ifx\pgph@ef\@empty\else
+    \@for\pgph@one:=#3\do{%
+      \edef\pgph@k{\expandafter\pgph@trimsp\expandafter{\pgph@one}}%
+      \pgph@citeslot{\pgph@k}{#1}%
+      \edef\pgph@tmpce{%
+        \noexpand\pgph@citeedge{\pgph@ef}{cite:\pgph@curslot}}%
+      \pgph@tmpce}%
   \fi
 }
 \newcommand\proofgraphignore[2]{%

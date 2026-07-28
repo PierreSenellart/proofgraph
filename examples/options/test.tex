@@ -1,15 +1,19 @@
-% Exercises four output options at once, checked against reference.dot:
-%   direction=uses  -> an edge a->b means "a uses b" (reversed from the default)
-%   selfloops=keep  -> a proof referring to its own result keeps the self-loop
-%   rankdir=TB      -> the emitted graph is top-to-bottom
-%   file=mygraph    -> the graph is written to mygraph.dot, not \jobname.dot
+% Exercises five output options at once, checked against reference.dot:
+%   direction=uses    -> an edge a->b means "a uses b" (reversed from the default)
+%   selfloops=keep    -> a proof referring to its own result keeps the self-loop
+%   rankdir=TB        -> the emitted graph is top-to-bottom
+%   file=mygraph      -> the graph is written to mygraph.dot, not \jobname.dot
+%   statements=false  -> a reference in the body of a result records nothing;
+%                        only its proof and its optional title are read
 \documentclass{article}
 \usepackage{amsthm}
-\usepackage[direction=uses,selfloops=keep,rankdir=TB,file=mygraph]{proofgraph}
+\usepackage[direction=uses,selfloops=keep,rankdir=TB,file=mygraph,
+            statements=false]{proofgraph}
 \newtheorem{theorem}{Theorem}
 \newtheorem{lemma}{Lemma}
 \begin{document}
 \begin{lemma}\label{l}A lemma.\end{lemma}
-\begin{theorem}\label{t}A theorem.\end{theorem}
+\begin{theorem}\label{t}A theorem whose statement cites \ref{l}, which with
+  statements=false is no dependency and adds no edge.\end{theorem}
 \begin{proof}By \ref{l}; the statement \ref{t} refers to itself.\end{proof}
 \end{document}

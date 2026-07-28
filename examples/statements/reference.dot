@@ -1,0 +1,13 @@
+digraph proofgraph {
+  rankdir="LR";
+  "n3" [label="Theorem 2"];
+  "n2" [label="Theorem 1"];
+  "n1" [label="Lemma 1"];
+  "n1" -> "n2";
+  "c@1" [label="Thm 2, bk",shape=note];
+  "c@1" -> "n2";
+  "n2" -> "n3";
+  "c@2" [label="bk",shape=note];
+  "c@2" -> "n3";
+  "n1" -> "n3";
+}

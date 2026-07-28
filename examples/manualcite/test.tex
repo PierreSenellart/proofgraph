@@ -1,0 +1,33 @@
+% Exercises the manual citation-node commands, \usescite (inside a proof) and
+% \proofgraphciteedge (anywhere), including a result that has no proof at all
+% to hold a citation. The cite option is deliberately *not* given: an explicit
+% command draws its citation node regardless, while a plain \cite still records
+% nothing. A key is cited manually twice with different notes, checking that the
+% (key, note) slots are kept apart, and t2's list form checks that a
+% comma-separated argument yields one node per key.
+% citelabel=key keeps the fixture bibliography-style independent, and the
+% manual \bibitem keeps it bibtex-free.
+\documentclass{article}
+\usepackage{amsthm}
+\usepackage[citelabel=key]{proofgraph}
+
+\newtheorem{theorem}{Theorem}
+
+\begin{document}
+
+\begin{theorem}\label{t1}One.\end{theorem}
+\begin{proof}
+  Known, see \cite{bk}, which the cite option would have captured.%
+  \usescite[Thm~3]{bk}%
+\end{proof}
+
+\begin{theorem}\label{t2}Two, stated without a proof.\end{theorem}
+
+\proofgraphciteedge{t2}{bk, art}
+\proofgraphciteedge[Lem~1]{t1}{art}
+
+\begin{thebibliography}{9}
+\bibitem{bk}A book.
+\bibitem{art}An article.
+\end{thebibliography}
+\end{document}

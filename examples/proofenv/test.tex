@@ -1,0 +1,38 @@
+% Exercises \proofgraphproofenv, which declares further environments to be
+% treated as proofs. Two shapes are covered, the two the wrapper distinguishes:
+%   myproof     an environment of one's own with an optional title (the
+%               \@protected@testopt form), whose default title is *not*
+%               \proofname, so that replaying it must not hardcode one; its
+%               optional title attaches a detached proof to its result;
+%   claimproof  an environment declared with \newtheorem, hooked at its
+%               beginning, and, being a proof, kept out of the graph as a
+%               result even though it is numbered.
+% Uses only amsthm, so it compiles everywhere, and needs no bibliography.
+\documentclass{article}
+\usepackage{amsthm}
+\usepackage{proofgraph}
+
+\newenvironment{myproof}[1][My proof]{\par\noindent\textbf{#1.} }{\par}
+\newtheorem{theorem}{Theorem}
+\newtheorem{lemma}{Lemma}
+\newtheorem{claimproof}{Proof of the claim}
+\proofgraphproofenv{myproof, claimproof}
+
+\begin{document}
+
+\begin{lemma}\label{l1}One.\end{lemma}
+\begin{lemma}\label{l2}Two.\end{lemma}
+
+\begin{theorem}\label{t1}Main.\end{theorem}
+\begin{myproof}By \ref{l1}.\end{myproof}          % attached to the last result
+
+\begin{theorem}\label{t2}Other.\end{theorem}
+\begin{claimproof}By \ref{l2}.\end{claimproof}    % ditto; no node of its own
+
+\begin{myproof}[of Theorem~\ref{t1}]              % detached: attached to t1
+  Also by \ref{l2}.
+\end{myproof}
+
+By \ref{l1} outside any proof, which is no dependency and adds no edge.
+
+\end{document}

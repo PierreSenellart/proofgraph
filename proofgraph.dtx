@@ -79,7 +79,7 @@
 %</driver>
 % \fi
 %
-% \CheckSum{1706}
+% \CheckSum{1786}
 %
 % \CharacterTable
 %  {Upper-case    \A\B\C\D\E\F\G\H\I\J\K\L\M\N\O\P\Q\R\S\T\U\V\W\X\Y\Z
@@ -135,6 +135,22 @@
 % \changes{v1.0.1-dev}{2026/07/27}{Recover the citation tag of the numeric and
 %   alphabetic \textsf{biblatex} styles for \texttt{citelabel!=tag}, which
 %   records no citation tag in the \texttt{.aux} for it to read}
+% \changes{v1.0.1-dev}{2026/07/28}{Add \texttt{proofgraphproofenv}, declaring
+%   further environments to be treated as proofs, for a document whose proofs
+%   do not live in an environment named \texttt{proof}}
+% \changes{v1.0.1-dev}{2026/07/28}{Capture cross-references and citations in the
+%   body of a result and not only in its proof and its optional title, a
+%   statement resting on an earlier result being a dependency like any other;
+%   the new \texttt{statements} option, on by default, turns this off}
+% \changes{v1.0.1-dev}{2026/07/28}{Add \texttt{usescite} and
+%   \texttt{proofgraphciteedge}, recording a dependency on cited work by hand,
+%   for a proof that does not cite it visibly and for a result stated without a
+%   proof to hold a citation}
+% \changes{v1.0.1-dev}{2026/07/28}{Capture citations, and not only
+%   cross-references, in the optional title of a result}
+% \changes{v1.0.1-dev}{2026/07/28}{Trim the spaces after the commas of the
+%   lists given to \texttt{proofgraphtrack} and \texttt{proofgraphuntrack};
+%   every name but the first was silently ignored}
 %
 % \DoNotIndex{\newcommand,\renewcommand,\providecommand,\def,\edef,\gdef,\xdef}
 % \DoNotIndex{\let,\global,\long,\relax,\expandafter,\csname,\endcsname}
@@ -383,7 +399,10 @@
 % way:
 % |\begin{theorem}[(generalises~\ref{thm:x})]| in a result labelled \meta{A} adds
 % an edge from \meta{A} to |thm:x|, handy for restatements (e.g., an introduction
-% that previews results with |\begin{result}[(Corollary~\ref{cor:y})]|).
+% that previews results with |\begin{result}[(Corollary~\ref{cor:y})]|). The
+% \emph{body} of a result is read the same way: a statement that refers to an
+% earlier result, ``Under the hypotheses of Theorem~2\dots'', depends on it just
+% as a proof would. Set |statements=false| to build the graph from proofs alone.
 %
 % \subsection{Recording dependencies by hand}
 % \begin{description}
@@ -398,6 +417,26 @@
 %   proof. Handy for an ``obvious'' corollary that relies on earlier results
 %   without a |proof| environment, as in |\proofgraphedge{cor:x}{thm:y,lem:z}|. It
 %   may appear anywhere; all labels are resolved when the graph is written.
+% \item[\cmdname{usescite}\cmdoarg{note}\cmdarg{keys}]%
+%   \SpecialUsageIndex{\usescite}%
+%   Inside a proof, the |\uses| of external work: records a dependency on the
+%   bibliography entries \meta{keys} (a comma-separated list) and draws them as
+%   citation nodes, without citing them visibly. The optional \meta{note} is the
+%   one |\cite| would have taken, as in |\usescite[Thm~3]{knuth}|; it labels the
+%   node and, as with a captured |\cite|, tells one result of a work from
+%   another.
+% \item[\cmdname{proofgraphciteedge}\cmdoarg{note}\cmdarg{A}\cmdarg{keys}]%
+%   \SpecialUsageIndex{\proofgraphciteedge}%
+%   The |\proofgraphedge| of citation nodes: records that result \meta{A}
+%   depends on the cited work(s) \meta{keys}, stated outside any proof, as in
+%   |\proofgraphciteedge{thm:x}{knuth}|. Useful for a result stated without a
+%   proof, which has no place to hold a citation. Like |\proofgraphedge| it may
+%   appear anywhere, all labels being resolved when the graph is written.
+%
+%   Both commands create the citation node when the work has none yet, and both
+%   work whether or not the |cite| option is on: that option only says whether a
+%   plain |\cite| is captured on its own. A work reached both ways, once by
+%   |\cite| capture and once by hand, still yields a single node.
 % \item[\cmdname{proofof}\cmdarg{label}]\SpecialUsageIndex{\proofof}%
 %   By default a proof is attached to the most recently started result. A
 %   detached proof whose optional title names its result is attached
@@ -421,6 +460,23 @@
 %   \SpecialUsageIndex{\proofgraphuntrack}%
 %   Excludes further environment types, as in |\proofgraphuntrack{observation}|.
 %   Use it in the preamble.
+% \item[\cmdname{proofgraphproofenv}\cmdarg{names}]%
+%   \SpecialUsageIndex{\proofgraphproofenv}%
+%   Treats the listed environments as proofs, besides |proof|, so that the
+%   references they make become dependencies of the result they establish. Use
+%   it in the preamble, as in |\proofgraphproofenv{pf}|. It serves a document
+%   whose proofs live in an environment of another name, for instance because a
+%   proof package had to be renamed to avoid the clash with \textsf{amsthm}'s
+%   |proof| (as with \textsf{pf2}), and equally a |\newtheorem{claimproof}| used
+%   for the proofs of claims. Being proofs, the environments named are also
+%   removed from the results drawn, even when they are numbered; a
+%   |\proofgraphtrack| on the same name overrides that, for an environment to be
+%   drawn as a result as well.
+%
+%   An environment taking an optional title is wrapped as |proof| is, so a
+%   detached |\begin{pf}[of Theorem~\ref{thm:x}]| attaches to |thm:x|; one
+%   declared with |\newtheorem| attaches to the result it follows, or to the one
+%   |\proofof| names.
 % \item[\cmdname{proofgraphignore}\cmdarg{from}\cmdarg{to}]%
 %   \SpecialUsageIndex{\proofgraphignore}%
 %   Suppresses the edge from \meta{from} to \meta{to} (e.g., an unwanted forward
@@ -514,7 +570,8 @@
 %   \Graphviz\ graph direction (default |LR|).
 % \item[\optname{cite}]
 %   Boolean (default false). Also captures |\cite| inside proofs as dependencies
-%   on external work, drawn as distinct nodes (Section~\ref{sec:realworld}). A
+%   on external work, drawn as distinct nodes (Section~\ref{sec:realworld}), and,
+%   unless |statements| is off, in the body of a result too. A
 %   |\cite| note is kept: |\cite[Thm~3]{key}| labels the node ``Thm~3, \dots''.
 %   In the two-optional-argument form of \textsf{natbib} and \textsf{biblatex},
 %   |\cite[see][Thm~3]{key}|, the post-note likewise labels the node and the
@@ -528,7 +585,18 @@
 %   |\citeyearpar|, |\citedate|, |\citeurl|, |\citenum|) and all their
 %   capitalised forms. A work invoked twice in one proof, by |\citeauthor| and
 %   by |\cite| say, still yields a single edge. |\proofgraphcitecommand| adds
-%   any further command.
+%   any further command; |\usescite| and |\proofgraphciteedge| record a citation
+%   node by hand, with or without this option.
+% \item[\optname{statements}]
+%   Boolean (default true). Captures cross-references, and citations when
+%   |cite| is on, in the \emph{body} of a result as well, not only in its proof
+%   and in its optional title: a statement reading ``Under the hypotheses of
+%   Theorem~2\dots'' or ``\dots\ the bound of \cite[Thm~3]{knuth}'' records
+%   that dependency on the result being stated, as a proof making the same
+%   reference would. The capture stops at the |\end| of the result, so
+%   references in the surrounding text record nothing. Set it false for a graph
+%   built from proofs alone, which is the right reading when statements refer to
+%   earlier results to contrast with them rather than to rely on them.
 % \item[\optname{citelabel}]
 %   Either |key| (default), labelling citation nodes by their \BibTeX\ key, or
 %   |tag|, using the printed citation tag instead (``[1]'', ``[Knu74]'',
@@ -600,7 +668,7 @@
 %<*package>
 \NeedsTeXFormat{LaTeX2e}[2020/10/01]
 \ProvidesPackage{proofgraph}
-  [2026/07/27 v1.0.1-dev Dependency graph of results]
+  [2026/07/28 v1.0.1-dev Dependency graph of results]
 %    \end{macrocode}
 %
 % \subsection{Dependencies}
@@ -657,6 +725,7 @@
 \DeclareStringOption[usedby]{direction}
 \DeclareBoolOption{cite}
 \DeclareStringOption[key]{citelabel}
+\DeclareBoolOption[true]{statements}
 \DeclareBoolOption[true]{hyperlinks}
 \DeclareStringOption{file}
 \ProcessKeyvalOptions*
@@ -780,6 +849,7 @@
 \newcommand\pgph@defaultexclude{definition,example,remark,note}
 \newcommand\proofgraphtrack[1]{%
   \@for\pgph@one:=#1\do{%
+    \edef\pgph@one{\expandafter\pgph@trimsp\expandafter{\pgph@one}}%
     \csundef{pgph@xtype@\pgph@one}%
     \global\@namedef{pgph@force@\pgph@one}{}%
     \expandafter\pgph@register\expandafter{\pgph@one}%
@@ -787,6 +857,7 @@
 }
 \newcommand\proofgraphuntrack[1]{%
   \@for\pgph@one:=#1\do{%
+    \edef\pgph@one{\expandafter\pgph@trimsp\expandafter{\pgph@one}}%
     \csundef{pgph@force@\pgph@one}%
     \global\@namedef{pgph@xtype@\pgph@one}{}%
   }%
@@ -855,6 +926,12 @@
 % the results last-to-first therefore lays them out top-to-bottom in document
 % order (first result on top), while connected results stay grouped. This is a
 % layout tendency, not a guarantee, but needs no |pack| trickery.
+%
+% Unless |statements| is switched off, the \emph{body} of the result is treated
+% like the body of a proof of that result (|\pgph@beginstatement|), so that a
+% cross-reference or a citation made in the statement itself becomes a
+% dependency. Those assignments are local to the environment group, as the ones
+% above are, so they revert at |\end|.
 %    \begin{macrocode}
 \newcommand\pgph@prependnode[1]{%
   \xdef\pgph@nodes{\unexpanded{#1}\unexpanded\expandafter{\pgph@nodes}}%
@@ -868,6 +945,7 @@
   \pgph@hooknames
   \ifx\label\pgph@maplabel\else\let\pgph@savedlabel\label\fi
   \let\label\pgph@maplabel
+  \ifpgph@statements\pgph@beginstatement\fi
 }
 \newcommand\pgph@hooknames{%
   \ifdefined\@begintheorem
@@ -905,18 +983,20 @@
 % whose title is |[(Corollary~\ref{cor:x})]|, is understood to
 % restate or build on that result: we record an edge from the current result to
 % each label referenced in the title. We capture these by typesetting the title
-% once into a discarded box with the reference-capturing commands installed and
-% |\pgph@curproof| pointing at the current result; |\pgph@curproof| is saved and
-% restored, so this affects nothing outside the title.
+% once into a discarded box with the capturing commands installed and
+% |\pgph@curproof| pointing at the current result. Everything happens inside a
+% group and |\pgph@curproof| is only \emph{read} while the box is built, so a
+% local assignment suffices and nothing outside the title is affected; a global
+% one would escape the enclosing environment, which under |statements| (where
+% |\pgph@curproof| is already set on entering the result) would leave every
+% subsequent reference attributed to that result.
 %    \begin{macrocode}
 \newcommand\pgph@scanrefs[1]{%
   \ifx\pgph@curresult\@empty\else
     \begingroup
-      \global\let\pgph@savedcurproof\pgph@curproof
-      \global\let\pgph@curproof\pgph@curresult
-      \pgph@installrefs
+      \let\pgph@curproof\pgph@curresult
+      \pgph@installcapture
       \setbox\z@\hbox{#1}%
-      \global\let\pgph@curproof\pgph@savedcurproof
     \endgroup
   \fi
 }
@@ -1060,25 +1140,52 @@
   \pgph@install{autoref}\pgph@install{eqref}\pgph@install{vref}%
   \pgph@install{zcref}%
 }
-\newcommand\pgph@beginproof{%
-  \let\pgph@curproof\pgph@curresult
+%    \end{macrocode}
+% The cross-reference commands and, when the |cite| option is on, the citation
+% commands are always installed together, so the pair has a name of its own:
+% every place that opens a capturing context (a proof, the optional title of a
+% result, and, with |statements|, the body of a result) installs exactly the
+% same set.
+%    \begin{macrocode}
+\newcommand\pgph@installcapture{%
   \pgph@installrefs
   \ifpgph@cite\pgph@installcite\fi
+}
+\newcommand\pgph@beginproof{%
+  \let\pgph@curproof\pgph@curresult
+  \pgph@installcapture
   \pgph@hookproofhead
 }
 %    \end{macrocode}
+% \begin{macro}{\pgph@beginstatement}
+% Under the |statements| option the body of a result captures like the body of
+% its proof. The proof-heading hook is deliberately \emph{not} installed here: it
+% turns a cross-reference in an optional title into a |\proofof|, which is right
+% for a proof titled ``of Theorem~1'' but not for a result titled ``(restates
+% Theorem~1)'', where the reference is an ordinary dependency.
+%    \begin{macrocode}
+\newcommand\pgph@beginstatement{%
+  \let\pgph@curproof\pgph@curresult
+  \pgph@installcapture
+}
+%    \end{macrocode}
+% \end{macro}
 % When the |proof| environment is itself a theorem-like environment (as with
 % Springer's |\spnewtheorem*{proof}|), its optional title is set by
 % |\@opargbegintheorem|/|\@spopargbegintheorem|. We wrap these for the duration
 % of the proof so that a title such as |[of Theorem~\ref{thm:x}]| sets
-% |\proofof{thm:x}|, attributing the proof to its result.
+% |\proofof{thm:x}|, attributing the proof to its result. As in
+% |\pgph@hooknames|, a |\relax| |\@opargbegintheorem| is left alone: that is the
+% \textsf{amsthm} setup, where the macro is never called, and giving it a
+% meaning would make |\pgph@hooknames| read a result nested in the proof as
+% having the kernel's two-argument heading rather than \textsf{amsthm}'s.
 %    \begin{macrocode}
 \newcommand\pgph@hookproofhead{%
-  \ifdefined\@opargbegintheorem
+  \ifdefined\@opargbegintheorem\ifx\@opargbegintheorem\relax\else
     \let\pgph@orig@obtp\@opargbegintheorem
     \def\@opargbegintheorem##1##2##3{%
       \pgph@scanproofarg{##3}\pgph@orig@obtp{##1}{##2}{##3}}%
-  \fi
+  \fi\fi
   \ifdefined\@spopargbegintheorem
     \let\pgph@orig@spobtp\@spopargbegintheorem
     \def\@spopargbegintheorem##1##2##3##4##5{%
@@ -1116,32 +1223,60 @@
 }
 %    \end{macrocode}
 % To capture the optional title of a detached |amsthm| proof
-% (an optional |[of Theorem~\ref{thm:x}]|) we redefine the outer |\proof| to read
-% the optional argument and delegate to the original inner macro (saved as
-% |\pgph@proofinner|), so no recursion occurs. We must do this \emph{only} for a
-% genuine optional-argument environment: a package that captures the proof body
-% verbatim (\apxproof, \textsf{myproofs}) redefines |proof| with no optional
-% argument, and wrapping it would break that capture. We recognise the
-% optional-argument form by the |\@protected@testopt| in its definition. When
-% |proof| is instead a theorem-like environment (Springer |\spnewtheorem*{proof}|)
-% its title is already handled by |\pgph@hookproofhead|, so here we just install
-% the begin-hook.
+% (an optional |[of Theorem~\ref{thm:x}]|) we redefine the outer |\proof| so
+% that, when a title is given, it is scanned and then handed to the
+% \emph{saved} outer macro, which parses it as it always did. Delegating to the
+% saved outer macro rather than to the inner one means we need to know neither
+% the name of the inner macro nor the environment's default title, so the same
+% wrapper serves any proof environment, whatever its default. No recursion
+% occurs: the saved meaning is captured before the redefinition.
+%
+% We must wrap \emph{only} a genuine optional-argument environment: a package
+% that captures the proof body verbatim (\apxproof, \textsf{myproofs}) redefines
+% |proof| with no optional argument, and wrapping it would break that capture.
+% We recognise the optional-argument form by the |\@protected@testopt| in its
+% definition. When the proof environment is instead a theorem-like environment
+% (Springer |\spnewtheorem*{proof}|, or a |\newtheorem| of one's own) its title
+% is already handled by |\pgph@hookproofhead|, so there we just install the
+% begin-hook.
 %    \begin{macrocode}
-\newcommand\pgph@wrapproof{%
-  \ifdefined\proof
-    \edef\pgph@proofmeaning{\meaning\proof}%
+\newcommand\pgph@wrapproofone[1]{%
+  \@ifundefined{#1}{}{%
+    \edef\pgph@proofmeaning{\expandafter\meaning\csname #1\endcsname}%
     \edef\pgph@testoptstr{\detokenize{\@protected@testopt}}%
     \IfSubStr\pgph@proofmeaning\pgph@testoptstr
-      {\pgph@redefproof}%
-      {\AtBeginEnvironment{proof}{\pgph@beginproof}}%
-  \fi
+      {\pgph@redefproof{#1}}%
+      {\AtBeginEnvironment{#1}{\pgph@beginproof}}%
+  }%
 }
-\newcommand\pgph@redefproof{%
-  \expandafter\let\expandafter\pgph@proofinner%
-    \csname\string\proof\endcsname
-  \def\proof{\pgph@beginproof
-    \@ifnextchar[{\pgph@proofopt}{\pgph@proofinner[\proofname]}}%
-  \def\pgph@proofopt[##1]{\pgph@scanproofarg{##1}\pgph@proofinner[##1]}%
+\newcommand\pgph@redefproof[1]{%
+  \expandafter\let\csname pgph@savedenv@#1\expandafter\endcsname
+    \csname #1\endcsname
+  \expandafter\def\csname #1\endcsname{\pgph@beginproof
+    \@ifnextchar[{\pgph@proofopt{#1}}%
+                 {\csname pgph@savedenv@#1\endcsname}}%
+}
+\def\pgph@proofopt#1[#2]{%
+  \pgph@scanproofarg{#2}\csname pgph@savedenv@#1\endcsname[#2]}
+%    \end{macrocode}
+% \end{macro}
+% \end{macro}
+%
+% \DescribeMacro{\proofgraphproofenv}
+% \begin{macro}{\proofgraphproofenv}
+% \begin{macro}{\pgph@proofenvs}
+% Which environments are proofs is a list, |proof| to begin with;
+% |\proofgraphproofenv{|\meta{names}|}| adds to it, for a document whose proofs
+% live in an environment of another name (\textsf{pf2}'s structured proofs under
+% a name that avoids the clash with \textsf{amsthm}, a |\newtheorem{claimproof}|
+% for the proofs of claims\dots). A proof is not a result, so the names are
+% excluded from result tracking as well; |\proofgraphtrack| still overrides that
+% for an environment one wants drawn as both.
+%    \begin{macrocode}
+\newcommand\pgph@proofenvs{proof}
+\newcommand\proofgraphproofenv[1]{%
+  \g@addto@macro\pgph@proofenvs{,#1}%
+  \proofgraphuntrack{#1}%
 }
 %    \end{macrocode}
 % \end{macro}
@@ -1150,14 +1285,22 @@
 % it to the appendix) and replay it there. Patching the |proof| environment then
 % corrupts that capture, and the references are only executed at replay time
 % anyway. So we wrap |proof| only when no such package is active; otherwise the
-% deferred-proof capture (below) takes over. This happens at |\begin{document}|,
-% once we know what is loaded.
+% deferred-proof capture (below) takes over. The exemption is for |proof| alone:
+% an environment added with |\proofgraphproofenv| is not one \apxproof\ defers,
+% so it is wrapped as usual. This happens at |\begin{document}|, once we know
+% what is loaded and what the preamble has added to the list.
 %    \begin{macrocode}
 \newif\ifpgph@apxproof
+\newcommand\pgph@wrapproofs{%
+  \@for\pgph@one:=\pgph@proofenvs\do{%
+    \edef\pgph@pe{\expandafter\pgph@trimsp\expandafter{\pgph@one}}%
+    \ifboolexpr{ bool {pgph@apxproof} and test {\ifdefstring{\pgph@pe}{proof}} }%
+      {}{\expandafter\pgph@wrapproofone\expandafter{\pgph@pe}}%
+  }%
+}
 \AtBeginDocument{%
-  \@ifpackageloaded{apxproof}%
-    {\pgph@apxprooftrue\pgph@apxinit}%
-    {\pgph@wrapproof}%
+  \@ifpackageloaded{apxproof}{\pgph@apxprooftrue\pgph@apxinit}{}%
+  \pgph@wrapproofs
 }
 %    \end{macrocode}
 %
@@ -1175,8 +1318,7 @@
 \newcommand\pgph@apxproofcapture[1]{%
   \edef\pgph@curproof{\pgph@resolve{#1}}%
   \ifx\pgph@curproof\@empty\else
-    \pgph@installrefs
-    \ifpgph@cite\pgph@installcite\fi
+    \pgph@installcapture
   \fi
 }
 %    \end{macrocode}
@@ -1333,13 +1475,14 @@
 % The \textsf{biblatex} tag recorder is needed only when tags are actually
 % wanted, and is registered at the end of the preamble, once \textsf{biblatex}
 % has certainly been loaded (it is a preamble-only package) but while
-% |\AtEveryCitekey| still accepts additions.
+% |\AtEveryCitekey| still accepts additions. It is not conditioned on the
+% |cite| option, which governs the automatic capture of |\cite| only:
+% |\usescite| and |\proofgraphciteedge| draw citation nodes without it, and
+% those nodes want their tag just the same.
 %    \begin{macrocode}
 \AtEndPreamble{%
-  \ifpgph@cite
-    \ifdefstring{\pgph@citelabel}{tag}%
-      {\@ifpackageloaded{biblatex}{\AtEveryCitekey{\pgph@blxrecord}}{}}{}%
-  \fi
+  \ifdefstring{\pgph@citelabel}{tag}%
+    {\@ifpackageloaded{biblatex}{\AtEveryCitekey{\pgph@blxrecord}}{}}{}%
 }
 %    \end{macrocode}
 %
@@ -1362,6 +1505,55 @@
       \pgph@plainedge{\pgph@ef}{\pgph@k}}%
   \fi
 }
+%    \end{macrocode}
+% \DescribeMacro{\usescite}
+% \DescribeMacro{\proofgraphciteedge}
+% \begin{macro}{\usescite}
+% \begin{macro}{\proofgraphciteedge}
+% \begin{macro}{\pgph@citelabeledge}
+% The two manual counterparts of the automatic |\cite| capture, for a dependency
+% on external work that no citation in a proof expresses: |\usescite|, the
+% |\uses| of citation nodes, records one from inside a proof, and
+% |\proofgraphciteedge|, the |\proofgraphedge| of citation nodes, states one
+% from anywhere. Both create the citation node if the work has no node yet, take
+% a comma-separated list of \BibTeX\ keys and accept as an optional argument the
+% note that would have been the optional argument of |\cite| (|[Thm~3]|), which
+% labels the node and, as in the automatic capture, distinguishes one result of
+% a work from another.
+%
+% Being explicit, they do not depend on the |cite| option, which only says
+% whether a plain |\cite| is captured on its own. |\usescite| shares the
+% recording path of the captured citation commands, so a work reached both ways
+% still yields a single node.
+%    \begin{macrocode}
+\NewDocumentCommand\usescite{O{}m}{\pgph@cap@citerec{#1}{#2}}
+\NewDocumentCommand\proofgraphciteedge{O{}mm}{%
+  \g@addto@macro\pgph@edges{\pgph@citelabeledge{#1}{#2}{#3}}%
+}
+%    \end{macrocode}
+% Resolution is deferred to emission, as for |\proofgraphedge|, so the result
+% may be labelled anywhere in the document; the slot is therefore allocated
+% then, which is harmless as slot numbers only have to be distinct. The edge is
+% assembled by |\edef| rather than passed as macros, because |\pgph@citeedge|
+% takes the |cite:|\meta{slot} target apart with \textsf{xstring}, which reads
+% its argument literally.
+%    \begin{macrocode}
+\newcommand\pgph@citelabeledge[3]{%
+  \edef\pgph@ef{\pgph@resolve{#2}}%
+  \ifx\pgph@ef\@empty\else
+    \@for\pgph@one:=#3\do{%
+      \edef\pgph@k{\expandafter\pgph@trimsp\expandafter{\pgph@one}}%
+      \pgph@citeslot{\pgph@k}{#1}%
+      \edef\pgph@tmpce{%
+        \noexpand\pgph@citeedge{\pgph@ef}{cite:\pgph@curslot}}%
+      \pgph@tmpce}%
+  \fi
+}
+%    \end{macrocode}
+% \end{macro}
+% \end{macro}
+% \end{macro}
+%    \begin{macrocode}
 \newcommand\proofgraphignore[2]{%
   \g@addto@macro\pgph@ignores{\pgph@ignorerule{#1}{#2}}%
 }

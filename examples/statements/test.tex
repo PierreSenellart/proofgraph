@@ -1,0 +1,34 @@
+% Exercises the capture of cross-references and citations in the *body* of a
+% result, not only in its proof and its optional title. The statements option
+% governs it and is on by default, so it is deliberately not given here; the
+% options fixture covers statements=false. Checks that: a \ref and a \cite in a
+% statement become dependencies of that result; an optional title still
+% contributes its own edge (and is not counted twice); the capture stops at
+% \end, so a reference in ordinary text between results adds no edge; and a
+% proof following a result still works.
+% citelabel=key keeps the fixture bibliography-style independent, and the
+% manual \bibitem keeps it bibtex-free.
+\documentclass{article}
+\usepackage{amsthm}
+\usepackage[cite,citelabel=key]{proofgraph}
+
+\newtheorem{theorem}{Theorem}
+\newtheorem{lemma}{Lemma}
+
+\begin{document}
+
+\begin{lemma}\label{l1}One.\end{lemma}
+
+\begin{theorem}\label{t1}
+  Under the hypotheses of \ref{l1}, and of \cite[Thm~2]{bk}, something holds.
+\end{theorem}
+
+By \ref{l1}, this sentence is ordinary text and adds no edge.
+
+\begin{theorem}[(refines \ref{t1})]\label{t2}
+  Something better still, using \cite{bk}.
+\end{theorem}
+\begin{proof}By \ref{l1}.\end{proof}
+
+\begin{thebibliography}{9}\bibitem{bk}A book.\end{thebibliography}
+\end{document}
