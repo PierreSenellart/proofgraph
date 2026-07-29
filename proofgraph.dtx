@@ -79,7 +79,7 @@
 %</driver>
 % \fi
 %
-% \CheckSum{1786}
+% \CheckSum{1908}
 %
 % \CharacterTable
 %  {Upper-case    \A\B\C\D\E\F\G\H\I\J\K\L\M\N\O\P\Q\R\S\T\U\V\W\X\Y\Z
@@ -151,6 +151,26 @@
 % \changes{v1.0.1-dev}{2026/07/28}{Trim the spaces after the commas of the
 %   lists given to \texttt{proofgraphtrack} and \texttt{proofgraphuntrack};
 %   every name but the first was silently ignored}
+% \changes{v1.0.1-dev}{2026/07/29}{Keep the braces of an optional title that is
+%   a single brace group, the bracing the \textsf{amsthm} manual prescribes to
+%   hide the \texttt{]} of a citation note. A title such as
+%   \texttt{[\{cite[p.~37]\{a-l\}\}]} reached the heading unbraced, whose own
+%   scan for \texttt{]} then stopped inside the note: the citation vanished from
+%   the printed title and two errors were reported against the capture}
+% \changes{v1.0.1-dev}{2026/07/29}{Let \texttt{proofof} pin a proof as a whole,
+%   wherever in the proof it stands: the references made before it went to
+%   whichever result preceded the proof, which a proof deferred to an appendix
+%   made easy to hit. The result it names may now be labelled further on in the
+%   document}
+% \changes{v1.0.1-dev}{2026/07/29}{Point the hyperlink of a citation node at the
+%   destination \textsf{biblatex} gives a bibliography entry, which carries the
+%   number of the reference section before the key, rather than at the one the
+%   LaTeX kernel and \textsf{natbib} give, which \textsf{biblatex} never
+%   defines: the node led to the end of the document instead of the entry}
+% \changes{v1.0.1-dev}{2026/07/29}{Set the note of a citation node inside its
+%   tag and after it, ``[Knu68, pp.~23--27]'', the way a citation with a note is
+%   printed, and render its \texttt{--} and \texttt{---} as the dashes the
+%   document shows}
 %
 % \DoNotIndex{\newcommand,\renewcommand,\providecommand,\def,\edef,\gdef,\xdef}
 % \DoNotIndex{\let,\global,\long,\relax,\expandafter,\csname,\endcsname}
@@ -297,7 +317,7 @@
 % one obtained from \emph{Connecting Knowledge Compilation Classes and Width
 % Parameters}~\cite{AmarilliCMS20}. It has 62 numbered results, drawn
 % from five environments (|result|, |theorem|, |proposition|, |corollary| and
-% |lemma|), depends on 19 external works cited inside proofs, and contains 106
+% |lemma|), depends on 24 external works, and contains 114
 % edges in all.
 %
 % \begin{figure}[p]
@@ -319,9 +339,9 @@
 %   printed tag, by loading the package as
 %   |\usepackage[cite=true,citelabel=tag]{proofgraph}|. The |\cite|s made inside
 %   proofs then appear as the note-shaped nodes (``\texttt{[17]}'',
-%   ``\texttt{Theorem 4.10, [46]}''\dots) along the left of the graph; a work
+%   ``\texttt{[46, Theorem 4.10]}''\dots) along the left of the graph; a work
 %   cited for two different results, or for two of its own theorems, gives one
-%   node per |\cite| note, so the 19~works appear as 32~nodes.
+%   node per |\cite| note, so those 23~works appear as 39~nodes.
 % \item One environment was kept out of the graph with a single
 %   |\proofgraphuntrack{observation}| (a lone preliminary observation that
 %   nothing else uses).
@@ -347,6 +367,8 @@
 %   (|\proofgraphedge{cor:upper_bound}{thm:upper_bound,...}|), and three theorems
 %   whose proof is developed across a whole section rather than inside a single
 %   |proof|.
+% \item One |\proofgraphciteedge|, for a lemma stated without a proof, its proof
+%   being in the conference version of the article.
 % \end{itemize}
 % Nothing else was annotated: every other edge, and the numbering of all 62
 % nodes, was inferred automatically from the ordinary cross-references the proofs
@@ -444,7 +466,13 @@
 %   proof to |thm:x| (for the |amsthm| |proof| environment, for |proof| defined
 %   as a theorem in the Springer classes, and for deferred proofs as with
 %   \apxproof). When none of this applies, |\proofof| inside the proof pins it to
-%   the result labelled \meta{label}.
+%   the result labelled \meta{label}. It pins the proof \emph{as a whole},
+%   wherever in it it stands, so the references made before it count as much as
+%   those made after; \meta{label} may be the label of a result stated later in
+%   the document. This is what a proof written in an appendix, or anywhere else
+%   away from its result, needs and all that it needs: its dependencies are then
+%   captured as those of a proof placed right after its result would be, and
+%   recording them by hand with |\uses| or |\proofgraphedge| is not called for.
 % \end{description}
 %
 % \subsection{Choosing what appears in the graph}
@@ -608,6 +636,11 @@
 %   tag is a formatted name list that \textsf{biblatex} exposes as no single
 %   field. Whenever no clean tag can be recovered the node keeps the key, which
 %   is always a correct, if terser, label.
+%
+%   The note of a |\cite| is set where a citation prints it, inside the tag and
+%   after it: |\cite[pp.~23--27]{knuth}| gives a node labelled ``[Knu68,
+%   pp.~23--27]'', carrying the dashes of the document, and ``knuth, pp.~23--27''
+%   when the label is the key.
 % \item[\optname{file}]
 %   Base name of the output file (default |\jobname|).
 % \end{description}
@@ -668,7 +701,7 @@
 %<*package>
 \NeedsTeXFormat{LaTeX2e}[2020/10/01]
 \ProvidesPackage{proofgraph}
-  [2026/07/28 v1.0.1-dev Dependency graph of results]
+  [2026/07/29 v1.0.1-dev Dependency graph of results]
 %    \end{macrocode}
 %
 % \subsection{Dependencies}
@@ -750,6 +783,7 @@
 % be applied to the complete graph regardless of where they appear.
 %    \begin{macrocode}
 \newcount\pgph@idcnt
+\newcount\pgph@proofcnt
 \newcount\pgph@citeslotcnt
 \def\pgph@nodes{}
 \def\pgph@edges{}
@@ -920,6 +954,16 @@
 % group, so they revert at |\end|. We also locally redefine |\label| to populate
 % the map.
 %
+% The note read as a \emph{delimited} argument is handed back to the original
+% macro inside braces, |[{|\meta{note}|}]| rather than |[|\meta{note}|]|. TeX
+% strips the outer braces of a delimited argument that is one brace group in
+% its entirety, so a title written |[{\cite[p.~37]{a-l}}]| -- the bracing the
+% \textsf{amsthm} manual prescribes to hide the |]| of the citation note -- would
+% otherwise reach the original macro unbraced, whose own scan for |]| would then
+% stop inside the citation and take the rest of the note for text. Rebracing
+% restores exactly what was written: the added braces are stripped again by that
+% scan.
+%
 % Nodes are accumulated in \emph{reverse} order of appearance
 % (|\pgph@prependnode|). With |rankdir=LR|, \Graphviz\ stacks disconnected
 % components vertically in the order they are read, from the bottom up; emitting
@@ -953,7 +997,7 @@
     \ifx\@opargbegintheorem\relax
       \def\@begintheorem##1##2[##3]{%
         \pgph@recordresult{##1}{##2}\pgph@scanrefs{##3}%
-        \pgph@orig@bt{##1}{##2}[##3]}%
+        \pgph@orig@bt{##1}{##2}[{##3}]}%
     \else
       \def\@begintheorem##1##2{%
         \pgph@recordresult{##1}{##2}\pgph@orig@bt{##1}{##2}}%
@@ -1093,6 +1137,17 @@
 % \begin{macro}{\pgph@beginproof}
 % Attach the proof to the current result and install the capturing
 % versions of the reference commands (only those that exist).
+%
+% The proof is not recorded as the result it proves but as a \emph{proof
+% instance} of its own, |p|\meta{n}, whose owning result is held in
+% |\pgph@powner@p|\meta{n} and read only at emission. An edge captured in the
+% proof therefore does not fix its source when it is seen, which is what lets
+% |\proofof| pin the whole proof and not merely the references that follow it.
+% Were the source fixed at capture, a proof opening with ``By Theorem~1'' and
+% naming its own result only at the end would give that first reference to
+% whichever result happens to precede the proof. The indirection also lets a
+% proof be pinned to a result labelled later in the document, the label being
+% resolved with all the others when the graph is written.
 %    \begin{macrocode}
 %    \end{macrocode}
 % The capturing commands are |\protected| so that, when a reference appears
@@ -1152,7 +1207,10 @@
   \ifpgph@cite\pgph@installcite\fi
 }
 \newcommand\pgph@beginproof{%
-  \let\pgph@curproof\pgph@curresult
+  \global\advance\pgph@proofcnt\@ne
+  \edef\pgph@curproof{p\the\pgph@proofcnt}%
+  \global\expandafter\let\csname pgph@powner@\pgph@curproof\endcsname
+                          \pgph@curresult
   \pgph@installcapture
   \pgph@hookproofhead
 }
@@ -1257,7 +1315,7 @@
                  {\csname pgph@savedenv@#1\endcsname}}%
 }
 \def\pgph@proofopt#1[#2]{%
-  \pgph@scanproofarg{#2}\csname pgph@savedenv@#1\endcsname[#2]}
+  \pgph@scanproofarg{#2}\csname pgph@savedenv@#1\endcsname[{#2}]}
 %    \end{macrocode}
 % \end{macro}
 % \end{macro}
@@ -1354,7 +1412,10 @@
 % token |[| as the key and typeset the rest of the citation as text, giving
 % confusing errors (``Missing \$ inserted'') deep in the proof body. A star
 % (|\citet*|, |\citep*|: full author list) is likewise peeked for and replayed;
-% it affects rendering only, not the recorded (key, note) pair. The replay head
+% it affects rendering only, not the recorded (key, note) pair. As in
+% |\pgph@hooknames|, the notes are replayed braced, |[{|\meta{note}|}]|, so that
+% a note written |[{p.~37, [sic]}]| to hide a |]| reaches the saved command as
+% written rather than cut short at that |]|. The replay head
 % (saved command plus optional star) is frozen in |\pgph@replay| by the
 % star-peek before the arguments are scanned. As in
 % |\pgph@install|, installation is skipped (per command)
@@ -1374,9 +1435,9 @@
 \def\pgph@cap@cite@opt[#1]{%
   \@ifnextchar[{\pgph@cap@cite@optii{#1}}{\pgph@cap@cite@opti{#1}}}
 \def\pgph@cap@cite@opti#1#2{%
-  \pgph@cap@citerec{#1}{#2}\pgph@replay[#1]{#2}}
+  \pgph@cap@citerec{#1}{#2}\pgph@replay[{#1}]{#2}}
 \def\pgph@cap@cite@optii#1[#2]#3{%
-  \pgph@cap@citerec{#2}{#3}\pgph@replay[#1][#2]{#3}}
+  \pgph@cap@citerec{#2}{#3}\pgph@replay[{#1}][{#2}]{#3}}
 \def\pgph@cap@cite@noopt#1{\pgph@cap@citerec{}{#1}\pgph@replay{#1}}
 \newcommand\pgph@cap@citerec[2]{%
   \ifx\pgph@curproof\@empty\else
@@ -1472,26 +1533,44 @@
 % \end{macro}
 % \end{macro}
 %
-% The \textsf{biblatex} tag recorder is needed only when tags are actually
-% wanted, and is registered at the end of the preamble, once \textsf{biblatex}
-% has certainly been loaded (it is a preamble-only package) but while
-% |\AtEveryCitekey| still accepts additions. It is not conditioned on the
+% The \textsf{biblatex} recorder is registered at the end of the preamble, once
+% \textsf{biblatex} has certainly been loaded (it is a preamble-only package)
+% but while |\AtEveryCitekey| still accepts additions. It runs both at every
+% citation and at every bibliography entry, so that a work only |\nocite|d, or
+% reached by |\usescite| alone, is still seen. It is not conditioned on the
 % |cite| option, which governs the automatic capture of |\cite| only:
 % |\usescite| and |\proofgraphciteedge| draw citation nodes without it, and
-% those nodes want their tag just the same.
+% those nodes want their tag and their anchor just the same.
 %    \begin{macrocode}
+\newif\ifpgph@blx
 \AtEndPreamble{%
-  \ifdefstring{\pgph@citelabel}{tag}%
-    {\@ifpackageloaded{biblatex}{\AtEveryCitekey{\pgph@blxrecord}}{}}{}%
+  \@ifpackageloaded{biblatex}{%
+    \pgph@blxtrue
+    \AtEveryCitekey{\pgph@blxrecord}%
+    \AtEveryBibitem{\pgph@blxrecord}%
+  }{}%
 }
 %    \end{macrocode}
 %
 % \subsection{User commands}
 %    \begin{macrocode}
 \newcommand\uses[1]{\pgph@recordref{#1}}
+%    \end{macrocode}
+% |\proofof| names the result a proof establishes. Inside a proof instance it
+% records the label against the instance, so that the pin covers the whole
+% proof, wherever in it the command stands, and is resolved (with every other
+% label) when the graph is written. Outside one -- in an \apxproof\ deferred
+% proof, whose owning result the |\apxproofhook| already gives, or in the body
+% of a result under |statements| -- there is no instance to pin, and the source
+% is redirected on the spot instead.
+%    \begin{macrocode}
 \newcommand\proofof[1]{%
-  \ifcsname pgph@map@#1\endcsname
-    \xdef\pgph@curproof{\csname pgph@map@#1\endcsname}%
+  \ifcsname pgph@powner@\pgph@curproof\endcsname
+    \expandafter\gdef\csname pgph@pofl@\pgph@curproof\endcsname{#1}%
+  \else
+    \ifcsname pgph@map@#1\endcsname
+      \xdef\pgph@curproof{\csname pgph@map@#1\endcsname}%
+    \fi
   \fi
 }
 \newcommand\proofgraphedge[2]{%
@@ -1651,11 +1730,37 @@
 % \end{macro}
 %
 % \begin{macro}{\pgph@edge}
-% Emit one edge, resolving the target label to an id and applying the
-% self-loop, ignore and exclude filters. Targets beginning with |cite:|
-% denote external nodes.
+% \begin{macro}{\pgph@setsrc}
+% Emit one edge, resolving both ends and applying the self-loop, ignore and
+% exclude filters. Targets beginning with |cite:| denote external nodes.
+%
+% The source is resolved by |\pgph@setsrc|. An edge captured in a proof has that
+% proof instance as its source, and the result it belongs to is decided here:
+% the label |\proofof| pinned the proof to, when there is one and it resolves,
+% and otherwise the result the proof followed. An unresolvable pin falls back on
+% that result rather than dropping the edge, so a mistyped or never-labelled
+% |\proofof| loses the attribution but not the dependency. An edge recorded
+% outside a proof (the body or the title of a result, an \apxproof\ deferred
+% proof) already carries a result id, which is its own source.
 %    \begin{macrocode}
+\newcommand\pgph@setsrc[1]{%
+  \edef\pgph@esrc{%
+    \ifcsname pgph@powner@#1\endcsname
+      \csname pgph@powner@#1\endcsname
+    \else#1\fi}%
+  \ifcsname pgph@pofl@#1\endcsname
+    \edef\pgph@epin{\csname pgph@pofl@#1\endcsname}%
+    \edef\pgph@epin{\pgph@resolve{\pgph@epin}}%
+    \ifx\pgph@epin\@empty\else\let\pgph@esrc\pgph@epin\fi
+  \fi
+}
 \newcommand\pgph@edge[2]{%
+  \pgph@setsrc{#1}%
+  \ifx\pgph@esrc\@empty\else
+    \expandafter\pgph@edgeone\expandafter{\pgph@esrc}{#2}%
+  \fi
+}
+\newcommand\pgph@edgeone[2]{%
   \IfBeginWith{#2}{cite:}%
     {\pgph@citeedge{#1}{#2}}%
     {\pgph@plainedge{#1}{#2}}%
@@ -1673,6 +1778,7 @@
   \fi
 }
 %    \end{macrocode}
+% \end{macro}
 % \end{macro}
 %
 % \begin{macro}{\pgph@emitedge}
@@ -1711,9 +1817,9 @@
 % |\b@|\meta{key} macro that |\bibcite| writes to the |.aux| (so two runs are
 % needed, and it falls back to the key when no tag is known, e.g., on the first
 % run or with citation packages neither path covers). The slot's
-% |\cite| note, when present, is prepended as ``\meta{note}, \dots''. The
-% node-to-label map records the \emph{key}, so all slots of one work hyperlink to
-% the same bibliography entry.
+% |\cite| note, when present, is added inside the tag. The
+% node-to-label map records the \emph{anchor} of the cited work, so all slots of
+% one work hyperlink to the same bibliography entry.
 %    \begin{macrocode}
 \newcommand\pgph@citeedge[2]{%
   \ifcsname pgph@ex@#1\endcsname\else
@@ -1727,7 +1833,7 @@
         \space\space"c@\pgph@slot"
         [label="\pgph@clabel",\pgph@citestyle];}%
       \immediate\write\pgph@mapout{%
-        \string\pgphnodemapcite{c@\pgph@slot}{\pgph@key}}%
+        \string\pgphnodemapcite{c@\pgph@slot}{\pgph@citeanchor{\pgph@key}}}%
     \fi
     \pgph@emitedge{n#1}{c@\pgph@slot}%
   \fi
@@ -1783,35 +1889,88 @@
 % \begin{macro}{\pgph@blxrecord}
 % \textsf{biblatex} writes no |\b@|\meta{key}: its tags are assembled while the
 % citation is typeset, from data the |.bbl| holds. We therefore record them as
-% they go by, from |\AtEveryCitekey| (installed below), where the entry is the
-% current one and its fields are readable. |labelnumber| carries the tag of the
+% they go by, from |\AtEveryCitekey| and |\AtEveryBibitem| (installed below),
+% where the entry is the current one and its fields are readable. |labelnumber|
+% carries the tag of the
 % numeric styles and |labelalpha| that of the alphabetic ones; the author--year
 % styles have neither, as their tag is a formatted name list rather than a
 % field, and are left to the |key| fallback. A field that survives sanitizing
 % with a backslash still in it is not plain text, and is likewise declined.
+%
+% The same visit records the entry's \emph{anchor}, the name of the
+% \textsf{hyperref} destination its bibliography entry carries, which
+% \textsf{biblatex} does not spell |cite.|\meta{key} as the \LaTeX\ kernel and
+% \textsf{natbib} do but |cite.|\meta{refsection}|@|\meta{key}, the reference
+% section being part of the name because one key may have an entry in each.
+% Naming the destination wrongly is not a visible failure but a misleading one:
+% \textsf{hyperref} sends an unknown destination to the end of the document, so
+% the node would link somewhere rather than nowhere. The anchor is recorded
+% whatever |citelabel| says, the hyperlink being drawn either way.
 %    \begin{macrocode}
 \newcommand\pgph@blxrecord{%
   \begingroup
     \pgph@citesanitize
     \edef\pgph@blxkey{\thefield{entrykey}}%
-    \edef\pgph@x{\thefield{labelnumber}}%
-    \ifx\pgph@x\@empty \edef\pgph@x{\thefield{labelalpha}}\fi
-    \edef\pgph@dx{\detokenize\expandafter{\pgph@x}}%
-    \ifx\pgph@x\@empty\else
-      \IfSubStr\pgph@dx\@backslashchar{}{%
-        \pgph@gxdefcs{pgph@blxtag@\pgph@blxkey}{\pgph@x}}%
-    \fi
+    \pgph@gxdefcs{pgph@blxanchor@\pgph@blxkey}%
+      {\the\c@refsection @\pgph@blxkey}%
+    \ifdefstring{\pgph@citelabel}{tag}{%
+      \edef\pgph@x{\thefield{labelnumber}}%
+      \ifx\pgph@x\@empty \edef\pgph@x{\thefield{labelalpha}}\fi
+      \edef\pgph@dx{\detokenize\expandafter{\pgph@x}}%
+      \ifx\pgph@x\@empty\else
+        \IfSubStr\pgph@dx\@backslashchar{}{%
+          \pgph@gxdefcs{pgph@blxtag@\pgph@blxkey}{\pgph@x}}%
+      \fi
+    }{}%
   \endgroup
 }
 %    \end{macrocode}
-% \end{macro}
+% The anchor of a key never met as a citation nor as a bibliography entry is not
+% known; under \textsf{biblatex} we then assume the first reference section,
+% which is the only one most documents have. A key absent from the bibliography
+% has no destination under any name, so nothing is lost when the guess is wrong.
 %    \begin{macrocode}
+\newcommand\pgph@citeanchor[1]{%
+  \ifcsname pgph@blxanchor@#1\endcsname
+    \csname pgph@blxanchor@#1\endcsname
+  \else
+    \ifpgph@blx 0@\fi#1%
+  \fi
+}
+%    \end{macrocode}
+% \end{macro}
+%
+% A note is written the way a citation with a note is printed, inside the tag
+% and after it: |[Knu68, pp. 23-27]|, not the tag after the note. Its dashes are
+% the two ligatures \LaTeX\ reads as dashes, |--| and |---|, which mean nothing
+% to \Graphviz; they are turned into the \textsc{html} character entities
+% \Graphviz\ decodes in an ordinary label, so that a page range set as
+% |[pp.~23--27]| carries the same dash in the graph as in the document. The
+% entities are built with |&| of category~12, as the escapes of
+% |\pgph@dotesc| are, so that nothing in the label depends on the category codes
+% in force where the graph is written.
+%    \begin{macrocode}
+\begingroup
+  \catcode`\&=12
+  \gdef\pgph@endash{&ndash;}%
+  \gdef\pgph@emdash{&mdash;}%
+\endgroup
+\newcommand\pgph@dashesc[1]{%
+  \saveexpandmode\expandarg
+  \StrSubstitute{#1}{---}{\pgph@emdash}[#1]%
+  \StrSubstitute{#1}{--}{\pgph@endash}[#1]%
+  \restoreexpandmode}
+%    \end{macrocode}
+%    \begin{macrocode}
+\newif\ifpgph@ctag
 \newcommand\pgph@setcitelabel[1]{%
   \edef\pgph@ckey{\csname pgph@cskey@#1\endcsname}%
   \edef\pgph@cbase{\pgph@ckey}%
+  \pgph@ctagfalse
   \ifdefstring{\pgph@citelabel}{tag}{%
     \ifcsname pgph@blxtag@\pgph@ckey\endcsname
-      \edef\pgph@cbase{[\csname pgph@blxtag@\pgph@ckey\endcsname]}%
+      \edef\pgph@cbase{\csname pgph@blxtag@\pgph@ckey\endcsname}%
+      \pgph@ctagtrue
     \else
     \ifcsname b@\pgph@ckey\endcsname
       \global\let\pgph@cbaseg\relax
@@ -1829,13 +1988,18 @@
             \global\let\pgph@cbaseg\pgph@x}%
         \fi
       \endgroup
-      \ifx\pgph@cbaseg\relax\else\edef\pgph@cbase{[\pgph@cbaseg]}\fi
+      \ifx\pgph@cbaseg\relax\else
+        \let\pgph@cbase\pgph@cbaseg
+        \pgph@ctagtrue
+      \fi
     \fi\fi
   }{}%
-  \edef\pgph@clabel{%
+  \edef\pgph@cnote{%
     \ifcsname pgph@citenote@#1\endcsname
-      \csname pgph@citenote@#1\endcsname, \fi
-    \pgph@cbase}%
+      , \csname pgph@citenote@#1\endcsname\fi}%
+  \ifx\pgph@cnote\@empty\else\pgph@dashesc\pgph@cnote\fi
+  \edef\pgph@clabel{%
+    \ifpgph@ctag[\fi\pgph@cbase\pgph@cnote\ifpgph@ctag]\fi}%
 }
 %    \end{macrocode}
 % \end{macro}
@@ -1948,10 +2112,11 @@
 % One entry of the node-to-target map written by |\pgph@emit|: it records, for a
 % \Graphviz\ node identifier, what the node should link to. |\pgphnodemap| records
 % the user \emph{label} of the result a node represents; |\pgphnodemapcite| records
-% the \BibTeX\ \emph{key} of an external citation node, so that (when the cited
+% the \emph{anchor} of an external citation node, so that (when the cited
 % work is in the same document) the node can link to its bibliography entry,
-% \textsf{hyperref}'s |cite.|\meta{key} destination. The map is read back when the
-% graph is embedded, to turn each node into a hyperlink.
+% \textsf{hyperref}'s |cite.|\meta{anchor} destination, the anchor being the
+% \BibTeX\ key except under \textsf{biblatex} (see |\pgph@citeanchor|). The map
+% is read back when the graph is embedded, to turn each node into a hyperlink.
 %    \begin{macrocode}
 \newcommand\pgphnodemap[2]{\global\@namedef{pgph@lbl@#1}{#2}}
 \newcommand\pgphnodemapcite[2]{\global\@namedef{pgph@clbl@#1}{#2}}
@@ -1965,8 +2130,9 @@
 % switched off), each node is made into an internal hyperlink to what it
 % represents: a result node links to the result (its |\label|), and an external
 % citation node (from the |cite| option) links to the cited work's bibliography
-% entry, \textsf{hyperref}'s |cite.|\meta{key} destination, when that work is
-% cited in the same document. \Graphviz\ produces a |.pdf| whose link annotations
+% entry, the |cite.|\meta{anchor} destination \textsf{hyperref} gave it, when
+% that work is cited in the same document.
+% \Graphviz\ produces a |.pdf| whose link annotations
 % would be lost by |\includegraphics| (they sit inside a form \textsc{xobject}),
 % so instead we overlay transparent link areas at the node positions, which we
 % read from the |-Tplain| output. Without those packages we fall back to a plain

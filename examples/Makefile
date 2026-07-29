@@ -13,7 +13,12 @@
 #             per-(key,note) node splitting, selfloops=remove (default),
 #             unnumbered exclusion, and "/\ label escaping.
 #   options   direction=uses, selfloops=keep, rankdir, file.
-#   citetag   citelabel=tag.
+#   citetag   citelabel=tag; its reference.map pins the plain cite.<key> anchor
+#             of a document without biblatex.
+#   citeanchor the anchor a citation node links to under biblatex, which is
+#             cite.<refsection>@<key>: recorded from the entry for a cited key,
+#             assumed to be in the first reference section for a key reached by
+#             \usescite alone. Pinned in its reference.map.
 #   predefined detection of theorem environments predefined before the package.
 #   apxproof  deferred-proof capture via \apxproofhook (bundled apxproof.sty).
 #   nestedproof \cite capture in a proof nested inside another proof (the
@@ -42,6 +47,14 @@
 #             capture stopping at \end (text between results adds no edge).
 #   manualcite \usescite and \proofgraphciteedge, which draw citation nodes
 #             without the cite option, including for a result that has no proof.
+#   citenote  the label of a citation node carrying a note: the note inside the
+#             tag, the -- and --- ligatures as HTML character entities, and one
+#             node per (key, note) pair.
+#   bracedtitle an optional title that is a single brace group, for a result and
+#             for a proof: the braces TeX strips off a delimited argument have
+#             to be restored before the title is handed back to the heading.
+#   detachedproof \proofof pinning a whole proof, including the references made
+#             before it and a result labelled after it.
 # The autorun, engine, format, hyperlinks options and \proofgraph itself are
 # exercised by the manual build (l3build doc), which is an autorun proofgraph
 # document with clickable embedded graphs.
@@ -49,7 +62,7 @@ SHELL  := /bin/bash
 REPO   := $(CURDIR)/..
 TESTS  := apxproof features options citetag predefined nestedproof natbibcite \
           biblatex biblatexalpha zrefclever citecmds proofenv statements \
-          manualcite
+          manualcite citenote bracedtitle detachedproof citeanchor
 
 .PHONY: all clean $(TESTS)
 all: $(TESTS)
@@ -58,6 +71,11 @@ all: $(TESTS)
 # then run in between, so that the second pass has the tags the first could not
 # know. The .bbl is generated rather than committed: its format is tied to the
 # biblatex version, and a stale committed one would break on a newer TeX Live.
+#
+# The .dot is the graph; the -proofgraph.map beside it says what each node links
+# to when the graph is embedded, which the .dot does not record. A fixture that
+# has something to say about the map (the citation anchors) commits a
+# reference.map as well, and it is compared whenever it is there.
 $(TESTS):
 	@cd $@ ; \
 	  latexmk -C test >/dev/null 2>&1 ; rm -f test.dot mygraph.dot ; \
@@ -65,10 +83,19 @@ $(TESTS):
 	  if [ -f test.bcf ] ; then timeout 120 biber test >/dev/null 2>&1 ; fi ; \
 	  TEXINPUTS=".:$(REPO):" timeout 120 pdflatex -interaction=nonstopmode test >/dev/null 2>&1 ; \
 	  d=$$(ls *.dot 2>/dev/null | grep -v '^reference\.dot$$' | head -1) ; \
-	  if [ -n "$$d" ] && diff -q "$$d" reference.dot >/dev/null 2>&1 ; then \
+	  m=$$(ls *-proofgraph.map 2>/dev/null | head -1) ; \
+	  ok=1 ; \
+	  if [ -z "$$d" ] || ! diff -q "$$d" reference.dot >/dev/null 2>&1 ; then ok=0 ; fi ; \
+	  if [ -f reference.map ] && \
+	     { [ -z "$$m" ] || ! diff -q "$$m" reference.map >/dev/null 2>&1 ; } ; then ok=0 ; fi ; \
+	  if [ $$ok -eq 1 ] ; then \
 	    echo "ok   $@ ($$d)" ; \
 	  else \
-	    echo "FAIL $@" ; [ -n "$$d" ] && diff "$$d" reference.dot ; exit 1 ; \
+	    echo "FAIL $@" ; [ -n "$$d" ] && diff "$$d" reference.dot ; \
+	    if [ -f reference.map ] ; then \
+	      if [ -n "$$m" ] ; then diff "$$m" reference.map ; \
+	      else echo "  no map emitted, reference.map expected" ; fi ; \
+	    fi ; exit 1 ; \
 	  fi
 
 clean:

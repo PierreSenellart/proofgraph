@@ -5,7 +5,7 @@ digraph proofgraph {
   "n2" [label="Lemma 2"];
   "n1" [label="A \"named\" definition 1"];
   "n1" -> "n4";
-  "c@1" [label="Ch. 1, bk",shape=note,color=gray];
+  "c@1" [label="bk, Ch. 1",shape=note,color=gray];
   "c@1" -> "n4";
   "c@2" [label="bk",shape=note,color=gray];
   "c@2" -> "n4";

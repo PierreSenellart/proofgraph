@@ -1,0 +1,8 @@
+digraph proofgraph {
+  rankdir="LR";
+  "n2" [label="Lemma 1"];
+  "n1" [label="Theorem 1"];
+  "c@1" [label="a-l, p. 37",shape=note];
+  "c@1" -> "n2";
+  "n2" -> "n1";
+}

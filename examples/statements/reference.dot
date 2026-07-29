@@ -4,7 +4,7 @@ digraph proofgraph {
   "n2" [label="Theorem 1"];
   "n1" [label="Lemma 1"];
   "n1" -> "n2";
-  "c@1" [label="Thm 2, bk",shape=note];
+  "c@1" [label="bk, Thm 2",shape=note];
   "c@1" -> "n2";
   "n2" -> "n3";
   "c@2" [label="bk",shape=note];

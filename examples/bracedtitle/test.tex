@@ -1,0 +1,27 @@
+% Exercises an optional title that is a single brace group, the bracing the
+% amsthm manual prescribes to hide the ] of a citation note. TeX strips the
+% braces of a delimited argument that is one group in its entirety, so a title
+% handed back to the original heading macro must be rebraced; without that the
+% heading's own scan for ] stops inside the citation note. Covered for the title
+% of a result (\@begintheorem) and for the title of a proof, whose \ref still
+% has to attach the proof to the result it names. The note of a \cite is read
+% and handed back the same way; that rebracing keeps the capture transparent,
+% but it shows only in the typeset citation, which this harness does not read,
+% so it is not pinned here.
+\documentclass{article}
+\usepackage{amsthm}
+\usepackage[cite,citelabel=key]{proofgraph}
+\newtheorem{theorem}{Theorem}
+\newtheorem{lemma}{Lemma}
+\begin{document}
+
+\begin{theorem}\label{t1}A theorem.\end{theorem}
+
+\begin{lemma}[{\cite[p.~37]{a-l}}]\label{l1}A lemma.\end{lemma}
+
+\begin{proof}[{of Theorem~\ref{t1}}]
+  By \ref{l1}.
+\end{proof}
+
+\begin{thebibliography}{9}\bibitem{a-l}A reference.\end{thebibliography}
+\end{document}

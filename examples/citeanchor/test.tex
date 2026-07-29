@@ -1,0 +1,26 @@
+% Exercises the hyperref destination recorded for a citation node in the
+% node-to-target map, which is what turns a citation node of an embedded graph
+% into a link to the bibliography entry. biblatex names its anchors
+% cite.<refsection>@<key>, not the cite.<key> of the LaTeX kernel and of natbib,
+% so the map has to carry the reference section. Both ways of learning the
+% anchor are covered, and a refsection environment is what tells them apart:
+% knuth is cited inside it, so its anchor is recorded as the entry goes by and
+% names section 1, while turing is reached by \usescite alone, is therefore
+% neither cited nor printed in any bibliography, and falls back on section 0.
+% Were the recorded anchor dropped, or the section left out, one of the two
+% would be wrong. The reference.map committed beside reference.dot is what pins
+% this; the graph itself says nothing about the links. citetag covers the plain
+% cite.<key> of a document without biblatex.
+\documentclass{article}
+\usepackage{amsthm}
+\usepackage[backend=biber,style=numeric]{biblatex}
+\addbibresource{refs.bib}
+\usepackage[cite]{proofgraph}
+\newtheorem{theorem}{Theorem}
+\begin{document}
+\begin{refsection}
+\begin{theorem}\label{t}A theorem.\end{theorem}
+\begin{proof}See \cite{knuth}.\usescite{turing}\end{proof}
+\printbibliography
+\end{refsection}
+\end{document}

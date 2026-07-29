@@ -1,8 +1,8 @@
 digraph proofgraph {
   rankdir="LR";
   "n1" [label="Theorem 1"];
-  "c@1" [label="Outer_Ref_2011",shape=note];
+  "c@1" [label="knuth",shape=note];
   "c@1" -> "n1";
-  "c@2" [label="Inner_Ref_2020, Lemma 2",shape=note];
+  "c@2" [label="turing",shape=note];
   "c@2" -> "n1";
 }

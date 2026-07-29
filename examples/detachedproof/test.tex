@@ -1,0 +1,35 @@
+% Exercises \proofof pinning the whole proof and not merely what follows it: the
+% proofs sit in an appendix, away from the results they establish, and name
+% their result only after having referred to the results they use. Were the
+% source of an edge fixed when the reference is seen, those references would go
+% to the last result of the main text. Covered for the amsthm proof environment
+% and for a proof environment of one's own declared with \newtheorem, and for a
+% \proofof naming a result labelled further on in the document.
+\documentclass{article}
+\usepackage{amsthm}
+\usepackage{proofgraph}
+\newtheorem{theorem}{Theorem}
+\newtheorem{claimproof}{Proof of claim}
+\proofgraphproofenv{claimproof}
+\begin{document}
+
+\begin{theorem}\label{t1}One.\end{theorem}
+\begin{theorem}\label{t2}Two.\end{theorem}
+\begin{theorem}\label{t3}Three.\end{theorem}
+
+\appendix
+\section{Deferred proofs}
+
+\begin{proof}
+  By \ref{t1}.
+  \proofof{t2}
+\end{proof}
+
+\begin{claimproof}
+  By \ref{t2}, and by \ref{t4}.
+  \proofof{t3}
+\end{claimproof}
+
+\begin{theorem}\label{t4}Four, stated in the appendix.\end{theorem}
+
+\end{document}

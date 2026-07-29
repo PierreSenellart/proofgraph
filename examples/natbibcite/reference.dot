@@ -1,11 +1,11 @@
 digraph proofgraph {
   rankdir="LR";
   "n1" [label="Theorem 1"];
-  "c@1" [label="Section 3, Lachal_Class_2011",shape=note];
+  "c@1" [label="Lachal_Class_2011, Section 3",shape=note];
   "c@1" -> "n1";
   "c@2" [label="Other_Work_2020",shape=note];
   "c@2" -> "n1";
-  "c@3" [label="Section 4, Lachal_Class_2011",shape=note];
+  "c@3" [label="Lachal_Class_2011, Section 4",shape=note];
   "c@3" -> "n1";
   "c@4" [label="Lachal_Class_2011",shape=note];
   "c@4" -> "n1";

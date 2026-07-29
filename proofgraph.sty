@@ -27,7 +27,7 @@
 %% 
 \NeedsTeXFormat{LaTeX2e}[2020/10/01]
 \ProvidesPackage{proofgraph}
-  [2026/07/28 v1.0.1-dev Dependency graph of results]
+  [2026/07/29 v1.0.1-dev Dependency graph of results]
 \@ifpackageloaded{amsthm}{}{%
   \@ifundefined{proof}{}{%
     \let\pgph@class@proof\proof \let\pgph@class@endproof\endproof}%
@@ -63,6 +63,7 @@
   \gdef\pgph@cb[}]%
 \endgroup
 \newcount\pgph@idcnt
+\newcount\pgph@proofcnt
 \newcount\pgph@citeslotcnt
 \def\pgph@nodes{}
 \def\pgph@edges{}
@@ -172,7 +173,7 @@
     \ifx\@opargbegintheorem\relax
       \def\@begintheorem##1##2[##3]{%
         \pgph@recordresult{##1}{##2}\pgph@scanrefs{##3}%
-        \pgph@orig@bt{##1}{##2}[##3]}%
+        \pgph@orig@bt{##1}{##2}[{##3}]}%
     \else
       \def\@begintheorem##1##2{%
         \pgph@recordresult{##1}{##2}\pgph@orig@bt{##1}{##2}}%
@@ -284,7 +285,10 @@
   \ifpgph@cite\pgph@installcite\fi
 }
 \newcommand\pgph@beginproof{%
-  \let\pgph@curproof\pgph@curresult
+  \global\advance\pgph@proofcnt\@ne
+  \edef\pgph@curproof{p\the\pgph@proofcnt}%
+  \global\expandafter\let\csname pgph@powner@\pgph@curproof\endcsname
+                          \pgph@curresult
   \pgph@installcapture
   \pgph@hookproofhead
 }
@@ -337,7 +341,7 @@
                  {\csname pgph@savedenv@#1\endcsname}}%
 }
 \def\pgph@proofopt#1[#2]{%
-  \pgph@scanproofarg{#2}\csname pgph@savedenv@#1\endcsname[#2]}
+  \pgph@scanproofarg{#2}\csname pgph@savedenv@#1\endcsname[{#2}]}
 \newcommand\pgph@proofenvs{proof}
 \newcommand\proofgraphproofenv[1]{%
   \g@addto@macro\pgph@proofenvs{,#1}%
@@ -375,9 +379,9 @@
 \def\pgph@cap@cite@opt[#1]{%
   \@ifnextchar[{\pgph@cap@cite@optii{#1}}{\pgph@cap@cite@opti{#1}}}
 \def\pgph@cap@cite@opti#1#2{%
-  \pgph@cap@citerec{#1}{#2}\pgph@replay[#1]{#2}}
+  \pgph@cap@citerec{#1}{#2}\pgph@replay[{#1}]{#2}}
 \def\pgph@cap@cite@optii#1[#2]#3{%
-  \pgph@cap@citerec{#2}{#3}\pgph@replay[#1][#2]{#3}}
+  \pgph@cap@citerec{#2}{#3}\pgph@replay[{#1}][{#2}]{#3}}
 \def\pgph@cap@cite@noopt#1{\pgph@cap@citerec{}{#1}\pgph@replay{#1}}
 \newcommand\pgph@cap@citerec[2]{%
   \ifx\pgph@curproof\@empty\else
@@ -434,14 +438,22 @@
     \fi
   \fi
 }
+\newif\ifpgph@blx
 \AtEndPreamble{%
-  \ifdefstring{\pgph@citelabel}{tag}%
-    {\@ifpackageloaded{biblatex}{\AtEveryCitekey{\pgph@blxrecord}}{}}{}%
+  \@ifpackageloaded{biblatex}{%
+    \pgph@blxtrue
+    \AtEveryCitekey{\pgph@blxrecord}%
+    \AtEveryBibitem{\pgph@blxrecord}%
+  }{}%
 }
 \newcommand\uses[1]{\pgph@recordref{#1}}
 \newcommand\proofof[1]{%
-  \ifcsname pgph@map@#1\endcsname
-    \xdef\pgph@curproof{\csname pgph@map@#1\endcsname}%
+  \ifcsname pgph@powner@\pgph@curproof\endcsname
+    \expandafter\gdef\csname pgph@pofl@\pgph@curproof\endcsname{#1}%
+  \else
+    \ifcsname pgph@map@#1\endcsname
+      \xdef\pgph@curproof{\csname pgph@map@#1\endcsname}%
+    \fi
   \fi
 }
 \newcommand\proofgraphedge[2]{%
@@ -531,7 +543,24 @@
       \string\pgphnodemap{n#1}{\csname pgph@rmap@#1\endcsname}}%
   \fi
 }
+\newcommand\pgph@setsrc[1]{%
+  \edef\pgph@esrc{%
+    \ifcsname pgph@powner@#1\endcsname
+      \csname pgph@powner@#1\endcsname
+    \else#1\fi}%
+  \ifcsname pgph@pofl@#1\endcsname
+    \edef\pgph@epin{\csname pgph@pofl@#1\endcsname}%
+    \edef\pgph@epin{\pgph@resolve{\pgph@epin}}%
+    \ifx\pgph@epin\@empty\else\let\pgph@esrc\pgph@epin\fi
+  \fi
+}
 \newcommand\pgph@edge[2]{%
+  \pgph@setsrc{#1}%
+  \ifx\pgph@esrc\@empty\else
+    \expandafter\pgph@edgeone\expandafter{\pgph@esrc}{#2}%
+  \fi
+}
+\newcommand\pgph@edgeone[2]{%
   \IfBeginWith{#2}{cite:}%
     {\pgph@citeedge{#1}{#2}}%
     {\pgph@plainedge{#1}{#2}}%
@@ -571,7 +600,7 @@
         \space\space"c@\pgph@slot"
         [label="\pgph@clabel",\pgph@citestyle];}%
       \immediate\write\pgph@mapout{%
-        \string\pgphnodemapcite{c@\pgph@slot}{\pgph@key}}%
+        \string\pgphnodemapcite{c@\pgph@slot}{\pgph@citeanchor{\pgph@key}}}%
     \fi
     \pgph@emitedge{n#1}{c@\pgph@slot}%
   \fi
@@ -600,21 +629,45 @@
   \begingroup
     \pgph@citesanitize
     \edef\pgph@blxkey{\thefield{entrykey}}%
-    \edef\pgph@x{\thefield{labelnumber}}%
-    \ifx\pgph@x\@empty \edef\pgph@x{\thefield{labelalpha}}\fi
-    \edef\pgph@dx{\detokenize\expandafter{\pgph@x}}%
-    \ifx\pgph@x\@empty\else
-      \IfSubStr\pgph@dx\@backslashchar{}{%
-        \pgph@gxdefcs{pgph@blxtag@\pgph@blxkey}{\pgph@x}}%
-    \fi
+    \pgph@gxdefcs{pgph@blxanchor@\pgph@blxkey}%
+      {\the\c@refsection @\pgph@blxkey}%
+    \ifdefstring{\pgph@citelabel}{tag}{%
+      \edef\pgph@x{\thefield{labelnumber}}%
+      \ifx\pgph@x\@empty \edef\pgph@x{\thefield{labelalpha}}\fi
+      \edef\pgph@dx{\detokenize\expandafter{\pgph@x}}%
+      \ifx\pgph@x\@empty\else
+        \IfSubStr\pgph@dx\@backslashchar{}{%
+          \pgph@gxdefcs{pgph@blxtag@\pgph@blxkey}{\pgph@x}}%
+      \fi
+    }{}%
   \endgroup
 }
+\newcommand\pgph@citeanchor[1]{%
+  \ifcsname pgph@blxanchor@#1\endcsname
+    \csname pgph@blxanchor@#1\endcsname
+  \else
+    \ifpgph@blx 0@\fi#1%
+  \fi
+}
+\begingroup
+  \catcode`\&=12
+  \gdef\pgph@endash{&ndash;}%
+  \gdef\pgph@emdash{&mdash;}%
+\endgroup
+\newcommand\pgph@dashesc[1]{%
+  \saveexpandmode\expandarg
+  \StrSubstitute{#1}{---}{\pgph@emdash}[#1]%
+  \StrSubstitute{#1}{--}{\pgph@endash}[#1]%
+  \restoreexpandmode}
+\newif\ifpgph@ctag
 \newcommand\pgph@setcitelabel[1]{%
   \edef\pgph@ckey{\csname pgph@cskey@#1\endcsname}%
   \edef\pgph@cbase{\pgph@ckey}%
+  \pgph@ctagfalse
   \ifdefstring{\pgph@citelabel}{tag}{%
     \ifcsname pgph@blxtag@\pgph@ckey\endcsname
-      \edef\pgph@cbase{[\csname pgph@blxtag@\pgph@ckey\endcsname]}%
+      \edef\pgph@cbase{\csname pgph@blxtag@\pgph@ckey\endcsname}%
+      \pgph@ctagtrue
     \else
     \ifcsname b@\pgph@ckey\endcsname
       \global\let\pgph@cbaseg\relax
@@ -632,13 +685,18 @@
             \global\let\pgph@cbaseg\pgph@x}%
         \fi
       \endgroup
-      \ifx\pgph@cbaseg\relax\else\edef\pgph@cbase{[\pgph@cbaseg]}\fi
+      \ifx\pgph@cbaseg\relax\else
+        \let\pgph@cbase\pgph@cbaseg
+        \pgph@ctagtrue
+      \fi
     \fi\fi
   }{}%
-  \edef\pgph@clabel{%
+  \edef\pgph@cnote{%
     \ifcsname pgph@citenote@#1\endcsname
-      \csname pgph@citenote@#1\endcsname, \fi
-    \pgph@cbase}%
+      , \csname pgph@citenote@#1\endcsname\fi}%
+  \ifx\pgph@cnote\@empty\else\pgph@dashesc\pgph@cnote\fi
+  \edef\pgph@clabel{%
+    \ifpgph@ctag[\fi\pgph@cbase\pgph@cnote\ifpgph@ctag]\fi}%
 }
 \let\pgph@prevsig\relax
 \newcommand\pgph@lastrender[1]{\xdef\pgph@prevsig{\detokenize{#1}}}

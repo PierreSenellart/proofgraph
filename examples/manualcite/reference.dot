@@ -2,12 +2,12 @@ digraph proofgraph {
   rankdir="LR";
   "n2" [label="Theorem 2"];
   "n1" [label="Theorem 1"];
-  "c@1" [label="Thm 3, bk",shape=note];
+  "c@1" [label="bk, Thm 3",shape=note];
   "c@1" -> "n1";
   "c@2" [label="bk",shape=note];
   "c@2" -> "n2";
   "c@3" [label="art",shape=note];
   "c@3" -> "n2";
-  "c@4" [label="Lem 1, art",shape=note];
+  "c@4" [label="art, Lem 1",shape=note];
   "c@4" -> "n1";
 }
