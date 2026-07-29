@@ -29,6 +29,26 @@ rendered and embedded into the document automatically). It can:
 The documentation of this package is provided in the `proofgraph.pdf` file,
 produced from the documented source `proofgraph.dtx`.
 
+## What it looks like
+
+![The dependency graph of a published article: 62 results and 24 external works.
+Orange double-bordered boxes on the right are the results restated in the
+introduction, fed by the gold theorems, the blue and pale-gold propositions and
+corollaries, and the grey lemmas; the note-shaped nodes along the left are the
+external works cited in proofs. Every arrow runs from a result to the result it
+helps prove.](https://raw.githubusercontent.com/PierreSenellart/proofgraph/main/support/example-realworld.png)
+
+That is the graph of *Connecting Knowledge Compilation Classes and Width
+Parameters* ([doi:10.1007/s00224-019-09930-2](https://doi.org/10.1007/s00224-019-09930-2)),
+essentially as published: 62 numbered results drawn from five environments, 24
+external works and 114 edges. Beyond loading the package, all it took was
+switching the `cite` option on, styling the five kinds of result, keeping one
+environment out of the graph, and recording by hand, with twelve commands, the
+dependencies that no visible cross-reference expresses: every other edge, and
+the numbering of all 62 nodes, was inferred from the cross-references the proofs
+already contained. The manual, which discusses this example in detail, is where
+the figure comes from.
+
 ## Prerequisites
 
 In addition to a working installation of LaTeX2e (October 2020 or later),
@@ -53,6 +73,18 @@ requires the document to be compiled with shell-escape enabled.
 
 Simply copy the file `proofgraph.sty` in your LaTeX working directory, or in any
 other directory where LaTeX searches for packages.
+
+## See also
+
+[`result-graph`](https://github.com/PierreSenellart/result-graph) does for a
+Lean 4 formalisation what `proofgraph` does for an article: it draws the
+dependency graph of the results of a development, deliberately with the same
+vocabulary, node styles and edge convention, so that the graph of a
+formalisation and the graph of the paper it formalises look like one family.
+There the dependencies are not inferred from cross-references but read off the
+elaborated proof terms, and are therefore exact; and since a whole development
+is far too large for one figure, it is sliced into a small neighbourhood of each
+result.
 
 ## License
 

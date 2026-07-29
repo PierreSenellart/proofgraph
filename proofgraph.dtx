@@ -676,6 +676,21 @@
 % \item Two compilation runs are required, as for any cross-reference.
 % \end{itemize}
 %
+% \section{See also}
+% \label{sec:seealso}
+% \textsf{result-graph}~\cite{resultgraph} does for a \textsf{Lean}~4
+% formalisation what \proofgraph\ does for an article: it draws the dependency
+% graph of the results of a development, deliberately with the same vocabulary,
+% node styles and edge convention, so that the graph of a formalisation and the
+% graph of the paper it formalises look like one family. There the dependencies
+% are not inferred from cross-references but read off the elaborated proof terms,
+% and are therefore exact; they also distinguish, for free, a result used in the
+% \emph{statement} of another from one used only in its \emph{proof}, which
+% \proofgraph, under the |statements| option, records but draws alike. And since
+% a whole development is far too
+% large for one figure, it is sliced into a small neighbourhood of each result,
+% rather than drawn as a single graph as here.
+%
 % \begin{thebibliography}{9}
 % \bibitem{euclid} Euclid. \emph{Elements}, Book~IX. c.~300~BCE.
 % \bibitem{AmarilliCMS20} A.~Amarilli, F.~Capelli, M.~Monet, and P.~Senellart.
@@ -683,6 +698,9 @@
 %   \emph{Theory of Computing Systems}, \textbf{64}(5):861--914, 2020.
 %   \href{https://doi.org/10.1007/s00224-019-09930-2}%
 %   {\texttt{doi:10.1007/s00224-019-09930-2}}.
+% \bibitem{resultgraph} P.~Senellart. \emph{result-graph: dependency graphs of
+%   the results of a Lean~4 project}.
+%   \url{https://github.com/PierreSenellart/result-graph}.
 % \end{thebibliography}
 %
 % \StopEventually{
