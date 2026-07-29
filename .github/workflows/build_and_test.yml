@@ -1,5 +1,5 @@
 ---
-name: Build and Test proofgraph
+name: CI
 
 on: [push, pull_request]
 

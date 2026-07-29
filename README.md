@@ -1,5 +1,7 @@
 # `proofgraph`: Dependency Graphs of Results
 
+[![CI](https://github.com/PierreSenellart/proofgraph/actions/workflows/build_and_test.yml/badge.svg?branch=main)](https://github.com/PierreSenellart/proofgraph/actions/workflows/build_and_test.yml)
+
 ## About
 
 The `proofgraph` package automatically produces a graph of the dependencies
