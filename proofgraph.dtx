@@ -79,7 +79,7 @@
 %</driver>
 % \fi
 %
-% \CheckSum{1908}
+% \CheckSum{2200}
 %
 % \CharacterTable
 %  {Upper-case    \A\B\C\D\E\F\G\H\I\J\K\L\M\N\O\P\Q\R\S\T\U\V\W\X\Y\Z
@@ -171,6 +171,28 @@
 %   tag and after it, ``[Knu68, pp.~23--27]'', the way a citation with a note is
 %   printed, and render its \texttt{--} and \texttt{---} as the dashes the
 %   document shows}
+% \changes{v1.0.1-dev}{2026/07/30}{Let a \texttt{proofof} in a proof reach the
+%   proofs nested in it, the steps of a structured proof: a nested proof took as
+%   its result the one that preceded the proof around it, so the references it
+%   made escaped the pin. A nested proof stated after a claim still proves that
+%   claim}
+% \changes{v1.0.1-dev}{2026/07/30}{Record no dependency while the page is
+%   assembled: a cross-reference or a citation in a sectional title is executed
+%   again in the running head, and a page breaking inside a proof made it a
+%   dependency of the result that proof belonged to}
+% \changes{v1.0.1-dev}{2026/07/30}{Draw a result stated inside a proof, a claim
+%   settled in the course of an argument, as supporting the result that proof
+%   establishes. It was drawn with its own proof below it but nothing above,
+%   detached from the result it was raised to establish}
+% \changes{v1.0.1-dev}{2026/07/30}{Report an editing rule that dropped nothing,
+%   \texttt{proofgraphignore} above all, whose two labels go the way the
+%   dependency is recorded, as in \texttt{proofgraphedge}, and not the way the
+%   arrow is drawn: a rule written the wrong way round changed nothing and said
+%   nothing. The warning names the rule to write instead. Say so in the manual
+%   as well, which described the arguments in terms of the edge drawn}
+% \changes{v1.0.1-dev}{2026/07/30}{Add \texttt{proofgraphignorecite}, dropping
+%   the dependency of a result on a cited work, which \texttt{proofgraphignore}
+%   cannot name, both of its arguments being labels}
 %
 % \DoNotIndex{\newcommand,\renewcommand,\providecommand,\def,\edef,\gdef,\xdef}
 % \DoNotIndex{\let,\global,\long,\relax,\expandafter,\csname,\endcsname}
@@ -426,6 +448,16 @@
 % earlier result, ``Under the hypotheses of Theorem~2\dots'', depends on it just
 % as a proof would. Set |statements=false| to build the graph from proofs alone.
 %
+% A result \emph{stated inside a proof}, a claim raised and settled in the course
+% of an argument, is drawn as a node of its own and given an edge to the result
+% that proof establishes: the claim is a step of that proof, and the graph says
+% so without any annotation. Its own proof, whether it follows the claim as a
+% nested |proof| environment or as the rest of the enclosing one, hangs below the
+% claim, so the argument appears in the graph with the shape it has on the page.
+% An unnumbered claim, like any unnumbered result, is left out, and its
+% dependencies with it; number it, or name it in |\proofgraphtrack|, to have it
+% drawn.
+%
 % \subsection{Recording dependencies by hand}
 % \begin{description}
 % \item[\cmdname{uses}\cmdarg{label}]\SpecialUsageIndex{\uses}%
@@ -473,6 +505,14 @@
 %   away from its result, needs and all that it needs: its dependencies are then
 %   captured as those of a proof placed right after its result would be, and
 %   recording them by hand with |\uses| or |\proofgraphedge| is not called for.
+%
+%   The pin covers the proofs \emph{nested} in the pinned one as well, the steps
+%   of a structured proof (as \textsf{pf2} writes them) being proofs in their own
+%   right; a |\proofof| in a nested proof pins that proof alone, overriding for
+%   it the pin of the proof around it. A nested proof that comes after a
+%   \emph{result} opened inside the enclosing proof -- the proof of a claim
+%   stated in the course of an argument -- attaches to that claim instead, as an
+%   ordinary proof would.
 % \end{description}
 %
 % \subsection{Choosing what appears in the graph}
@@ -505,10 +545,36 @@
 %   detached |\begin{pf}[of Theorem~\ref{thm:x}]| attaches to |thm:x|; one
 %   declared with |\newtheorem| attaches to the result it follows, or to the one
 %   |\proofof| names.
-% \item[\cmdname{proofgraphignore}\cmdarg{from}\cmdarg{to}]%
+% \item[\cmdname{proofgraphignore}\cmdarg{A}\cmdarg{B}]%
 %   \SpecialUsageIndex{\proofgraphignore}%
-%   Suppresses the edge from \meta{from} to \meta{to} (e.g., an unwanted forward
-%   citation).
+%   Drops the dependency of the result \meta{A} on the result \meta{B}, the edge
+%   the proof of \meta{A} produced by referring to \meta{B}: an unwanted forward
+%   reference, say. It may appear anywhere, the preamble included.
+%
+%   The two labels are those of |\proofgraphedge|, in that order: the result
+%   first, what its proof uses second, the way the dependency is
+%   \emph{recorded}. They are \emph{not} the ends of the arrow \emph{drawn},
+%   which with the default |direction=usedby| runs the other way, from \meta{B}
+%   to \meta{A}. So the rule undoing a |\proofgraphedge{cor:x}{thm:y}| is
+%   |\proofgraphignore{cor:x}{thm:y}|, with the same two labels in the same
+%   order, and the rule dropping the arrow the picture draws from \texttt{lem:a}
+%   to \texttt{thm:m} is |\proofgraphignore{thm:m}{lem:a}|. The |direction|
+%   option does not enter into it: like every filter the rule works on the
+%   dependency recorded, |direction| settling only how it is drawn, so a graph
+%   turned round keeps its rules. A rule that drops nothing is reported at the
+%   end of the run, and says so when it is the two labels that have been
+%   swapped.
+% \item[\cmdname{proofgraphignorecite}\cmdoarg{note}\cmdarg{A}\cmdarg{keys}]%
+%   \SpecialUsageIndex{\proofgraphignorecite}%
+%   The same for a citation node, which |\proofgraphignore| cannot name, both of
+%   its arguments being labels: drops the dependency of the result \meta{A} on
+%   the cited works \meta{keys} (a comma-separated list of \BibTeX\ keys). Its
+%   arguments are those of |\proofgraphciteedge|, which it undoes. The optional
+%   \meta{note} picks, of a work cited with a note and so drawn as more than one
+%   node, the node of that note, so
+%   |\proofgraphignorecite[Thm~3]{thm:x}{knuth}| leaves the node of a plain
+%   |\cite{knuth}| alone. A citation node no edge reaches is not drawn, so
+%   dropping the last dependency on a work removes its node with it.
 % \item[\cmdname{proofgraphexclude}\cmdarg{label}]%
 %   \SpecialUsageIndex{\proofgraphexclude}%
 %   Removes the result labelled \meta{label}, together with all its incident
@@ -719,7 +785,7 @@
 %<*package>
 \NeedsTeXFormat{LaTeX2e}[2020/10/01]
 \ProvidesPackage{proofgraph}
-  [2026/07/29 v1.0.1-dev Dependency graph of results]
+  [2026/07/30 v1.0.1-dev Dependency graph of results]
 %    \end{macrocode}
 %
 % \subsection{Dependencies}
@@ -994,16 +1060,34 @@
 % cross-reference or a citation made in the statement itself becomes a
 % dependency. Those assignments are local to the environment group, as the ones
 % above are, so they revert at |\end|.
+%
+% A result opened \emph{inside} a proof -- a claim stated in the course of an
+% argument, and proved there -- is a step of that proof, so |\pgph@supportedge|
+% records the proof as depending on it: the claim would otherwise be drawn with
+% whatever its own proof uses hanging below it and nothing above, as a component
+% detached from the result it was stated to establish. The edge is recorded
+% against the enclosing proof rather than a result, so it follows the same chain
+% of owners as any other, |\proofof| and nesting included, and it passes through
+% the ordinary filters, so |\proofgraphignore| drops it like any other. Nothing
+% is recorded for a claim the document leaves unnumbered: |\pgph@node| excludes
+% such a result, and the edge to it goes with it.
 %    \begin{macrocode}
+\newcommand\pgph@supportedge{%
+  \ifx\pgph@encproof\@empty\else
+    \pgph@addedge{\pgph@encproof}{node:\pgph@curresult}%
+  \fi
+}
 \newcommand\pgph@prependnode[1]{%
   \xdef\pgph@nodes{\unexpanded{#1}\unexpanded\expandafter{\pgph@nodes}}%
 }
 \newcommand\pgph@beginresult[1]{%
+  \let\pgph@encproof\pgph@curproof
   \global\advance\pgph@idcnt\@ne
   \xdef\pgph@curresult{\the\pgph@idcnt}%
   \protected@edef\pgph@tmp{%
     \noexpand\pgph@node{\pgph@curresult}{#1}{#1}}%
   \expandafter\pgph@prependnode\expandafter{\pgph@tmp}%
+  \pgph@supportedge
   \pgph@hooknames
   \ifx\label\pgph@maplabel\else\let\pgph@savedlabel\label\fi
   \let\label\pgph@maplabel
@@ -1144,13 +1228,50 @@
     \expandafter{\pgph@tmpedge}%
 }
 \newcommand\pgph@recordref[1]{%
+  \ifpgph@nocapture\else
   \ifx\pgph@curproof\@empty\else
     \@for\pgph@one:=#1\do{%
       \edef\pgph@k{\expandafter\pgph@trimsp\expandafter{\pgph@one}}%
       \pgph@addedge{\pgph@curproof}{\pgph@k}}%
+  \fi\fi
+}
+%    \end{macrocode}
+% \begin{macro}{\ifpgph@nocapture}
+% The capture is installed for the whole of a proof, and a proof long enough to
+% break the page has the page furniture built while it is open. The running head
+% is set from the marks, so a cross-reference or a citation in a sectional title
+% is \emph{executed again} there, in the output routine, and would be recorded
+% as a dependency of the proof the break fell in: a document whose section title
+% names a result gained an edge from that result to whichever result the proof
+% belonged to. Recording is therefore suspended while the page is assembled.
+%
+% The kernel neutralizes |\label|, |\index| and |\glossary| at the same point,
+% in |\@outputpage|, and offers the hook |build/page/reset| there, inside the
+% group that encloses the shipped box, so a local switch set from the hook
+% covers the head and foot and is undone by itself. Where the hook is not
+% declared (a kernel older than the hook, a class with an output routine of its
+% own that skips it), |\@outputpage| is wrapped instead, which needs the switch
+% to be set globally as the group ends inside the box being shipped.
+%    \begin{macrocode}
+\newif\ifpgph@nocapture
+\newcommand\pgph@wrapoutputpage{%
+  \let\pgph@orig@outputpage\@outputpage
+  \def\@outputpage{%
+    \global\pgph@nocapturetrue
+    \pgph@orig@outputpage
+    \global\pgph@nocapturefalse}%
+}
+\AtBeginDocument{%
+  \ifdefined\IfHookExistsTF
+    \IfHookExistsTF{build/page/reset}%
+      {\AddToHook{build/page/reset}{\pgph@nocapturetrue}}%
+      {\pgph@wrapoutputpage}%
+  \else
+    \pgph@wrapoutputpage
   \fi
 }
 %    \end{macrocode}
+% \end{macro}
 %
 % \begin{macro}{\pgph@beginproof}
 % Attach the proof to the current result and install the capturing
@@ -1224,14 +1345,55 @@
   \pgph@installrefs
   \ifpgph@cite\pgph@installcite\fi
 }
+%    \end{macrocode}
+% A proof may sit inside another one, either because the proof of a claim stated
+% in the course of a proof is itself a |proof| environment, or because the
+% document writes structured proofs, whose steps are proofs nested in the proof
+% of the whole (as \textsf{pf2} does). The two cases want different owners, and
+% what tells them apart is whether a \emph{result} has been opened since the
+% enclosing context began: the proof of a claim follows the claim, whereas the
+% step of a structured proof follows nothing. So each capturing context records,
+% in |\pgph@pres@|\meta{ctx}, the result current when it began; a proof opening
+% while that result is still the current one is a \emph{sub-proof} and takes the
+% enclosing context as its owner, and any other proof takes the current result,
+% as before.
+%
+% Owning the enclosing context rather than a result is what lets a |\proofof| in
+% an outer proof reach the inner ones: the pin is read where the chain of owners
+% is followed, at emission, so it applies to a nested reference just as it does
+% to one made directly in the pinned proof. An inner |\proofof| still pins its
+% own proof alone, which is what the detached proof of a claim needs.
+%    \begin{macrocode}
+\newcommand\pgph@setpres[1]{%
+  \global\expandafter\let\csname pgph@pres@#1\endcsname\pgph@curresult
+}
+\newcommand\pgph@setpowner[2]{%
+  \global\expandafter\let\csname pgph@powner@#1\endcsname#2%
+}
 \newcommand\pgph@beginproof{%
   \global\advance\pgph@proofcnt\@ne
-  \edef\pgph@curproof{p\the\pgph@proofcnt}%
-  \global\expandafter\let\csname pgph@powner@\pgph@curproof\endcsname
-                          \pgph@curresult
+  \edef\pgph@newproof{p\the\pgph@proofcnt}%
+  \pgph@setpres\pgph@newproof
+  \edef\pgph@ncur{\pgph@curresult}%
+  \edef\pgph@npres{%
+    \ifcsname pgph@pres@\pgph@curproof\endcsname
+      \csname pgph@pres@\pgph@curproof\endcsname
+    \else\pgph@nomatch\fi}%
+  \ifx\pgph@ncur\pgph@npres
+    \pgph@setpowner\pgph@newproof\pgph@curproof
+  \else
+    \pgph@setpowner\pgph@newproof\pgph@curresult
+  \fi
+  \let\pgph@curproof\pgph@newproof
   \pgph@installcapture
   \pgph@hookproofhead
 }
+%    \end{macrocode}
+% The sentinel stands for ``no enclosing context'', and must be something no
+% result id can be, so that the comparison fails rather than matching an empty
+% |\pgph@curresult| outside any result.
+%    \begin{macrocode}
+\newcommand\pgph@nomatch{-}
 %    \end{macrocode}
 % \begin{macro}{\pgph@beginstatement}
 % Under the |statements| option the body of a result captures like the body of
@@ -1242,6 +1404,7 @@
 %    \begin{macrocode}
 \newcommand\pgph@beginstatement{%
   \let\pgph@curproof\pgph@curresult
+  \pgph@setpres\pgph@curproof
   \pgph@installcapture
 }
 %    \end{macrocode}
@@ -1394,6 +1557,7 @@
 \newcommand\pgph@apxproofcapture[1]{%
   \edef\pgph@curproof{\pgph@resolve{#1}}%
   \ifx\pgph@curproof\@empty\else
+    \pgph@setpres\pgph@curproof
     \pgph@installcapture
   \fi
 }
@@ -1458,12 +1622,13 @@
   \pgph@cap@citerec{#2}{#3}\pgph@replay[{#1}][{#2}]{#3}}
 \def\pgph@cap@cite@noopt#1{\pgph@cap@citerec{}{#1}\pgph@replay{#1}}
 \newcommand\pgph@cap@citerec[2]{%
+  \ifpgph@nocapture\else
   \ifx\pgph@curproof\@empty\else
     \@for\pgph@one:=#2\do{%
       \edef\pgph@k{\expandafter\pgph@trimsp\expandafter{\pgph@one}}%
       \pgph@citeslot{\pgph@k}{#1}%
       \pgph@addedge{\pgph@curproof}{cite:\pgph@curslot}}%
-  \fi
+  \fi\fi
 }
 \newcommand\pgph@citeslot[2]{%
   \begingroup
@@ -1650,13 +1815,33 @@
 % \end{macro}
 % \end{macro}
 % \end{macro}
+% \begin{macro}{\proofgraphignore}
+% \begin{macro}{\proofgraphignorecite}
+% \begin{macro}{\proofgraphexclude}
+% The editing rules. Each undoes one of the recording commands and takes the
+% arguments of the command it undoes: |\proofgraphignore| those of
+% |\proofgraphedge|, the result first and what its proof uses second, and
+% |\proofgraphignorecite| those of |\proofgraphciteedge|, the result and then
+% the keys, with the note of the citation as an optional argument. So a rule is
+% written by copying the dependency it is to remove, not by reading the arrow
+% off the picture, which with the default |direction=usedby| runs the other way.
+% The |direction| option is not consulted here at all: the filters work on the
+% relation recorded, and |direction| settles only how it is drawn.
 %    \begin{macrocode}
 \newcommand\proofgraphignore[2]{%
   \g@addto@macro\pgph@ignores{\pgph@ignorerule{#1}{#2}}%
 }
+\NewDocumentCommand\proofgraphignorecite{O{}mm}{%
+  \g@addto@macro\pgph@ignores{\pgph@citeignorerule{#1}{#2}{#3}}%
+}
 \newcommand\proofgraphexclude[1]{%
   \g@addto@macro\pgph@excludes{\pgph@excluderule{#1}}%
 }
+%    \end{macrocode}
+% \end{macro}
+% \end{macro}
+% \end{macro}
+%    \begin{macrocode}
 \newcommand\proofgraphstyle[2]{\global\@namedef{pgph@style@#1}{#2}}
 %    \end{macrocode}
 % External citation nodes (option |cite|) share one style, held in
@@ -1673,17 +1858,115 @@
 \newcommand\pgph@resolve[1]{%
   \ifcsname pgph@map@#1\endcsname\csname pgph@map@#1\endcsname\fi
 }
+% The key under which a filter is consulted is that of the relation recorded,
+% whose source is the \emph{result}; the two names below say which end is which,
+% so that reading a rule is not a matter of remembering an order.
+%    \begin{macrocode}
 \newcommand\pgph@ignorerule[2]{%
-  \edef\pgph@f{\pgph@resolve{#1}}\edef\pgph@t{\pgph@resolve{#2}}%
-  \ifx\pgph@f\@empty\else\ifx\pgph@t\@empty\else
-    \@namedef{pgph@ig@\pgph@f @\pgph@t}{}%
+  \edef\pgph@ires{\pgph@resolve{#1}}\edef\pgph@idep{\pgph@resolve{#2}}%
+  \ifx\pgph@ires\@empty\else\ifx\pgph@idep\@empty\else
+    \@namedef{pgph@ig@\pgph@ires @\pgph@idep}{}%
   \fi\fi
+}
+%    \end{macrocode}
+% A citation rule names the work depended on by key and note, the pair a
+% citation node stands for, so it has to go through the slot allocator to learn
+% which node that is. Asking for the slot of a work no proof cites allocates
+% one, which costs nothing: slots become nodes only when an edge reaches them.
+%    \begin{macrocode}
+\newcommand\pgph@citeignorerule[3]{%
+  \edef\pgph@ires{\pgph@resolve{#2}}%
+  \ifx\pgph@ires\@empty\else
+    \@for\pgph@one:=#3\do{%
+      \edef\pgph@k{\expandafter\pgph@trimsp\expandafter{\pgph@one}}%
+      \pgph@citeslot{\pgph@k}{#1}%
+      \@namedef{pgph@igc@\pgph@ires @\pgph@curslot}{}}%
+  \fi
 }
 \newcommand\pgph@excluderule[1]{%
   \edef\pgph@x{\pgph@resolve{#1}}%
   \ifx\pgph@x\@empty\else\@namedef{pgph@ex@\pgph@x}{}\fi
 }
 %    \end{macrocode}
+% \begin{macro}{\pgph@checkrules}
+% An editing rule that matches nothing does nothing, and says nothing: the
+% commonest way to get one is to write the two labels of |\proofgraphignore| in
+% the order of the arrow drawn rather than of the dependency recorded, which
+% leaves the graph exactly as it was, with no sign that a rule was even read. So
+% the rules are replayed once the edges have been written, against the relations
+% the document turned out to record, and each rule that met none is reported.
+% When it is the swapped rule that would have matched, the report says so and
+% gives the line to write, that being the mistake it almost always is.
+%
+% The replay redefines the three rule macros and runs the same token lists
+% again, so a rule cannot be checked in a way that differs from how it was
+% applied, and adding a kind of rule cannot leave the check behind.
+%    \begin{macrocode}
+\newcommand\pgph@checkrules{%
+  \let\pgph@ignorerule\pgph@ignorecheck
+  \let\pgph@citeignorerule\pgph@citeignorecheck
+  \let\pgph@excluderule\pgph@excludecheck
+  \pgph@ignores
+  \pgph@excludes
+}
+\newcommand\pgph@nolabelwarn[2]{%
+  \PackageWarning{proofgraph}{%
+    No such result in the graph:\MessageBreak
+    \string#1\space names `#2', which is not\MessageBreak
+    the label of any result drawn}%
+}
+\newcommand\pgph@ignorecheck[2]{%
+  \edef\pgph@ires{\pgph@resolve{#1}}\edef\pgph@idep{\pgph@resolve{#2}}%
+  \ifx\pgph@ires\@empty
+    \pgph@nolabelwarn\proofgraphignore{#1}%
+  \else\ifx\pgph@idep\@empty
+    \pgph@nolabelwarn\proofgraphignore{#2}%
+  \else\ifcsname pgph@rel@\pgph@ires @\pgph@idep\endcsname\else
+    \ifcsname pgph@rel@\pgph@idep @\pgph@ires\endcsname
+      \def\pgph@hint{%
+        it is `#2' that depends on `#1'.\MessageBreak
+        The two labels go the way the dependency is\MessageBreak
+        recorded, the result first, and not the way\MessageBreak
+        the arrow is drawn. Write instead\MessageBreak
+        \string\proofgraphignore{#2}{#1}}%
+    \else
+      \def\pgph@hint{%
+        nothing records that `#1' depends on `#2'}%
+    \fi
+    \PackageWarning{proofgraph}{%
+      No edge suppressed by\MessageBreak
+      \string\proofgraphignore{#1}{#2}:\MessageBreak
+      \pgph@hint}%
+  \fi\fi\fi
+}
+\newcommand\pgph@citeignorecheck[3]{%
+  \edef\pgph@ires{\pgph@resolve{#2}}%
+  \ifx\pgph@ires\@empty
+    \pgph@nolabelwarn\proofgraphignorecite{#2}%
+  \else
+    \edef\pgph@tmpnote{\detokenize{#1}}%
+    \ifx\pgph@tmpnote\@empty
+      \def\pgph@hint{}%
+    \else
+      \def\pgph@hint{\space with the note given}%
+    \fi
+    \@for\pgph@one:=#3\do{%
+      \edef\pgph@k{\expandafter\pgph@trimsp\expandafter{\pgph@one}}%
+      \pgph@citeslot{\pgph@k}{#1}%
+      \ifcsname pgph@relc@\pgph@ires @\pgph@curslot\endcsname\else
+        \PackageWarning{proofgraph}{%
+          No edge suppressed by\MessageBreak
+          \string\proofgraphignorecite{#2}{\pgph@k}:\MessageBreak
+          nothing records that `#2' cites that work\pgph@hint}%
+      \fi}%
+  \fi
+}
+\newcommand\pgph@excludecheck[1]{%
+  \edef\pgph@x{\pgph@resolve{#1}}%
+  \ifx\pgph@x\@empty\pgph@nolabelwarn\proofgraphexclude{#1}\fi
+}
+%    \end{macrocode}
+% \end{macro}
 %
 % \subsection{Emission}
 % \begin{macro}{\pgph@dotesc}
@@ -1760,16 +2043,38 @@
 % |\proofof| loses the attribution but not the dependency. An edge recorded
 % outside a proof (the body or the title of a result, an \apxproof\ deferred
 % proof) already carries a result id, which is its own source.
+%
+% A sub-proof owns not a result but the proof it is nested in, so the owner is
+% followed as a chain: at each step the pin of the instance reached wins if it
+% resolves, and otherwise the walk goes on to its owner. The nearest pin
+% therefore decides, an inner |\proofof| overriding an outer one for the
+% references of the inner proof alone, and an outer one covering every nested
+% reference no inner pin claims. The walk always terminates: an owner is either
+% an instance opened strictly earlier or a result id, which owns nothing.
 %    \begin{macrocode}
 \newcommand\pgph@setsrc[1]{%
-  \edef\pgph@esrc{%
-    \ifcsname pgph@powner@#1\endcsname
-      \csname pgph@powner@#1\endcsname
-    \else#1\fi}%
-  \ifcsname pgph@pofl@#1\endcsname
-    \edef\pgph@epin{\csname pgph@pofl@#1\endcsname}%
+  \edef\pgph@esrc{#1}%
+  \pgph@srcwalk
+}
+\newcommand\pgph@srcwalk{%
+  \ifcsname pgph@powner@\pgph@esrc\endcsname
+    \let\pgph@srcnext\pgph@srcstep
+  \else
+    \let\pgph@srcnext\relax
+  \fi
+  \pgph@srcnext
+}
+\newcommand\pgph@srcstep{%
+  \let\pgph@epin\@empty
+  \ifcsname pgph@pofl@\pgph@esrc\endcsname
+    \edef\pgph@epin{\csname pgph@pofl@\pgph@esrc\endcsname}%
     \edef\pgph@epin{\pgph@resolve{\pgph@epin}}%
-    \ifx\pgph@epin\@empty\else\let\pgph@esrc\pgph@epin\fi
+  \fi
+  \ifx\pgph@epin\@empty
+    \edef\pgph@esrc{\csname pgph@powner@\pgph@esrc\endcsname}%
+    \pgph@srcwalk
+  \else
+    \let\pgph@esrc\pgph@epin
   \fi
 }
 \newcommand\pgph@edge[2]{%
@@ -1781,19 +2086,33 @@
 \newcommand\pgph@edgeone[2]{%
   \IfBeginWith{#2}{cite:}%
     {\pgph@citeedge{#1}{#2}}%
-    {\pgph@plainedge{#1}{#2}}%
+    {\IfBeginWith{#2}{node:}%
+      {\StrBehind{#2}{node:}[\pgph@ntgt]%
+       \pgph@plainedgeid{#1}{\pgph@ntgt}}%
+      {\pgph@plainedge{#1}{#2}}}%
 }
+%    \end{macrocode}
+% A target is normally a user label, resolved here; a |node:| one is a result id
+% already, recorded by |\pgph@supportedge|, which knows the result it points at
+% without its having to be labelled at all. Past that, the two are the same
+% edge and take the same filters.
+%    \begin{macrocode}
 \newcommand\pgph@plainedge[2]{%
-  \edef\pgph@t{\pgph@resolve{#2}}%
-  \ifx\pgph@t\@empty\else
-    \ifcsname pgph@ex@#1\endcsname\else
-    \ifcsname pgph@ex@\pgph@t\endcsname\else
-    \ifcsname pgph@ig@#1@\pgph@t\endcsname\else
-      \ifboolexpr{ test {\ifnumequal{#1}{\pgph@t}}
-                   and test {\ifdefstring{\pgph@selfloops}{remove}} }%
-        {}{\pgph@emitedge{n#1}{n\pgph@t}}%
-    \fi\fi\fi
+  \edef\pgph@ptgt{\pgph@resolve{#2}}%
+  \ifx\pgph@ptgt\@empty\else
+    \pgph@plainedgeid{#1}{\pgph@ptgt}%
   \fi
+}
+\newcommand\pgph@plainedgeid[2]{%
+  \edef\pgph@t{#2}%
+  \@namedef{pgph@rel@#1@\pgph@t}{}%
+  \ifcsname pgph@ex@#1\endcsname\else
+  \ifcsname pgph@ex@\pgph@t\endcsname\else
+  \ifcsname pgph@ig@#1@\pgph@t\endcsname\else
+    \ifboolexpr{ test {\ifnumequal{#1}{\pgph@t}}
+                 and test {\ifdefstring{\pgph@selfloops}{remove}} }%
+      {}{\pgph@emitedge{n#1}{n\pgph@t}}%
+  \fi\fi\fi
 }
 %    \end{macrocode}
 % \end{macro}
@@ -1840,8 +2159,10 @@
 % one work hyperlink to the same bibliography entry.
 %    \begin{macrocode}
 \newcommand\pgph@citeedge[2]{%
+  \StrBehind{#2}{cite:}[\pgph@slot]%
+  \@namedef{pgph@relc@#1@\pgph@slot}{}%
+  \ifcsname pgph@igc@#1@\pgph@slot\endcsname\else
   \ifcsname pgph@ex@#1\endcsname\else
-    \StrBehind{#2}{cite:}[\pgph@slot]%
     \edef\pgph@key{\csname pgph@cskey@\pgph@slot\endcsname}%
     \ifcsname pgph@extnode@\pgph@slot\endcsname\else
       \@namedef{pgph@extnode@\pgph@slot}{}%
@@ -1854,7 +2175,7 @@
         \string\pgphnodemapcite{c@\pgph@slot}{\pgph@citeanchor{\pgph@key}}}%
     \fi
     \pgph@emitedge{n#1}{c@\pgph@slot}%
-  \fi
+  \fi\fi
 }
 \edef\pgph@obrace{\expandafter\@gobble\string\{}
 \newif\ifpgph@natnum
@@ -2101,6 +2422,7 @@
     \pgph@excludes
     \pgph@nodes
     \pgph@edges
+    \pgph@checkrules
   \endgroup
   \immediate\write\pgph@out{\pgph@cb}%
   \immediate\closeout\pgph@out

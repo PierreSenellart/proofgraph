@@ -1,0 +1,78 @@
+% Regression test: Leslie Lamport's pf2, the structured-proof package that
+% issue #4 was reported against. It is not on CTAN (it is distributed from
+% Lamport's own site), so this fixture is skipped unless pf2.sty is findable;
+% see the note in examples/Makefile.
+%
+% pf2 writes a proof as a tree: every step may be proved by a nested proof
+% environment, arbitrarily deep, and a reference made at any depth is a
+% dependency of the one result the whole tree establishes. That is the shape
+% \proofof has to reach through, and the shape it did not: a nested proof took
+% the result preceding the proof around it, so the references below the top
+% level went to whichever result happened to be declared last.
+%
+% pf2 defines its own \newenvironment{proof}, which collides with the proof of
+% amsthm that proofgraph loads. The document therefore does what the reporter
+% did, renaming pf2's environment -- here by lending it a second name rather
+% than by editing pf2.sty -- and declares the new name with \proofgraphproofenv.
+% amsthm's proof is put back afterwards and used too, so both kinds of proof
+% live in one document and the graph must be right for each.
+%
+% Single-pass and bibtex-free for determinism.
+\documentclass{article}
+\usepackage{amsthm}
+\usepackage{proofgraph}
+
+% Free the names pf2 insists on defining (proof, from amsthm, and qed), keeping
+% amsthm's to put back after. No @ in these names: we are in the preamble of a
+% document, where @ is not a letter.
+\let\amsproof\proof
+\let\amsendproof\endproof
+\let\amsqed\qed
+\let\proof\relax
+\let\endproof\relax
+\let\qed\relax
+\usepackage{pf2}
+% pf2's proof, under a name of its own, and amsthm's proof and qed back in
+% place. The structured proofs below use \step, not pf2's \qed.
+\let\structuredproof\proof
+\let\endstructuredproof\endproof
+\let\proof\amsproof
+\let\endproof\amsendproof
+\let\qed\amsqed
+
+\proofgraphproofenv{structuredproof}
+
+\newtheorem{theorem}{Theorem}
+\newtheorem{lemma}[theorem]{Lemma}
+
+\begin{document}
+
+\begin{lemma}\label{lem:a}A.\end{lemma}
+\begin{lemma}\label{lem:b}B.\end{lemma}
+\begin{lemma}\label{lem:c}C.\end{lemma}
+\begin{lemma}\label{lem:d}D.\end{lemma}
+\begin{theorem}\label{thm:tree}Proved by a structured proof.\end{theorem}
+\begin{theorem}\label{thm:plain}Proved by an amsthm proof.\end{theorem}
+\begin{theorem}\label{thm:last}Declared last, proves nothing.\end{theorem}
+
+Here is the proof of Theorem~\ref{thm:tree}:
+
+% A pf2 proof three levels deep, detached from its result and pinned by
+% \proofof: every reference in the tree belongs to thm:tree.
+\begin{structuredproof}
+  \proofof{thm:tree}
+  \step{s1}{By Lemma~\ref{lem:a}.}
+  \begin{structuredproof}
+    \step{s11}{By Lemma~\ref{lem:b}.}
+    \begin{structuredproof}
+      \step{s111}{By Lemma~\ref{lem:c}.}
+    \end{structuredproof}
+  \end{structuredproof}
+\end{structuredproof}
+
+% amsthm's proof still works, and still attaches to the result it follows.
+\begin{proof}[Proof of Theorem~\ref{thm:plain}]
+  By Lemma~\ref{lem:d}.
+\end{proof}
+
+\end{document}

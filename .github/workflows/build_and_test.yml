@@ -14,4 +14,16 @@ jobs:
       # graphviz provides dot, needed to render the embedded graphs of the
       # manual (built with --shell-escape) and the synthetic test fixtures.
       - run: apt-get install -y graphviz
+      # pf2 (Lamport's structured proofs) is not on CTAN and is not bundled
+      # here, so the examples/pf2 fixture skips itself unless pf2.sty is
+      # present. Fetch it so that CI does run it. The step must not fail the
+      # build if the site is unreachable: the fixture then skips, as it does on
+      # a machine without pf2, and everything else is still tested.
+      - name: Fetch pf2.sty (optional fixture)
+        run: |
+          curl -fsSL --retry 3 --max-time 60 \
+            -o examples/pf2/pf2.sty \
+            https://lamport.azurewebsites.net/latex/pf2.sty \
+            || { rm -f examples/pf2/pf2.sty ; \
+                 echo "::warning::pf2.sty unavailable; the pf2 fixture will be skipped" ; }
       - run: make clean && make && make test

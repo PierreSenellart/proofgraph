@@ -24,7 +24,10 @@
 #   nestedproof \cite capture in a proof nested inside another proof (the
 #             capture once reinstalled over itself there and recursed forever,
 #             which is why pdflatex runs under timeout below: a regression
-#             fails fast instead of hanging the suite).
+#             fails fast instead of hanging the suite); and a claim stated
+#             inside a proof, drawn as supporting the result being proved, with
+#             its own proof attached to the claim and the enclosing proof
+#             resuming its own attribution afterwards.
 #   natbibcite the two-optional-argument \cite[pre][post]{key} form of natbib
 #             and biblatex: the post-note is the recorded note (sharing a slot
 #             with the equivalent one-argument \cite), the pre-note is ignored.
@@ -55,6 +58,27 @@
 #             to be restored before the title is handed back to the heading.
 #   detachedproof \proofof pinning a whole proof, including the references made
 #             before it and a result labelled after it.
+#   nestedproofof proofs nested in proofs, as a structured proof writes them:
+#             an enclosing \proofof reaching the nested ones, an inner \proofof
+#             overriding it for its own proof, and the proof of a claim stated
+#             inside a proof still going to the claim. A nested proof used to
+#             take the result preceding the proof around it, so the fixture
+#             ends on a result that must stay edge-free.
+#   headref   a \ref and a \cite in a sectional title, with a proof long enough
+#             that a page is shipped while it is open: the running head runs
+#             them again in the output routine, and they were recorded as
+#             dependencies of the result being proved. The \ref in the proof
+#             itself must still be captured.
+#   pf2       Lamport's structured proofs, the package issue #4 came from: a
+#             proof tree three levels deep, its nested proofs reached by one
+#             \proofof, alongside an amsthm proof in the same document. Needs
+#             pf2.sty, which is not bundled (see REQUIRE_pf2 below); skipped
+#             when it is absent.
+#   ignore    \proofgraphignore and \proofgraphignorecite: the argument order
+#             (that of \proofgraphedge, the result first, the reverse of the
+#             arrow drawn), a rule written the wrong way round leaving the graph
+#             alone, per-(key, note) citation nodes, and a citation node
+#             vanishing with its last edge.
 # The autorun, engine, format, hyperlinks options and \proofgraph itself are
 # exercised by the manual build (l3build doc), which is an autorun proofgraph
 # document with clickable embedded graphs.
@@ -62,7 +86,18 @@ SHELL  := /bin/bash
 REPO   := $(CURDIR)/..
 TESTS  := apxproof features options citetag predefined nestedproof natbibcite \
           biblatex biblatexalpha zrefclever citecmds proofenv statements \
-          manualcite citenote bracedtitle detachedproof citeanchor
+          manualcite citenote bracedtitle detachedproof citeanchor \
+          nestedproofof headref ignore pf2
+
+# A fixture may need a package that cannot be assumed installed. REQUIRE_<test>
+# names the style file it wants; the fixture is skipped, with a message, when
+# neither its own directory nor the TeX tree provides it.
+#
+# pf2 is such a case: Lamport distributes it from his own site
+# (https://lamport.azurewebsites.net/latex/), it is not on CTAN, and the file
+# carries no licence statement, so it is not bundled here. Drop pf2.sty into
+# examples/pf2/, or install it in your TEXMF tree, and the fixture runs.
+REQUIRE_pf2 := pf2
 
 .PHONY: all clean $(TESTS)
 all: $(TESTS)
@@ -77,7 +112,13 @@ all: $(TESTS)
 # has something to say about the map (the citation anchors) commits a
 # reference.map as well, and it is compared whenever it is there.
 $(TESTS):
-	@cd $@ ; \
+	@need="$(REQUIRE_$@)" ; \
+	  if [ -n "$$need" ] && [ ! -f "$@/$$need.sty" ] && \
+	     ! kpsewhich "$$need.sty" >/dev/null 2>&1 ; then \
+	    echo "skip $@ ($$need.sty not found, see the note in examples/Makefile)" ; \
+	    exit 0 ; \
+	  fi ; \
+	  cd $@ ; \
 	  latexmk -C test >/dev/null 2>&1 ; rm -f test.dot mygraph.dot ; \
 	  TEXINPUTS=".:$(REPO):" timeout 120 pdflatex -interaction=nonstopmode test >/dev/null 2>&1 ; \
 	  if [ -f test.bcf ] ; then timeout 120 biber test >/dev/null 2>&1 ; fi ; \

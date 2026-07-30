@@ -1,0 +1,19 @@
+digraph proofgraph {
+  rankdir="LR";
+  "n10" [label="Claim 10"];
+  "n9" [label="Theorem 9"];
+  "n8" [label="Theorem 8"];
+  "n7" [label="Theorem 7"];
+  "n6" [label="Theorem 6"];
+  "n5" [label="Lemma 5"];
+  "n4" [label="Lemma 4"];
+  "n3" [label="Lemma 3"];
+  "n2" [label="Lemma 2"];
+  "n1" [label="Lemma 1"];
+  "n1" -> "n6";
+  "n2" -> "n6";
+  "n3" -> "n6";
+  "n4" -> "n7";
+  "n10" -> "n9";
+  "n5" -> "n10";
+}

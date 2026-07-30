@@ -40,3 +40,7 @@ CLAUDE.md
 # Regression-test diffs
 examples/pdfdiff/
 
+# pf2.sty, fetched (by CI, or by hand) for the examples/pf2 fixture: it is not
+# on CTAN and carries no licence statement, so it is not redistributed here.
+examples/pf2/pf2.sty
+

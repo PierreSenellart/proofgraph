@@ -1,0 +1,41 @@
+% Regression test: the editing rules that drop edges. \proofgraphignore takes
+% the labels of \proofgraphedge, in that order, the result first, and drops
+% exactly that one dependency; \proofgraphignorecite does the same for a
+% citation node, per (key, note) pair, so ignoring the noted citation leaves the
+% plain one standing and ignoring the last dependency on a work removes its node
+% too.
+% A rule written the other way round matches nothing and must leave the graph
+% untouched (it is reported as a warning, which the .dot does not show).
+% Uses only amsthm; single-pass and bibtex-free (citelabel=key, manual \bibitem)
+% for determinism.
+\documentclass{article}
+\usepackage{amsthm}
+\usepackage[cite,citelabel=key]{proofgraph}
+
+\newtheorem{theorem}{Theorem}
+\newtheorem{lemma}[theorem]{Lemma}
+
+\proofgraphignore{thm:m}{lem:a}
+\proofgraphignorecite[Thm~3]{thm:m}{bk} % only the noted node of bk
+
+\begin{document}
+
+\begin{lemma}\label{lem:a}A.\end{lemma}
+\begin{lemma}\label{lem:b}B.\end{lemma}
+\begin{theorem}\label{thm:m}Main.\end{theorem}
+\begin{proof}
+  By \ref{lem:a} and \ref{lem:b}, \cite{bk} and \cite[Thm~3]{bk},
+  and \cite{art}.
+\end{proof}
+
+\begin{theorem}\label{thm:n}Other.\end{theorem}
+\proofgraphedge{thm:n}{lem:b}
+
+\proofgraphignorecite{thm:m}{art}   % last edge to art: its node goes as well
+\proofgraphignore{lem:b}{thm:n}     % the wrong way round: no effect
+
+\begin{thebibliography}{9}
+\bibitem{bk}A book.
+\bibitem{art}An article.
+\end{thebibliography}
+\end{document}

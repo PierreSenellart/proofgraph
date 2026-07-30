@@ -1,0 +1,64 @@
+% Regression test: \proofof and proofs nested in proofs, the shape a structured
+% proof (pf2 and the like) writes, where a step of a proof is itself a proof.
+% A nested proof used to take as its result the one that preceded the proof
+% around it, so an enclosing \proofof did not reach it: the references of the
+% inner proof went to the last result declared instead of to the pinned one.
+% Three cases, all in one document:
+%   * outer \proofof pinning both proofs (lem:a and lem:b -> thm:early), the
+%     pin standing before the nested proof and the reference in it after;
+%   * inner \proofof overriding the outer pin for the inner proof alone
+%     (lem:c -> thm:early, lem:d -> thm:pinned);
+%   * a claim stated inside a proof, whose own proof attaches to the claim and
+%     not to the proof around it (lem:e -> clm:one), the case the inheritance
+%     must not swallow; the claim itself supports the result being proved
+%     (clm:one -> thm:claimed), being a step of its proof.
+% thm:last is declared last on purpose and proves nothing: it is where the
+% misattributed edges landed, so any edge reaching it is a regression.
+% Uses only amsthm; single-pass and bibtex-free for determinism.
+\documentclass{article}
+\usepackage{amsthm}
+\usepackage{proofgraph}
+
+\newtheorem{theorem}{Theorem}
+\newtheorem{lemma}[theorem]{Lemma}
+\newtheorem{claim}[theorem]{Claim}
+
+\begin{document}
+
+\begin{lemma}\label{lem:a}A.\end{lemma}
+\begin{lemma}\label{lem:b}B.\end{lemma}
+\begin{lemma}\label{lem:c}C.\end{lemma}
+\begin{lemma}\label{lem:d}D.\end{lemma}
+\begin{lemma}\label{lem:e}E.\end{lemma}
+\begin{theorem}\label{thm:early}Early.\end{theorem}
+\begin{theorem}\label{thm:pinned}Pinned by the inner proof.\end{theorem}
+\begin{theorem}\label{thm:last}Last declared, proves nothing.\end{theorem}
+
+% The outer pin covers the nested proof too.
+\begin{proof}
+  \proofof{thm:early}
+  By \ref{lem:a}.
+  \begin{proof}
+    And by \ref{lem:b}.
+  \end{proof}
+\end{proof}
+
+% An inner pin wins for the inner proof, and for it alone.
+\begin{proof}
+  \proofof{thm:early}
+  By \ref{lem:c}.
+  \begin{proof}\proofof{thm:pinned}
+    And by \ref{lem:d}.
+  \end{proof}
+\end{proof}
+
+% A claim opened inside a proof takes its own proof back.
+\begin{theorem}\label{thm:claimed}With a claim inside its proof.\end{theorem}
+\begin{proof}
+  \begin{claim}\label{clm:one}A claim.\end{claim}
+  \begin{proof}
+    By \ref{lem:e}.
+  \end{proof}
+\end{proof}
+
+\end{document}

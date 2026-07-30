@@ -1,17 +1,30 @@
-% Regression test: a proof nested inside another proof (a claim's proof) with
-% \cite capture active. \pgph@installcite used to reinstall over its own
-% capture macro in the inner proof, making \pgph@saved@cite the capture itself,
-% so the first \cite inside the nested proof recursed forever (pdflatex hung;
-% the harness runs pdflatex under timeout so a regression fails fast instead).
-% Both cites must be attributed to the enclosing result, and the repeated outer
+% Regression test: a proof nested inside another proof, with \cite capture
+% active. \pgph@installcite used to reinstall over its own capture macro in the
+% inner proof, making \pgph@saved@cite the capture itself, so the first \cite
+% inside the nested proof recursed forever (pdflatex hung; the harness runs
+% pdflatex under timeout so a regression fails fast instead). The repeated outer
 % \cite must reuse its slot without emitting a duplicate edge. The keys carry
 % underscores on purpose: they must survive capture and .dot emission verbatim.
+%
+% Two shapes of nesting, which must not be attributed alike:
+%   * a nested proof that proves no result of its own (here titled "Proof of
+%     claim" but stating no claim environment): a sub-proof of the proof around
+%     it, so its citation belongs to the enclosing result;
+%   * a nested proof that follows a claim stated inside the proof: the claim is
+%     a result in its own right, numbered and drawn, and its proof attaches to
+%     it and not to the theorem being proved. The claim, being a step of the
+%     proof it is stated in, gets an edge to the theorem, so that it hangs under
+%     the result it was raised to establish rather than floating free.
+% After the claim's proof closes, the enclosing proof must go back to citing for
+% its own result: the key cited both before and after the claim keeps its single
+% slot and yields one edge, to the theorem.
 % Uses only amsthm; single-pass and bibtex-free (citelabel=key, manual
 % \bibitem) for determinism.
 \documentclass{article}
 \usepackage{amsthm}
 \usepackage[cite,citelabel=key]{proofgraph}
 \newtheorem{theorem}{Theorem}
+\newtheorem{claim}{Claim}
 \begin{document}
 
 \begin{theorem}\label{thm:main_result}Main.\end{theorem}
@@ -23,8 +36,20 @@
   Outer again, with \cite{Outer_Ref_2011} reusing its slot.
 \end{proof}
 
+\begin{theorem}\label{thm:with_claim}With a claim inside its proof.\end{theorem}
+\begin{proof}
+  Before the claim, using \cite{Around_Ref_2013}.
+  \begin{claim}\label{clm:step}A step of the argument.\end{claim}
+  \begin{proof}
+    The claim's own proof, using \cite{Claim_Ref_2015}.
+  \end{proof}
+  After the claim, using \cite{Around_Ref_2013} again.
+\end{proof}
+
 \begin{thebibliography}{9}
 \bibitem{Outer_Ref_2011}An outer reference.
 \bibitem{Inner_Ref_2020}An inner reference.
+\bibitem{Around_Ref_2013}A reference cited around the claim.
+\bibitem{Claim_Ref_2015}A reference of the claim's own proof.
 \end{thebibliography}
 \end{document}

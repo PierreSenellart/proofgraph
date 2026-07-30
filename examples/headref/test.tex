@@ -1,0 +1,47 @@
+% Regression test: a cross-reference and a citation in a sectional title, with a
+% proof long enough that the page breaks inside it. The running head is set from
+% the marks in the output routine, so the \ref and the \cite of the title are
+% executed a second time there, while the capture of the proof is still
+% installed: they were recorded as dependencies of the result the proof belonged
+% to, giving thm:m an edge from thm:early and one from the cited work that no
+% reference in the document supports.
+% The proof itself refers to lem:a, which must still be captured: the fix must
+% silence the head, not the proof. \pagestyle{headings} puts the section title
+% in the head, which article does not do by default; the filler makes the page
+% break fall inside the proof.
+% Uses only amsthm; single-pass and bibtex-free (citelabel=key, manual \bibitem)
+% for determinism.
+\documentclass{article}
+\usepackage{amsthm}
+\usepackage[cite,citelabel=key]{proofgraph}
+\pagestyle{headings}
+
+\newtheorem{theorem}{Theorem}
+\newtheorem{lemma}[theorem]{Lemma}
+
+\def\filler{Filler text, of no meaning whatever, whose only office is to run
+  the proof past the foot of the page so that the running head is built while
+  the proof is open. }
+
+\begin{document}
+
+\begin{lemma}\label{lem:a}A.\end{lemma}
+\begin{theorem}\label{thm:early}Early.\end{theorem}
+\begin{theorem}\label{thm:m}Main.\end{theorem}
+
+\section{On \ref{thm:early} and \cite{bk}}
+
+\begin{proof}
+  By \ref{lem:a}.
+  \filler\filler\filler\filler\filler\filler\filler\filler
+  \filler\filler\filler\filler\filler\filler\filler\filler
+  \filler\filler\filler\filler\filler\filler\filler\filler
+  \filler\filler\filler\filler\filler\filler\filler\filler
+  \filler\filler\filler\filler\filler\filler\filler\filler
+  \filler\filler\filler\filler\filler\filler\filler\filler
+  \filler\filler\filler\filler\filler\filler\filler\filler
+  \filler\filler\filler\filler\filler\filler\filler\filler
+\end{proof}
+
+\begin{thebibliography}{9}\bibitem{bk}A book.\end{thebibliography}
+\end{document}
