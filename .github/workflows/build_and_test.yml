@@ -9,7 +9,7 @@ jobs:
     container: texlive/texlive:latest
     steps:
       # The private real-world suite lives in a submodule; do not fetch it.
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - run: apt-get update
       # graphviz provides dot, needed to render the embedded graphs of the
       # manual (built with --shell-escape) and the synthetic test fixtures.
