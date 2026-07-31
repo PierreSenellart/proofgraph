@@ -108,89 +108,89 @@
 %   previously broke compilation with confusing errors inside proofs}
 % \changes{v1.0.1}{2026/07/10}{Capture \texttt{citet} and \texttt{citep}
 %   (including starred variants) like \texttt{cite} when they are defined}
-% \changes{v1.0.1-dev}{2026/07/27}{With \texttt{autorun}, run Graphviz only when
+% \changes{v1.1.0}{2026/07/27}{With \texttt{autorun}, run Graphviz only when
 %   the graph, the engine or the format has changed. Rendering at every
 %   compilation kept producing a different image, since Graphviz stamps a
 %   creation date into its \textsf{cairo}-based outputs, and
 %   \textsf{latexmk} would then rerun until it reported that too many passes
 %   were needed}
-% \changes{v1.0.1-dev}{2026/07/27}{Capture, with the \texttt{cite} option, every
+% \changes{v1.1.0}{2026/07/27}{Capture, with the \texttt{cite} option, every
 %   citation command of \textsf{natbib} and \textsf{biblatex}, such as
 %   \texttt{textcite} and \texttt{parencite}, down to those printing a mere
 %   fragment of a citation such as \texttt{citeauthor}, and add
 %   \texttt{proofgraphcitecommand} to capture further ones}
-% \changes{v1.0.1-dev}{2026/07/27}{Require a LaTeX2e format of October 2020 or
+% \changes{v1.1.0}{2026/07/27}{Require a LaTeX2e format of October 2020 or
 %   later, which the use of \textsf{expl3} and \texttt{NewDocumentCommand}
 %   already implied}
-% \changes{v1.0.1-dev}{2026/07/27}{Capture \texttt{zcref} of
+% \changes{v1.1.0}{2026/07/27}{Capture \texttt{zcref} of
 %   \textsf{zref-clever}, in its starred, optional-argument and multiple-label
 %   forms, like the other cross-referencing commands}
-% \changes{v1.0.1-dev}{2026/07/27}{Emit citation nodes again when
+% \changes{v1.1.0}{2026/07/27}{Emit citation nodes again when
 %   \texttt{citelabel!=tag} finds no tag to use. A stray \texttt{iftrue}, counted
 %   as a conditional while a false conditional was being skipped over, made the
 %   skip overshoot and swallow the writes emitting the node, which Graphviz then
 %   drew from its edges alone: unstyled, labelled by its internal name and
 %   without a hyperlink. It affected every first run, and \textsf{biblatex}
 %   documents always}
-% \changes{v1.0.1-dev}{2026/07/27}{Recover the citation tag of the numeric and
+% \changes{v1.1.0}{2026/07/27}{Recover the citation tag of the numeric and
 %   alphabetic \textsf{biblatex} styles for \texttt{citelabel!=tag}, which
 %   records no citation tag in the \texttt{.aux} for it to read}
-% \changes{v1.0.1-dev}{2026/07/28}{Add \texttt{proofgraphproofenv}, declaring
+% \changes{v1.1.0}{2026/07/28}{Add \texttt{proofgraphproofenv}, declaring
 %   further environments to be treated as proofs, for a document whose proofs
 %   do not live in an environment named \texttt{proof}}
-% \changes{v1.0.1-dev}{2026/07/28}{Capture cross-references and citations in the
+% \changes{v1.1.0}{2026/07/28}{Capture cross-references and citations in the
 %   body of a result and not only in its proof and its optional title, a
 %   statement resting on an earlier result being a dependency like any other;
 %   the new \texttt{statements} option, on by default, turns this off}
-% \changes{v1.0.1-dev}{2026/07/28}{Add \texttt{usescite} and
+% \changes{v1.1.0}{2026/07/28}{Add \texttt{usescite} and
 %   \texttt{proofgraphciteedge}, recording a dependency on cited work by hand,
 %   for a proof that does not cite it visibly and for a result stated without a
 %   proof to hold a citation}
-% \changes{v1.0.1-dev}{2026/07/28}{Capture citations, and not only
+% \changes{v1.1.0}{2026/07/28}{Capture citations, and not only
 %   cross-references, in the optional title of a result}
-% \changes{v1.0.1-dev}{2026/07/28}{Trim the spaces after the commas of the
+% \changes{v1.1.0}{2026/07/28}{Trim the spaces after the commas of the
 %   lists given to \texttt{proofgraphtrack} and \texttt{proofgraphuntrack};
 %   every name but the first was silently ignored}
-% \changes{v1.0.1-dev}{2026/07/29}{Keep the braces of an optional title that is
+% \changes{v1.1.0}{2026/07/29}{Keep the braces of an optional title that is
 %   a single brace group, the bracing the \textsf{amsthm} manual prescribes to
 %   hide the \texttt{]} of a citation note. A title such as
 %   \texttt{[\{cite[p.~37]\{a-l\}\}]} reached the heading unbraced, whose own
 %   scan for \texttt{]} then stopped inside the note: the citation vanished from
 %   the printed title and two errors were reported against the capture}
-% \changes{v1.0.1-dev}{2026/07/29}{Let \texttt{proofof} pin a proof as a whole,
+% \changes{v1.1.0}{2026/07/29}{Let \texttt{proofof} pin a proof as a whole,
 %   wherever in the proof it stands: the references made before it went to
 %   whichever result preceded the proof, which a proof deferred to an appendix
 %   made easy to hit. The result it names may now be labelled further on in the
 %   document}
-% \changes{v1.0.1-dev}{2026/07/29}{Point the hyperlink of a citation node at the
+% \changes{v1.1.0}{2026/07/29}{Point the hyperlink of a citation node at the
 %   destination \textsf{biblatex} gives a bibliography entry, which carries the
 %   number of the reference section before the key, rather than at the one the
 %   LaTeX kernel and \textsf{natbib} give, which \textsf{biblatex} never
 %   defines: the node led to the end of the document instead of the entry}
-% \changes{v1.0.1-dev}{2026/07/29}{Set the note of a citation node inside its
+% \changes{v1.1.0}{2026/07/29}{Set the note of a citation node inside its
 %   tag and after it, ``[Knu68, pp.~23--27]'', the way a citation with a note is
 %   printed, and render its \texttt{--} and \texttt{---} as the dashes the
 %   document shows}
-% \changes{v1.0.1-dev}{2026/07/30}{Let a \texttt{proofof} in a proof reach the
+% \changes{v1.1.0}{2026/07/30}{Let a \texttt{proofof} in a proof reach the
 %   proofs nested in it, the steps of a structured proof: a nested proof took as
 %   its result the one that preceded the proof around it, so the references it
 %   made escaped the pin. A nested proof stated after a claim still proves that
 %   claim}
-% \changes{v1.0.1-dev}{2026/07/30}{Record no dependency while the page is
+% \changes{v1.1.0}{2026/07/30}{Record no dependency while the page is
 %   assembled: a cross-reference or a citation in a sectional title is executed
 %   again in the running head, and a page breaking inside a proof made it a
 %   dependency of the result that proof belonged to}
-% \changes{v1.0.1-dev}{2026/07/30}{Draw a result stated inside a proof, a claim
+% \changes{v1.1.0}{2026/07/30}{Draw a result stated inside a proof, a claim
 %   settled in the course of an argument, as supporting the result that proof
 %   establishes. It was drawn with its own proof below it but nothing above,
 %   detached from the result it was raised to establish}
-% \changes{v1.0.1-dev}{2026/07/30}{Report an editing rule that dropped nothing,
+% \changes{v1.1.0}{2026/07/30}{Report an editing rule that dropped nothing,
 %   \texttt{proofgraphignore} above all, whose two labels go the way the
 %   dependency is recorded, as in \texttt{proofgraphedge}, and not the way the
 %   arrow is drawn: a rule written the wrong way round changed nothing and said
 %   nothing. The warning names the rule to write instead. Say so in the manual
 %   as well, which described the arguments in terms of the edge drawn}
-% \changes{v1.0.1-dev}{2026/07/30}{Add \texttt{proofgraphignorecite}, dropping
+% \changes{v1.1.0}{2026/07/30}{Add \texttt{proofgraphignorecite}, dropping
 %   the dependency of a result on a cited work, which \texttt{proofgraphignore}
 %   cannot name, both of its arguments being labels}
 %
@@ -785,7 +785,7 @@
 %<*package>
 \NeedsTeXFormat{LaTeX2e}[2020/10/01]
 \ProvidesPackage{proofgraph}
-  [2026/07/30 v1.0.1-dev Dependency graph of results]
+  [2026/07/31 v1.1.0 Dependency graph of results]
 %    \end{macrocode}
 %
 % \subsection{Dependencies}
