@@ -79,7 +79,7 @@
 %</driver>
 % \fi
 %
-% \CheckSum{2200}
+% \CheckSum{2235}
 %
 % \CharacterTable
 %  {Upper-case    \A\B\C\D\E\F\G\H\I\J\K\L\M\N\O\P\Q\R\S\T\U\V\W\X\Y\Z
@@ -193,6 +193,26 @@
 % \changes{v1.1.0}{2026/07/30}{Add \texttt{proofgraphignorecite}, dropping
 %   the dependency of a result on a cited work, which \texttt{proofgraphignore}
 %   cannot name, both of its arguments being labels}
+% \changes{v1.1.0-dev}{2026/08/03}{Run Graphviz through \texttt{ShellEscape}
+%   of \textsf{shellesc} rather than through the \texttt{write18} primitive,
+%   which under LuaTeX writes to an ordinary output stream instead of running
+%   anything: \texttt{autorun} did nothing under LuaLaTeX, whatever
+%   shell-escape was passed, unless the document happened to load
+%   \textsf{shellesc}, as one loading \textsf{minted} does}
+% \changes{v1.1.0-dev}{2026/08/03}{Report a rendering that produced no image,
+%   naming what stood in the way: shell escape disabled, or restricted and
+%   therefore not permitting Graphviz, or Graphviz missing. The run went on as
+%   if it had rendered, and the only sign was the warning of
+%   \texttt{proofgraph} on the next run, saying that the image was not there}
+% \changes{v1.1.0-dev}{2026/08/03}{Say, when \texttt{proofgraph} finds no
+%   image to embed and \texttt{autorun} is on, that the image is rendered at
+%   the end of the run and a further run embeds it, rather than asking for
+%   shell escape and the option the document already has}
+% \changes{v1.1.0-dev}{2026/08/03}{Read the attributes given to
+%   \texttt{proofgraphstyle} and \texttt{proofgraphstylecite} with \texttt{\#}
+%   as an ordinary character, so that a Graphviz colour may be written
+%   \texttt{"\#ffd700"}. It stopped the run with ``Illegal parameter number'',
+%   leaving HSV as the only way to a colour of one's own}
 %
 % \DoNotIndex{\newcommand,\renewcommand,\providecommand,\def,\edef,\gdef,\xdef}
 % \DoNotIndex{\let,\global,\long,\relax,\expandafter,\csname,\endcsname}
@@ -201,11 +221,14 @@
 % \DoNotIndex{\immediate,\write,\newwrite,\openout,\closeout,\space}
 % \DoNotIndex{\RequirePackage,\ProvidesPackage,\NeedsTeXFormat}
 % \DoNotIndex{\g@addto@macro,\@for,\do,\@gobble,\@firstofone}
+% \DoNotIndex{\ifcase,\or,\@makeother}
 %
 % \let\embedproofgraph\proofgraph
 % \def\proofgraph{\textsf{proofgraph}}
 % \def\apxproof{\textsf{apxproof}}
 % \def\Graphviz{\textsf{Graphviz}}
+% \def\LuaTeX{Lua\TeX}
+% \def\LuaLaTeX{Lua\LaTeX}
 %
 % \GetFileInfo{proofgraph.sty}
 %
@@ -609,6 +632,11 @@
 %   |cite| option (default |shape=note|), as in
 %   |\proofgraphstylecite{shape=box,style=dashed,color=gray}|.
 % \end{description}
+% A colour may be given in any of the forms \Graphviz\ accepts, including the
+% |#|\meta{rrggbb} of an \textsc{rgb} value: the attributes of these two
+% commands, and of these two alone, are read with |#| as an ordinary character,
+% so |\proofgraphstyle{theorem}{style=filled,fillcolor="#ffd700"}| may be
+% written as it stands.
 %
 % \subsection{Embedding the rendered graph}
 % \begin{description}
@@ -644,6 +672,11 @@
 %   the graph, the engine or the format has changed since the last rendering, so
 %   that repeated compilations converge and a build tool such as
 %   \textsf{latexmk} settles instead of rerunning indefinitely.
+%   Unrestricted shell escape is what is needed, the |-shell-escape| of the
+%   usual engines: the restricted mode a \TeX\ installation has by default runs
+%   only the few commands the installation lists and \Graphviz\ is not among
+%   them. Should the rendering produce nothing, for that reason or because
+%   \Graphviz\ is not installed, the package says so at the end of the run.
 % \item[\optname{engine}]
 %   \Graphviz\ layout engine (default |dot|); any \Graphviz\ engine works, such as
 %   |neato|, |fdp|, |sfdp|, |circo| or |twopi| (see
@@ -809,11 +842,23 @@
 \RequirePackage{xstring}
 \RequirePackage{kvoptions}
 \RequirePackage{pdftexcmds}
+\RequirePackage{shellesc}
 %    \end{macrocode}
 % \textsf{pdftexcmds} provides |\pdf@filemdfivesum|, with which |autorun|
 % recognises an unchanged graph and skips the \Graphviz\ run
 % (see |\pgph@maybrender|). On an engine that offers no file checksum the
 % package still works, only without that optimisation.
+%
+% \textsf{shellesc} provides |\ShellEscape|, with which |autorun| runs
+% \Graphviz, and |\ShellEscapeStatus|, which says whether it may. The
+% primitive |\immediate\write18| is not a portable way to run a command: under
+% \LuaTeX\ stream~18 is an ordinary output stream like any other, so the text
+% of the command is written out instead of being executed, silently and
+% whatever |-shell-escape| was passed. |\ShellEscape| is |\immediate\write18|
+% where that means what it says and |os.execute| under \LuaTeX. This is why a
+% document that loaded \textsf{minted}, which loads \textsf{shellesc} too,
+% used to render its graph under \LuaLaTeX\ while the same document without it
+% did not.
 %
 % \textsf{graphicx} is needed only to embed a rendered graph with |\proofgraph|;
 % the core |.dot|-writing machinery does not use it. Rather than burden every
@@ -1841,15 +1886,31 @@
 % \end{macro}
 % \end{macro}
 % \end{macro}
+% The attributes go to \Graphviz\ untouched, and a colour is written there as
+% |"#ff0000"|. A |#| read with its usual category is a macro parameter
+% character, which no macro may simply hold: the style is kept in a macro, so
+% such an attribute list stopped the run with ``Illegal parameter number'',
+% first as the style was declared and again as it was written out. Doubling the
+% |#| does not help either, the second error remaining and |\write| doubling it
+% back in the |.dot|. The attributes are therefore read with |#| made an
+% ordinary character, which passes through the macro, the |\edef| assembling
+% the attribute list of a node and the write to the |.dot| as itself. Reading
+% them takes two steps: the category has to be changed before the argument is
+% read, so the command takes no argument of its own and hands over to a
+% delimiter-free helper.
 %    \begin{macrocode}
-\newcommand\proofgraphstyle[2]{\global\@namedef{pgph@style@#1}{#2}}
+\newcommand\proofgraphstyle{\begingroup\@makeother\#\pgph@setstyle}
+\newcommand\pgph@setstyle[2]{\endgroup
+  \global\@namedef{pgph@style@#1}{#2}}
 %    \end{macrocode}
 % External citation nodes (option |cite|) share one style, held in
 % |\pgph@citestyle| and overridable with |\proofgraphstylecite|; it defaults to
 % |shape=note|.
 %    \begin{macrocode}
 \newcommand\pgph@citestyle{shape=note}
-\newcommand\proofgraphstylecite[1]{\renewcommand\pgph@citestyle{#1}}
+\newcommand\proofgraphstylecite{\begingroup\@makeother\#\pgph@setcitestyle}
+\newcommand\pgph@setcitestyle[1]{\endgroup
+  \renewcommand\pgph@citestyle{#1}}
 %    \end{macrocode}
 %
 % \subsection{Resolution helpers}
@@ -2345,6 +2406,7 @@
 % \end{macro}
 %
 % \begin{macro}{\pgph@render}
+% \begin{macro}{\pgph@checkrender}
 % \begin{macro}{\pgph@maybrender}
 % \begin{macro}{\pgph@lastrender}
 % |autorun| must not re-render a graph that has not changed. Rendering
@@ -2372,10 +2434,37 @@
 \let\pgph@prevsig\relax
 \newcommand\pgph@lastrender[1]{\xdef\pgph@prevsig{\detokenize{#1}}}
 \newcommand\pgph@render{%
-  \immediate\write18{\pgph@engine\space -T\pgph@format\space
+  \ShellEscape{\pgph@engine\space -T\pgph@format\space
     \pgph@file.dot -o \pgph@file-proofgraph.\pgph@format}%
-  \immediate\write18{\pgph@engine\space -Tplain\space
+  \ShellEscape{\pgph@engine\space -Tplain\space
     \pgph@file.dot -o \pgph@file-proofgraph.plain}%
+  \pgph@checkrender
+}
+%    \end{macrocode}
+% A shell escape that does not happen says nothing: |\ShellEscape| reports no
+% failure, and the run continues as if \Graphviz\ had been called. The
+% rendering is therefore checked rather than assumed, right after the command,
+% where the file it was to produce is already visible to |\IfFileExists|. What
+% the user would otherwise meet is the warning of |\proofgraph| on the
+% \emph{next} run, saying only that the image is not there.
+%
+% |\ShellEscapeStatus| tells the three cases apart: no shell escape at all, an
+% unrestricted one (so the run was attempted and it is \Graphviz\ that failed
+% or is missing), and the restricted mode a \TeX\ installation has by default,
+% which runs only the commands the installation lists and never \Graphviz.
+%    \begin{macrocode}
+\newcommand\pgph@checkrender{%
+  \IfFileExists{\pgph@file-proofgraph.\pgph@format}{}%
+    {\PackageWarningNoLine{proofgraph}{The autorun option produced no
+       \pgph@file-proofgraph.\pgph@format.\MessageBreak
+       \ifcase\ShellEscapeStatus
+         Shell escape is disabled: compile with -shell-escape%
+       \or
+         Check that \pgph@engine\space is installed and on the PATH%
+       \else
+         Shell escape is restricted, and does not permit
+         \pgph@engine;\MessageBreak compile with -shell-escape%
+       \fi}}%
 }
 \newcommand\pgph@maybrender{%
   \edef\pgph@sig{\ifdefined\pdf@filemdfivesum
@@ -2402,6 +2491,7 @@
   \fi
 }
 %    \end{macrocode}
+% \end{macro}
 % \end{macro}
 % \end{macro}
 % \end{macro}
@@ -2477,6 +2567,13 @@
 % so instead we overlay transparent link areas at the node positions, which we
 % read from the |-Tplain| output. Without those packages we fall back to a plain
 % inclusion.
+%
+% The image not being there is only to be expected under |autorun| on a first
+% run, where it is produced at the end of the run and embedded by the next one,
+% so the warning says so rather than pointing at shell escape and the option,
+% which the reader has then already seen to. What is worth reporting when
+% \Graphviz\ has not run is reported where that is known, by |\pgph@checkrender|
+% at the end of the run.
 %    \begin{macrocode}
 \newif\ifpgph@canlink
 \newif\ifpgph@link
@@ -2492,8 +2589,10 @@
     {\IfFileExists{\pgph@file-proofgraph.\pgph@format}%
       {\pgph@includegraph{#1}}%
       {\PackageWarning{proofgraph}{Rendered graph
-         \pgph@file-proofgraph.\pgph@format\space not found; compile with
-         shell-escape and the autorun option, then re-run}}}%
+         \pgph@file-proofgraph.\pgph@format\space not found;
+         \ifpgph@autorun it is rendered at the end of this run, so
+         re-run to embed it\else compile with shell-escape and the
+         autorun option, then re-run\fi}}}%
 }
 \newcommand\pgph@includegraph[1]{%
   \pgph@canlinkfalse

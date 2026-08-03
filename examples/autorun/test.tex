@@ -1,0 +1,30 @@
+% Fixture for the autorun option, compiled with LuaLaTeX: the rendering used to
+% be run through the \write18 primitive, which under LuaTeX writes to an
+% ordinary output stream instead of running anything, so autorun silently did
+% nothing there. The test therefore checks that Graphviz did run (both output
+% files are there, see the autorun target of the Makefile) and that the second
+% pass embeds the image rather than warning that it is not there.
+\documentclass{article}
+\usepackage{graphicx}
+\usepackage{amsthm}
+\usepackage[autorun]{proofgraph}
+
+\newtheorem{theorem}{Theorem}
+\newtheorem{lemma}[theorem]{Lemma}
+
+\begin{document}
+
+\begin{lemma}\label{l:a}
+  A lemma.
+\end{lemma}
+
+\begin{theorem}\label{t:b}
+  A theorem.
+\end{theorem}
+\begin{proof}
+  By Lemma~\ref{l:a}.
+\end{proof}
+
+\proofgraph[width=.6\linewidth]
+
+\end{document}

@@ -79,9 +79,14 @@
 #             arrow drawn), a rule written the wrong way round leaving the graph
 #             alone, per-(key, note) citation nodes, and a citation node
 #             vanishing with its last edge.
-# The autorun, engine, format, hyperlinks options and \proofgraph itself are
-# exercised by the manual build (l3build doc), which is an autorun proofgraph
-# document with clickable embedded graphs.
+#   autorun   the autorun option and \proofgraph, under LuaLaTeX, where the
+#             rendering used to be dropped on the floor: Graphviz has to have
+#             run, and the second pass has to embed the image it produced.
+# The engine, format and hyperlinks options are exercised by the manual build
+# (l3build doc), which is an autorun proofgraph document with clickable embedded
+# graphs. The autorun option and \proofgraph have a fixture of their own, run
+# apart from the others by the `autorun' target below, since what it has to
+# check is not a .dot but a rendering that took place.
 SHELL  := /bin/bash
 REPO   := $(CURDIR)/..
 TESTS  := apxproof features options citetag predefined nestedproof natbibcite \
@@ -99,8 +104,8 @@ TESTS  := apxproof features options citetag predefined nestedproof natbibcite \
 # examples/pf2/, or install it in your TEXMF tree, and the fixture runs.
 REQUIRE_pf2 := pf2
 
-.PHONY: all clean $(TESTS)
-all: $(TESTS)
+.PHONY: all clean autorun $(TESTS)
+all: $(TESTS) autorun
 
 # A fixture that runs biblatex leaves a .bcf behind on its first pass; biber is
 # then run in between, so that the second pass has the tags the first could not
@@ -139,8 +144,44 @@ $(TESTS):
 	    fi ; exit 1 ; \
 	  fi
 
+# The autorun fixture stands apart: it is compiled with LuaLaTeX, which is where
+# the rendering was silently dropped (\write18 is an ordinary output stream
+# there, so the Graphviz command was written out rather than run), and what it
+# checks is not only the .dot but that the run left a rendered image and a
+# -Tplain layout behind, and that the second pass embedded them instead of
+# warning that they were not there. It needs Graphviz and shell-escape, so it is
+# skipped, like a fixture whose package is missing, when dot is not installed.
+autorun:
+	@if ! command -v dot >/dev/null 2>&1 ; then \
+	   echo "skip autorun (Graphviz not installed)" ; exit 0 ; \
+	 fi ; \
+	 if ! command -v lualatex >/dev/null 2>&1 ; then \
+	   echo "skip autorun (lualatex not installed)" ; exit 0 ; \
+	 fi ; \
+	 cd autorun ; \
+	 latexmk -C test >/dev/null 2>&1 ; rm -f test.dot test-proofgraph.* ; \
+	 for pass in 1 2 ; do \
+	   TEXINPUTS=".:$(REPO):" timeout 120 lualatex -shell-escape \
+	     -interaction=nonstopmode test >/dev/null 2>&1 ; \
+	 done ; \
+	 ok=1 ; \
+	 if ! diff -q test.dot reference.dot >/dev/null 2>&1 ; then \
+	   echo "FAIL autorun" ; diff test.dot reference.dot ; ok=0 ; \
+	 fi ; \
+	 for f in test-proofgraph.pdf test-proofgraph.plain ; do \
+	   if [ ! -f $$f ] ; then \
+	     echo "FAIL autorun ($$f not rendered)" ; ok=0 ; \
+	   fi ; \
+	 done ; \
+	 if grep -q "proofgraph Warning" test.log ; then \
+	   echo "FAIL autorun (warned on the second pass)" ; \
+	   grep -A2 "proofgraph Warning" test.log ; ok=0 ; \
+	 fi ; \
+	 if [ $$ok -eq 1 ] ; then echo "ok   autorun (test.dot, test-proofgraph.pdf)" ; \
+	 else exit 1 ; fi
+
 clean:
-	@for d in $(TESTS); do \
+	@for d in $(TESTS) autorun; do \
 	  ( cd $$d && latexmk -C test >/dev/null 2>&1; rm -f test.dot mygraph.dot \
 	    test.axp *-proofgraph.* *-proofgraph.map ) ; \
 	done ; echo "cleaned."

@@ -61,6 +61,8 @@ reasonable LaTeX distributions:
 - `etoolbox`
 - `xstring`
 - `kvoptions`
+- `pdftexcmds` and `shellesc` (used by automatic rendering, to recognise a graph
+  that has not changed and to run Graphviz whatever the TeX engine)
 - `graphicx` (only to embed the rendered graph in the document with
   `\proofgraph`; not needed if you only emit and render the `.dot` file)
 - `tikz` and `hyperref` (optional, only to make the embedded graph's nodes
@@ -69,7 +71,9 @@ reasonable LaTeX distributions:
 
 Rendering the `.dot` file into an image requires the external
 [Graphviz](https://graphviz.org/) tool `dot`. Automatic rendering additionally
-requires the document to be compiled with shell-escape enabled.
+requires the document to be compiled with unrestricted shell-escape enabled
+(`-shell-escape`): the restricted mode a TeX installation has by default runs
+only the commands it lists, and Graphviz is not one of them.
 
 ## Manual installation
 

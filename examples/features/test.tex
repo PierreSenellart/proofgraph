@@ -5,7 +5,8 @@
 %   optional-title capture (restatement); \uses; \proofgraphedge; \proofof;
 %   \proofgraphtrack overriding a default exclusion; \proofgraphuntrack excluding
 %   a tracked kind; \proofgraphignore; \proofgraphexclude; \proofgraphstyle;
-%   \proofgraphstylecite; cite + citelabel=key with per-(key,note) node splitting;
+%   \proofgraphstylecite, with the # of an RGB colour in the attributes of both;
+%   cite + citelabel=key with per-(key,note) node splitting;
 %   self-loop removal; unnumbered (starred) result excluded; "/\ label escaping.
 % Uses only amsthm (which proofgraph loads anyway), so it compiles everywhere;
 % single-pass and bibtex-free (citelabel=key, manual \bibitem) for determinism.
@@ -15,8 +16,8 @@
 
 \proofgraphtrack{definition}          % include the normally-excluded definition
 \proofgraphuntrack{proposition}       % exclude a normally-tracked kind
-\proofgraphstyle{theorem}{shape=box,style=filled,fillcolor=gold}
-\proofgraphstylecite{shape=note,color=gray}
+\proofgraphstyle{theorem}{shape=box,style=filled,fillcolor="#ffd700"}
+\proofgraphstylecite{shape=note,color="#808080"}
 
 \newtheorem{theorem}{Theorem}
 \newtheorem{lemma}[theorem]{Lemma}

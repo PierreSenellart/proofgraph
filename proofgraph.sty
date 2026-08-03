@@ -39,6 +39,7 @@
 \RequirePackage{xstring}
 \RequirePackage{kvoptions}
 \RequirePackage{pdftexcmds}
+\RequirePackage{shellesc}
 \ExplSyntaxOn
 \cs_new:Npn \pgph@trimsp #1 { \tl_trim_spaces:n {#1} }
 \ExplSyntaxOff
@@ -536,9 +537,13 @@
 \newcommand\proofgraphexclude[1]{%
   \g@addto@macro\pgph@excludes{\pgph@excluderule{#1}}%
 }
-\newcommand\proofgraphstyle[2]{\global\@namedef{pgph@style@#1}{#2}}
+\newcommand\proofgraphstyle{\begingroup\@makeother\#\pgph@setstyle}
+\newcommand\pgph@setstyle[2]{\endgroup
+  \global\@namedef{pgph@style@#1}{#2}}
 \newcommand\pgph@citestyle{shape=note}
-\newcommand\proofgraphstylecite[1]{\renewcommand\pgph@citestyle{#1}}
+\newcommand\proofgraphstylecite{\begingroup\@makeother\#\pgph@setcitestyle}
+\newcommand\pgph@setcitestyle[1]{\endgroup
+  \renewcommand\pgph@citestyle{#1}}
 \newcommand\pgph@resolve[1]{%
   \ifcsname pgph@map@#1\endcsname\csname pgph@map@#1\endcsname\fi
 }
@@ -845,10 +850,24 @@
 \let\pgph@prevsig\relax
 \newcommand\pgph@lastrender[1]{\xdef\pgph@prevsig{\detokenize{#1}}}
 \newcommand\pgph@render{%
-  \immediate\write18{\pgph@engine\space -T\pgph@format\space
+  \ShellEscape{\pgph@engine\space -T\pgph@format\space
     \pgph@file.dot -o \pgph@file-proofgraph.\pgph@format}%
-  \immediate\write18{\pgph@engine\space -Tplain\space
+  \ShellEscape{\pgph@engine\space -Tplain\space
     \pgph@file.dot -o \pgph@file-proofgraph.plain}%
+  \pgph@checkrender
+}
+\newcommand\pgph@checkrender{%
+  \IfFileExists{\pgph@file-proofgraph.\pgph@format}{}%
+    {\PackageWarningNoLine{proofgraph}{The autorun option produced no
+       \pgph@file-proofgraph.\pgph@format.\MessageBreak
+       \ifcase\ShellEscapeStatus
+         Shell escape is disabled: compile with -shell-escape%
+       \or
+         Check that \pgph@engine\space is installed and on the PATH%
+       \else
+         Shell escape is restricted, and does not permit
+         \pgph@engine;\MessageBreak compile with -shell-escape%
+       \fi}}%
 }
 \newcommand\pgph@maybrender{%
   \edef\pgph@sig{\ifdefined\pdf@filemdfivesum
@@ -905,8 +924,10 @@
     {\IfFileExists{\pgph@file-proofgraph.\pgph@format}%
       {\pgph@includegraph{#1}}%
       {\PackageWarning{proofgraph}{Rendered graph
-         \pgph@file-proofgraph.\pgph@format\space not found; compile with
-         shell-escape and the autorun option, then re-run}}}%
+         \pgph@file-proofgraph.\pgph@format\space not found;
+         \ifpgph@autorun it is rendered at the end of this run, so
+         re-run to embed it\else compile with shell-escape and the
+         autorun option, then re-run\fi}}}%
 }
 \newcommand\pgph@includegraph[1]{%
   \pgph@canlinkfalse
