@@ -79,7 +79,7 @@
 %</driver>
 % \fi
 %
-% \CheckSum{2235}
+% \CheckSum{2237}
 %
 % \CharacterTable
 %  {Upper-case    \A\B\C\D\E\F\G\H\I\J\K\L\M\N\O\P\Q\R\S\T\U\V\W\X\Y\Z
@@ -213,6 +213,11 @@
 %   as an ordinary character, so that a Graphviz colour may be written
 %   \texttt{"\#ffd700"}. It stopped the run with ``Illegal parameter number'',
 %   leaving HSV as the only way to a colour of one's own}
+% \changes{v1.1.0-dev}{2026/08/04}{Read the plain file of Graphviz with
+%   \texttt{\#} as an ordinary character too: its node lines echo the style
+%   attributes, so an RGB colour reached the run that embeds the hyperlinked
+%   graph and stopped it with three further ``Illegal parameter number''
+%   errors, whether or not the colour was still in the source}
 %
 % \DoNotIndex{\newcommand,\renewcommand,\providecommand,\def,\edef,\gdef,\xdef}
 % \DoNotIndex{\let,\global,\long,\relax,\expandafter,\csname,\endcsname}
@@ -2618,7 +2623,11 @@
 % image at its \emph{natural} size and comparing it with the |-Tplain| graph size
 % (the |graph| line gives it in inches, hence the factor~72). Node positions are
 % then expressed as fractions of the natural image, so they line up with the
-% drawn nodes whatever size the image is finally scaled to.
+% drawn nodes whatever size the image is finally scaled to. The |node| lines
+% echo the style attributes of each node, so a colour such as |"#ffd700"| set
+% with |\proofgraphstyle| comes back at us; the file is therefore read with
+% |#| as an ordinary character, which the \textsf{tikzpicture} group keeps
+% local.
 %    \begin{macrocode}
 \newcommand\pgph@graphlinked[1]{%
   \begingroup
@@ -2636,6 +2645,7 @@
   \edef\pgph@nath{\the\dimexpr\ht\pgph@natbox+\dp\pgph@natbox\relax}%
   \begin{tikzpicture}
     \node[inner sep=\z@,outer sep=\z@](pgph@P){\usebox\pgph@imgbox};
+    \catcode`\#=12
     \openin\pgph@plainin=\pgph@file-proofgraph.plain\relax
     \pgph@loopplain
     \closein\pgph@plainin

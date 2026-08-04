@@ -959,6 +959,7 @@
   \edef\pgph@nath{\the\dimexpr\ht\pgph@natbox+\dp\pgph@natbox\relax}%
   \begin{tikzpicture}
     \node[inner sep=\z@,outer sep=\z@](pgph@P){\usebox\pgph@imgbox};
+    \catcode`\#=12
     \openin\pgph@plainin=\pgph@file-proofgraph.plain\relax
     \pgph@loopplain
     \closein\pgph@plainin

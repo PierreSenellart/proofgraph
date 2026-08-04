@@ -1,6 +1,6 @@
 digraph proofgraph {
   rankdir="LR";
-  "n2" [label="Theorem 2"];
+  "n2" [label="Theorem 2", shape=box,style=filled,fillcolor="#ffd700"];
   "n1" [label="Lemma 1"];
   "n1" -> "n2";
 }

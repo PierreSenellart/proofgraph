@@ -81,7 +81,12 @@
 #             vanishing with its last edge.
 #   autorun   the autorun option and \proofgraph, under LuaLaTeX, where the
 #             rendering used to be dropped on the floor: Graphviz has to have
-#             run, and the second pass has to embed the image it produced.
+#             run, and the second pass has to embed the image it produced. The
+#             fixture styles its theorem with an RGB colour and loads tikz and
+#             hyperref, so the embedding pass reads the -Tplain layout, whose
+#             node lines echo that colour: the # once came back as a parameter
+#             character and stopped the pass (issue #9), hence the target also
+#             fails on any error in the log of the second pass.
 # The engine, format and hyperlinks options are exercised by the manual build
 # (l3build doc), which is an autorun proofgraph document with clickable embedded
 # graphs. The autorun option and \proofgraph have a fixture of their own, run
@@ -149,8 +154,10 @@ $(TESTS):
 # there, so the Graphviz command was written out rather than run), and what it
 # checks is not only the .dot but that the run left a rendered image and a
 # -Tplain layout behind, and that the second pass embedded them instead of
-# warning that they were not there. It needs Graphviz and shell-escape, so it is
-# skipped, like a fixture whose package is missing, when dot is not installed.
+# warning that they were not there, without an error: reading the layout back
+# once broke on the # of an RGB colour. It needs Graphviz and shell-escape, so
+# it is skipped, like a fixture whose package is missing, when dot is not
+# installed.
 autorun:
 	@if ! command -v dot >/dev/null 2>&1 ; then \
 	   echo "skip autorun (Graphviz not installed)" ; exit 0 ; \
@@ -176,6 +183,10 @@ autorun:
 	 if grep -q "proofgraph Warning" test.log ; then \
 	   echo "FAIL autorun (warned on the second pass)" ; \
 	   grep -A2 "proofgraph Warning" test.log ; ok=0 ; \
+	 fi ; \
+	 if grep -q "^!" test.log ; then \
+	   echo "FAIL autorun (error on the second pass)" ; \
+	   grep -A2 "^!" test.log ; ok=0 ; \
 	 fi ; \
 	 if [ $$ok -eq 1 ] ; then echo "ok   autorun (test.dot, test-proofgraph.pdf)" ; \
 	 else exit 1 ; fi

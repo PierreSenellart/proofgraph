@@ -4,10 +4,20 @@
 % nothing there. The test therefore checks that Graphviz did run (both output
 % files are there, see the autorun target of the Makefile) and that the second
 % pass embeds the image rather than warning that it is not there.
+%
+% The theorem style carries an RGB colour, and tikz + hyperref are loaded, so
+% that the second pass reads the -Tplain layout back to lay the link boxes: its
+% node lines echo the fillcolour, and the # once came back as a parameter
+% character, stopping the pass with "Illegal parameter number" (issue #9). The
+% Makefile checks that the log of the second pass holds no error.
 \documentclass{article}
 \usepackage{graphicx}
+\usepackage{tikz}
 \usepackage{amsthm}
 \usepackage[autorun]{proofgraph}
+\usepackage{hyperref}
+
+\proofgraphstyle{theorem}{shape=box,style=filled,fillcolor="#ffd700"}
 
 \newtheorem{theorem}{Theorem}
 \newtheorem{lemma}[theorem]{Lemma}
