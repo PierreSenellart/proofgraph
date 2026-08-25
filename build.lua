@@ -15,7 +15,10 @@ uploadconfig = {
   author       = "Pierre Senellart",
   uploader     = "Pierre Senellart",
   email        = "pierre@senellart.com",
-  license      = "lppl1.3c",
+  -- "1.3 or later" is what the package headers grant, and what the CTAN
+  -- catalogue records; the LICENSE file holds the 1.3c text because that is
+  -- the latest version of the licence, not because 1.3c is the version granted.
+  license      = "lppl1.3",
   summary      = "Dependency graph of the results of a mathematical article",
   -- The long description and the topics as the CTAN catalogue holds them, so
   -- that an upload restates rather than silently drops them. The catalogue
