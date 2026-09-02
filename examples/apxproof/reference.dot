@@ -1,7 +1,14 @@
 digraph proofgraph {
   rankdir="LR";
+  "n5" [label="Lemma 5"];
+  "n4" [label="Lemma 4"];
+  "n3" [label="Lemma 3"];
   "n2" [label="Lemma 2"];
   "n1" [label="Theorem 1"];
+  "n3" -> "n1";
+  "n4" -> "n3";
   "n2" -> "n1";
   "n1" -> "n2";
+  "n4" -> "n5";
+  "n5" -> "n1";
 }

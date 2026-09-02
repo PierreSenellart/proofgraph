@@ -1,13 +1,18 @@
-% Minimal, stable apxproof fixture validating proofgraph's deferred-proof
-% capture. Each result is stated in the body with \newtheoremrep; its proof is
-% deferred to the appendix by apxproof. proofgraph must attribute the references
-% made inside each (appendix-typeset) proof to the right result, producing the
-% cross-edges below.
+% Minimal, stable apxproof fixture validating proofgraph's capture of every
+% proof apxproof typesets. Each rep result is stated in the body with
+% \newtheoremrep and its proof deferred to the appendix; proofgraph must
+% attribute the references made inside each (appendix-typeset) proof to the
+% right result. The toappendix block holds plain lemmas whose plain proofs are
+% replayed in the appendix, one of them under a title naming its result; a
+% plain lemma with a plain proof and a proofsketch stay in the body. All of
+% them must contribute their edges: the plain and sketched proofs to the
+% result each one follows, the titled one to the result its title names.
 %
 % Deferred-proof EDGE capture requires an apxproof providing \apxproofhook
 % (>= the version that fires it inside each typeset deferred proof). With an
-% older apxproof the document still compiles and the nodes are captured, but the
-% deferred-proof edges are absent.
+% older apxproof the document still compiles and the nodes are captured, but
+% no proof edges are: proofgraph then leaves the proof environment alone, as
+% wrapping it without the hook would misattribute the deferred proofs.
 %
 % bibliography=common keeps it single-pass and bibtex-free for determinism.
 \documentclass{article}
@@ -26,6 +31,9 @@
 \begin{proof}
   Follows from Lemma~\ref{lem:helper}.
 \end{proof}
+\begin{proofsketch}
+  Sketched from Lemma~\ref{lem:body}.
+\end{proofsketch}
 
 \begin{lemmarep}\label{lem:helper}
   Helper lemma.
@@ -33,5 +41,32 @@
 \begin{proof}
   By the definition referenced in Theorem~\ref{thm:main}.
 \end{proof}
+
+\begin{lemma}\label{lem:body}
+  Body lemma.
+\end{lemma}
+\begin{proof}
+  A plain proof in the body, by Lemma~\ref{lem:base}.
+\end{proof}
+
+\begin{toappendix}
+\begin{lemma}\label{lem:base}
+  Base lemma.
+\end{lemma}
+\begin{proof}
+  Immediate.
+\end{proof}
+
+\begin{lemma}\label{lem:aux}
+  Auxiliary lemma.
+\end{lemma}
+\begin{proof}
+  A plain proof replayed in the appendix, by Lemma~\ref{lem:base}.
+\end{proof}
+
+\begin{proof}[Continuing the proof of Theorem~\ref{thm:main}]
+  A titled proof replayed in the appendix, by Lemma~\ref{lem:aux}.
+\end{proof}
+\end{toappendix}
 
 \end{document}

@@ -79,7 +79,7 @@
 %</driver>
 % \fi
 %
-% \CheckSum{2237}
+% \CheckSum{2262}
 %
 % \CharacterTable
 %  {Upper-case    \A\B\C\D\E\F\G\H\I\J\K\L\M\N\O\P\Q\R\S\T\U\V\W\X\Y\Z
@@ -218,6 +218,24 @@
 %   attributes, so an RGB colour reached the run that embeds the hyperlinked
 %   graph and stopped it with three further ``Illegal parameter number''
 %   errors, whether or not the colour was still in the source}
+% \changes{v1.1.0-dev}{2026/09/02}{Capture, under \textsf{apxproof}, the
+%   proofs it typesets through its saved copy of the proof environment. A
+%   plain proof, whether left in the body or belonging to a
+%   \texttt{toappendix} block and replayed with it, contributed no edges at
+%   all; only the deferred proof of a repeated theorem, and a proof whose
+%   title names its result, were captured}
+% \changes{v1.1.0-dev}{2026/09/02}{Let the label passed by the
+%   \textsf{apxproof} hook pin the proof instance the wrapping has opened,
+%   rather than replace the current proof. A \texttt{proofof} in a deferred
+%   proof redirected the current proof globally, the redirection outlived
+%   the proof, and the edges of what followed shifted to the named result}
+% \changes{v1.1.0-dev}{2026/09/02}{Scan the title of a proof with
+%   \texttt{protect} at its typesetting meaning, not emptied. Under
+%   \textsf{babel} (so under \textsf{lipics}, which loads it), a tie in a
+%   title such as ``Proof of Theorem\texttt{\textasciitilde}\texttt{ref...}''
+%   expanded through \texttt{active@prefix}, whose fallback reproduces the
+%   bare active character when \texttt{protect} is empty, and the run died
+%   of a full input stack}
 %
 % \DoNotIndex{\newcommand,\renewcommand,\providecommand,\def,\edef,\gdef,\xdef}
 % \DoNotIndex{\let,\global,\long,\relax,\expandafter,\csname,\endcsname}
@@ -752,19 +770,20 @@
 % \subsection{Use with \apxproof}
 % \label{sec:apxproof}
 % \apxproof\ moves proofs to the appendix and typesets them there, so the
-% references a proof makes are only executed at that later point. To attribute
-% them to the right result, \textsf{proofgraph} relies on the hook
-% |\apxproofhook|, which \apxproof\ fires inside each deferred proof. This hook
-% is available in \apxproof\ \textbf{v1.4.1} and later; load the two packages in
-% either order and no further setup is needed.
+% references a proof makes are only executed at that later point.
+% \textsf{proofgraph} therefore captures each proof where \apxproof\ actually
+% typesets it: a proof deferred by a repeated-theorem environment is attributed
+% to its theorem through the hook |\apxproofhook|, which \apxproof\ fires
+% inside each such proof, and a plain |proof| -- left in the body, or belonging
+% to a |toappendix| block and replayed with it -- to the result it follows, as
+% without \apxproof. The hook is available in \apxproof\ \textbf{v1.4.1} and
+% later; load the two packages in either order and no further setup is needed.
 %
-% With an \emph{earlier} \apxproof\ the document still compiles cleanly and every
-% result still becomes a node, but \emph{no proof dependencies are captured for
-% the proofs deferred to the appendix}, because \textsf{proofgraph} cannot tell
-% which appendix proof belongs to which result (dependencies from any proofs left
-% in the main text are still captured as usual). In that case, add the deferred
-% ones manually with |\uses| (and |\proofof| to pin a proof to its result), or
-% upgrade \apxproof.
+% With an \emph{earlier} \apxproof\ the document still compiles cleanly and
+% every result still becomes a node, but \emph{no proof dependencies are
+% captured}, because \textsf{proofgraph} cannot tell which appendix proof
+% belongs to which result. In that case, add them manually with |\uses| (and
+% |\proofof| to pin a proof to its result), or upgrade \apxproof.
 %
 % \section{Limitations}
 % \begin{itemize}
@@ -1498,12 +1517,19 @@
 % environment so that, when an optional title is given, the cross-reference it
 % contains is turned into a |\proofof| (the title is typeset once into a
 % discarded box with |\ref| and friends redefined). Without an optional title
-% the original environment is used unchanged.
+% the original environment is used unchanged. |\protect| is forced to its
+% typesetting meaning, so that a |\protect\ref| copied from a moving argument
+% still reaches our redefinition; it must not be emptied instead, because the
+% active characters of \textsf{babel} (the |~| of a title such as
+% |[Proof of Theorem~\ref{thm:x}]|) expand through |\active@prefix|, which
+% falls back on |\protect|\meta{char} when |\protect| holds neither of its
+% two expected meanings -- with an empty |\protect| that reproduces the bare
+% active character, endlessly.
 %    \begin{macrocode}
 \NewDocumentCommand\pgph@zcproofof{sO{}m}{\proofof{#3}}
 \newcommand\pgph@scanproofarg[1]{%
   \begingroup
-    \let\protect\@empty
+    \let\protect\@typeset@protect
     \def\ref##1{\proofof{##1}}\def\cref##1{\proofof{##1}}%
     \def\Cref##1{\proofof{##1}}\def\autoref##1{\proofof{##1}}%
     \let\zcref\pgph@zcproofof
@@ -1570,19 +1596,33 @@
 %    \end{macrocode}
 % \end{macro}
 % \end{macro}
-% Packages such as \apxproof\ capture the body of a |proof| verbatim (to defer
-% it to the appendix) and replay it there. Patching the |proof| environment then
+% \apxproof\ captures the body of a |proof| verbatim (to defer it to the
+% appendix) and replays it there. Patching the |proof| environment then
 % corrupts that capture, and the references are only executed at replay time
-% anyway. So we wrap |proof| only when no such package is active; otherwise the
-% deferred-proof capture (below) takes over. The exemption is for |proof| alone:
-% an environment added with |\proofgraphproofenv| is not one \apxproof\ defers,
-% so it is wrapped as usual. This happens at |\begin{document}|, once we know
-% what is loaded and what the preamble has added to the list.
+% anyway. But every proof \apxproof\ actually typesets runs through its saved
+% copy of the original environment, |\axp@oldproof| -- a plain proof left in
+% the body reaches it through the dispatcher, a proof replayed from the
+% appendix file through the replay macros -- while the verbatim capture never
+% invokes it. So under an \apxproof\ that fires the hook below we wrap that
+% saved copy in place of |proof| itself, and likewise the |axp@old|\meta{name}
+% copy of any other environment it defers (|claimproof|). Under an \apxproof\
+% too old to fire the hook, wrapping would attribute each deferred proof to
+% the result last typeset in the appendix instead of its theorem, so there we
+% leave |proof| alone, as before. An environment added with
+% |\proofgraphproofenv| that \apxproof\ does not defer is wrapped as usual.
+% This happens at |\begin{document}|, once we know what is loaded and what
+% the preamble has added to the list.
 %    \begin{macrocode}
 \newif\ifpgph@apxproof
+\newif\ifpgph@apxhook
 \newcommand\pgph@wrapproofs{%
   \@for\pgph@one:=\pgph@proofenvs\do{%
     \edef\pgph@pe{\expandafter\pgph@trimsp\expandafter{\pgph@one}}%
+    \ifpgph@apxhook
+      \ifcsname axp@old\pgph@pe\endcsname
+        \edef\pgph@pe{axp@old\pgph@pe}%
+      \fi
+    \fi
     \ifboolexpr{ bool {pgph@apxproof} and test {\ifdefstring{\pgph@pe}{proof}} }%
       {}{\expandafter\pgph@wrapproofone\expandafter{\pgph@pe}}%
   }%
@@ -1599,16 +1639,32 @@
 % references finally execute. \apxproof\ fires |\apxproofhook| inside each
 % such proof, passing the |axp@r|\meta{n} label of the proved theorem, which
 % (because \apxproof\ also attaches that label to the theorem in the main
-% text) is already in our map. We resolve it to the source node and install
-% the reference-capturing commands for the duration of the proof.
+% text) is already in our map. An \apxproof\ that fires the hook also
+% provides an empty default for it at load time, so finding it defined
+% before we overwrite it with ours is how we know the hook comes
+% (|\ifpgph@apxhook|, set here, read by |\pgph@wrapproofs| just after).
+% When the hook fires, the wrapped |\axp@oldproof| has normally opened a
+% proof instance already, and the label pins that instance, exactly as a
+% |\proofof| in the proof would. The pin is expanded on the spot: what the
+% hook passes is a macro holding the label, which the next deferred proof
+% overwrites, so storing the token would resolve every pin to the last
+% label of the run. When no instance is open (a proof
+% environment the wrapping could not reach), we fall back to resolving the
+% label to the source node and installing the reference-capturing commands
+% directly, as before.
 %    \begin{macrocode}
 \newcommand\pgph@apxinit{%
+  \ifdefined\apxproofhook\pgph@apxhooktrue\fi
   \def\apxproofhook##1{\pgph@apxproofcapture{##1}}}
 \newcommand\pgph@apxproofcapture[1]{%
-  \edef\pgph@curproof{\pgph@resolve{#1}}%
-  \ifx\pgph@curproof\@empty\else
-    \pgph@setpres\pgph@curproof
-    \pgph@installcapture
+  \ifcsname pgph@powner@\pgph@curproof\endcsname
+    \expandafter\xdef\csname pgph@pofl@\pgph@curproof\endcsname{#1}%
+  \else
+    \edef\pgph@curproof{\pgph@resolve{#1}}%
+    \ifx\pgph@curproof\@empty\else
+      \pgph@setpres\pgph@curproof
+      \pgph@installcapture
+    \fi
   \fi
 }
 %    \end{macrocode}

@@ -361,7 +361,7 @@
 \NewDocumentCommand\pgph@zcproofof{sO{}m}{\proofof{#3}}
 \newcommand\pgph@scanproofarg[1]{%
   \begingroup
-    \let\protect\@empty
+    \let\protect\@typeset@protect
     \def\ref##1{\proofof{##1}}\def\cref##1{\proofof{##1}}%
     \def\Cref##1{\proofof{##1}}\def\autoref##1{\proofof{##1}}%
     \let\zcref\pgph@zcproofof
@@ -392,9 +392,15 @@
   \proofgraphuntrack{#1}%
 }
 \newif\ifpgph@apxproof
+\newif\ifpgph@apxhook
 \newcommand\pgph@wrapproofs{%
   \@for\pgph@one:=\pgph@proofenvs\do{%
     \edef\pgph@pe{\expandafter\pgph@trimsp\expandafter{\pgph@one}}%
+    \ifpgph@apxhook
+      \ifcsname axp@old\pgph@pe\endcsname
+        \edef\pgph@pe{axp@old\pgph@pe}%
+      \fi
+    \fi
     \ifboolexpr{ bool {pgph@apxproof} and test {\ifdefstring{\pgph@pe}{proof}} }%
       {}{\expandafter\pgph@wrapproofone\expandafter{\pgph@pe}}%
   }%
@@ -404,12 +410,17 @@
   \pgph@wrapproofs
 }
 \newcommand\pgph@apxinit{%
+  \ifdefined\apxproofhook\pgph@apxhooktrue\fi
   \def\apxproofhook##1{\pgph@apxproofcapture{##1}}}
 \newcommand\pgph@apxproofcapture[1]{%
-  \edef\pgph@curproof{\pgph@resolve{#1}}%
-  \ifx\pgph@curproof\@empty\else
-    \pgph@setpres\pgph@curproof
-    \pgph@installcapture
+  \ifcsname pgph@powner@\pgph@curproof\endcsname
+    \expandafter\xdef\csname pgph@pofl@\pgph@curproof\endcsname{#1}%
+  \else
+    \edef\pgph@curproof{\pgph@resolve{#1}}%
+    \ifx\pgph@curproof\@empty\else
+      \pgph@setpres\pgph@curproof
+      \pgph@installcapture
+    \fi
   \fi
 }
 \newcommand\pgph@gxdefcs[2]{%

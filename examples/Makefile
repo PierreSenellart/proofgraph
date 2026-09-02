@@ -20,7 +20,10 @@
 #             assumed to be in the first reference section for a key reached by
 #             \usescite alone. Pinned in its reference.map.
 #   predefined detection of theorem environments predefined before the package.
-#   apxproof  deferred-proof capture via \apxproofhook (bundled apxproof.sty).
+#   apxproof  capture of every proof apxproof typesets (bundled apxproof.sty):
+#             deferred proofs via \apxproofhook, plain and titled proofs
+#             replayed from a toappendix block, a plain proof and a
+#             proofsketch left in the body.
 #   nestedproof \cite capture in a proof nested inside another proof (the
 #             capture once reinstalled over itself there and recursed forever,
 #             which is why pdflatex runs under timeout below: a regression
