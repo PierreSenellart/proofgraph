@@ -193,43 +193,43 @@
 % \changes{v1.1.0}{2026/07/30}{Add \texttt{proofgraphignorecite}, dropping
 %   the dependency of a result on a cited work, which \texttt{proofgraphignore}
 %   cannot name, both of its arguments being labels}
-% \changes{v1.1.0-dev}{2026/08/03}{Run Graphviz through \texttt{ShellEscape}
+% \changes{v1.1.1}{2026/08/03}{Run Graphviz through \texttt{ShellEscape}
 %   of \textsf{shellesc} rather than through the \texttt{write18} primitive,
 %   which under LuaTeX writes to an ordinary output stream instead of running
 %   anything: \texttt{autorun} did nothing under LuaLaTeX, whatever
 %   shell-escape was passed, unless the document happened to load
 %   \textsf{shellesc}, as one loading \textsf{minted} does}
-% \changes{v1.1.0-dev}{2026/08/03}{Report a rendering that produced no image,
+% \changes{v1.1.1}{2026/08/03}{Report a rendering that produced no image,
 %   naming what stood in the way: shell escape disabled, or restricted and
 %   therefore not permitting Graphviz, or Graphviz missing. The run went on as
 %   if it had rendered, and the only sign was the warning of
 %   \texttt{proofgraph} on the next run, saying that the image was not there}
-% \changes{v1.1.0-dev}{2026/08/03}{Say, when \texttt{proofgraph} finds no
+% \changes{v1.1.1}{2026/08/03}{Say, when \texttt{proofgraph} finds no
 %   image to embed and \texttt{autorun} is on, that the image is rendered at
 %   the end of the run and a further run embeds it, rather than asking for
 %   shell escape and the option the document already has}
-% \changes{v1.1.0-dev}{2026/08/03}{Read the attributes given to
+% \changes{v1.1.1}{2026/08/03}{Read the attributes given to
 %   \texttt{proofgraphstyle} and \texttt{proofgraphstylecite} with \texttt{\#}
 %   as an ordinary character, so that a Graphviz colour may be written
 %   \texttt{"\#ffd700"}. It stopped the run with ``Illegal parameter number'',
 %   leaving HSV as the only way to a colour of one's own}
-% \changes{v1.1.0-dev}{2026/08/04}{Read the plain file of Graphviz with
+% \changes{v1.1.1}{2026/08/04}{Read the plain file of Graphviz with
 %   \texttt{\#} as an ordinary character too: its node lines echo the style
 %   attributes, so an RGB colour reached the run that embeds the hyperlinked
 %   graph and stopped it with three further ``Illegal parameter number''
 %   errors, whether or not the colour was still in the source}
-% \changes{v1.1.0-dev}{2026/09/02}{Capture, under \textsf{apxproof}, the
+% \changes{v1.1.1}{2026/09/02}{Capture, under \textsf{apxproof}, the
 %   proofs it typesets through its saved copy of the proof environment. A
 %   plain proof, whether left in the body or belonging to a
 %   \texttt{toappendix} block and replayed with it, contributed no edges at
 %   all; only the deferred proof of a repeated theorem, and a proof whose
 %   title names its result, were captured}
-% \changes{v1.1.0-dev}{2026/09/02}{Let the label passed by the
+% \changes{v1.1.1}{2026/09/02}{Let the label passed by the
 %   \textsf{apxproof} hook pin the proof instance the wrapping has opened,
 %   rather than replace the current proof. A \texttt{proofof} in a deferred
 %   proof redirected the current proof globally, the redirection outlived
 %   the proof, and the edges of what followed shifted to the named result}
-% \changes{v1.1.0-dev}{2026/09/02}{Scan the title of a proof with
+% \changes{v1.1.1}{2026/09/02}{Scan the title of a proof with
 %   \texttt{protect} at its typesetting meaning, not emptied. Under
 %   \textsf{babel} (so under \textsf{lipics}, which loads it), a tie in a
 %   title such as ``Proof of Theorem\texttt{\textasciitilde}\texttt{ref...}''
@@ -842,7 +842,7 @@
 %<*package>
 \NeedsTeXFormat{LaTeX2e}[2020/10/01]
 \ProvidesPackage{proofgraph}
-  [2026/07/31 v1.1.0 Dependency graph of results]
+  [2026/09/02 v1.1.1 Dependency graph of results]
 %    \end{macrocode}
 %
 % \subsection{Dependencies}
