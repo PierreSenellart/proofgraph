@@ -236,6 +236,10 @@
 %   expanded through \texttt{active@prefix}, whose fallback reproduces the
 %   bare active character when \texttt{protect} is empty, and the run died
 %   of a full input stack}
+% \changes{v1.1.1-dev}{2026/09/03}{Say in the manual that a graph rendered
+%   by hand, without \texttt{autorun}, gets its hyperlinks only if the
+%   \texttt{-Tplain} layout is rendered too, under the name the package
+%   reads, and that the \texttt{.dot} is rewritten at every compilation}
 %
 % \DoNotIndex{\newcommand,\renewcommand,\providecommand,\def,\edef,\gdef,\xdef}
 % \DoNotIndex{\let,\global,\long,\relax,\expandafter,\csname,\endcsname}
@@ -471,6 +475,21 @@
 % \begin{verbatim}
 %   dot -Tpdf myfile.dot -o mygraph.pdf
 % \end{verbatim}
+% To embed the graph in the document itself with |\proofgraph| (see
+% Section~\ref{sec:embedding}), either pass the |autorun| option, which runs
+% \Graphviz\ for you, or render by hand under the names the package looks for.
+% Two renderings are then needed, the image and the layout in the |plain|
+% format of \Graphviz, from which the hyperlinks on the nodes are placed:
+% \begin{verbatim}
+%   dot -Tpdf   myfile.dot -o myfile-proofgraph.pdf
+%   dot -Tplain myfile.dot -o myfile-proofgraph.plain
+% \end{verbatim}
+% Without the second, the graph is embedded as a plain image, with no
+% hyperlinks. Note that |\jobname.dot| is rewritten at the end of every
+% compilation, so a layout adjusted by hand (say, nodes reordered so that
+% fewer edges cross) should be edited in a copy of the file, with both
+% renderings made from that copy.
+%
 % Every \emph{numbered} result of a theorem-like environment you declare becomes
 % a node, and every cross-reference (|\ref|, |\cref|\dots) inside a proof becomes
 % an edge into the result that proof establishes, with no annotation. The
@@ -662,6 +681,7 @@
 % written as it stands.
 %
 % \subsection{Embedding the rendered graph}
+% \label{sec:embedding}
 % \begin{description}
 % \item[\cmdname{proofgraph}\cmdoarg{options}]\SpecialUsageIndex{\proofgraph}%
 %   Includes the rendered graph image at this point, passing the optional
@@ -676,12 +696,16 @@
 %   after two runs. Without |autorun|, no \Graphviz\ is run: |\proofgraph| embeds
 %   a pre-existing |\jobname-proofgraph.|\meta{format} file if you have rendered
 %   one under that name, and otherwise warns. When \textsf{hyperref} and
-%   \textsf{TikZ} are both loaded (with |hyperlinks| on and the |-Tplain| file
-%   from |autorun| present), every node becomes an internal hyperlink to the
-%   result it represents: \Graphviz\ writes the node positions to that |-Tplain|
-%   file and |\proofgraph| overlays a transparent |\hyperref| area on each node
-%   (needed because the link annotations \Graphviz\ puts in the |.pdf| are
-%   discarded by |\includegraphics|).
+%   \textsf{TikZ} are both loaded (with |hyperlinks| on and a
+%   |\jobname-proofgraph.plain| file present, which |autorun| produces by
+%   running \Graphviz\ a second time with |-Tplain|), every node becomes an
+%   internal hyperlink to the result it represents: \Graphviz\ writes the node
+%   positions to that |-Tplain| file and |\proofgraph| overlays a transparent
+%   |\hyperref| area on each node (needed because the link annotations
+%   \Graphviz\ puts in the |.pdf| are discarded by |\includegraphics|). When
+%   rendering by hand, produce that file too, from the same |.dot| as the
+%   image (see the rendering commands in Section~\ref{sec:usage}); without
+%   it, the graph is embedded as a plain image.
 % \end{description}
 %
 % \subsection{Options}
