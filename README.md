@@ -92,6 +92,14 @@ elaborated proof terms, and are therefore exact; and since a whole development
 is far too large for one figure, it is sliced into a small neighbourhood of each
 result.
 
+## Authorship
+
+`proofgraph` was written by Pierre Senellart, from an earlier private
+prototype, with the assistance of generative models from Anthropic
+(*Claude*). The behavior of the package was specified and reviewed by the
+author, who is responsible for the whole. Regression tests run in continuous
+integration.
+
 ## License
 
 Copyright © 2026 by Pierre Senellart.
