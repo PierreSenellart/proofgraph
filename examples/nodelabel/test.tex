@@ -1,0 +1,30 @@
+% Exercises \proofgraphlabel, checked against reference.dot:
+%   a format using the number alone after a letter (L#1);
+%   a format with a tie, written out as a space (Prop.~#1);
+%   a format using the printed name as well (#2 (#1));
+%   an environment left alone, which keeps the default label;
+%   an unnumbered environment drawn through \proofgraphtrack, whose #1 is empty.
+\documentclass{article}
+\usepackage{amsthm}
+\usepackage{proofgraph}
+\newtheorem{theorem}{Theorem}
+\newtheorem{lemma}{Lemma}
+\newtheorem{proposition}{Proposition}
+\newtheorem{corollary}{Corollary}
+\newtheorem*{mainthm}{Main Theorem}
+\proofgraphtrack{mainthm}
+\proofgraphlabel{lemma}{L#1}
+\proofgraphlabel{proposition}{Prop.~#1}
+\proofgraphlabel{corollary}{#2 (#1)}
+\proofgraphlabel{mainthm}{Main#1}
+\begin{document}
+\begin{lemma}\label{l}A lemma.\end{lemma}
+\begin{proposition}\label{p}A proposition.\end{proposition}
+\begin{proof}By \ref{l}.\end{proof}
+\begin{theorem}\label{t}A theorem.\end{theorem}
+\begin{proof}By \ref{p}.\end{proof}
+\begin{corollary}\label{c}A corollary.\end{corollary}
+\begin{proof}By \ref{t}.\end{proof}
+\begin{mainthm}\label{m}The main theorem.\end{mainthm}
+\begin{proof}By \ref{c}.\end{proof}
+\end{document}

@@ -25,7 +25,8 @@ rendered and embedded into the document automatically). It can:
   visibly or a result stated without a proof;
 - remove self-loops, suppress specific (e.g. unwanted forward) citations, and
   exclude chosen nodes;
-- style nodes differently according to the type of result;
+- style nodes differently according to the type of result, and shorten their
+  labels (“L3” for “Lemma 3”) for a narrower graph;
 - optionally run Graphviz and include the rendered graph automatically.
 
 The documentation of this package is provided in the `proofgraph.pdf` file,

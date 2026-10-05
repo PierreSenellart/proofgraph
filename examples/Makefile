@@ -90,6 +90,10 @@
 #             node lines echo that colour: the # once came back as a parameter
 #             character and stopped the pass (issue #9), hence the target also
 #             fails on any error in the log of the second pass.
+#   nodelabel \proofgraphlabel: a format with the number alone, one with a tie
+#             (written out as a space), one using the printed name, an
+#             environment left with the default label, and an unnumbered
+#             environment drawn through \proofgraphtrack, whose number is empty.
 # The engine, format and hyperlinks options are exercised by the manual build
 # (l3build doc), which is an autorun proofgraph document with clickable embedded
 # graphs. The autorun option and \proofgraph have a fixture of their own, run
@@ -100,7 +104,7 @@ REPO   := $(CURDIR)/..
 TESTS  := apxproof features options citetag predefined nestedproof natbibcite \
           biblatex biblatexalpha zrefclever citecmds proofenv statements \
           manualcite citenote bracedtitle detachedproof citeanchor \
-          nestedproofof headref ignore pf2
+          nestedproofof headref ignore nodelabel pf2
 
 # A fixture may need a package that cannot be assumed installed. REQUIRE_<test>
 # names the style file it wants; the fixture is skipped, with a message, when

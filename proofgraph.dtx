@@ -79,7 +79,7 @@
 %</driver>
 % \fi
 %
-% \CheckSum{2262}
+% \CheckSum{2286}
 %
 % \CharacterTable
 %  {Upper-case    \A\B\C\D\E\F\G\H\I\J\K\L\M\N\O\P\Q\R\S\T\U\V\W\X\Y\Z
@@ -240,6 +240,9 @@
 %   by hand, without \texttt{autorun}, gets its hyperlinks only if the
 %   \texttt{-Tplain} layout is rendered too, under the name the package
 %   reads, and that the \texttt{.dot} is rewritten at every compilation}
+% \changes{v1.1.1-dev}{2026/10/05}{Add \texttt{proofgraphlabel}, which sets
+%   how the nodes of an environment are labelled, so that ``Lemma~3'' can be
+%   drawn as ``L3'' and a wide graph made narrower}
 %
 % \DoNotIndex{\newcommand,\renewcommand,\providecommand,\def,\edef,\gdef,\xdef}
 % \DoNotIndex{\let,\global,\long,\relax,\expandafter,\csname,\endcsname}
@@ -679,6 +682,22 @@
 % commands, and of these two alone, are read with |#| as an ordinary character,
 % so |\proofgraphstyle{theorem}{style=filled,fillcolor="#ffd700"}| may be
 % written as it stands.
+%
+% \begin{description}
+% \item[\cmdname{proofgraphlabel}\cmdarg{env}\cmdarg{format}]%
+%   \SpecialUsageIndex{\proofgraphlabel}%
+%   Sets how the nodes of the results of the environment \meta{env} are
+%   labelled, in place of the default ``Lemma~3''. In \meta{format}, |#1|
+%   stands for the number of the result and |#2| for its printed name, so
+%   |\proofgraphlabel{lemma}{L#1}| labels the lemmas ``L1'', ``L2''\dots,
+%   |\proofgraphlabel{proposition}{Prop.~#1}| abbreviates the name, and
+%   |\proofgraphlabel{theorem}{#1}| keeps the number alone, which is enough
+%   when |\proofgraphstyle| already tells the kinds of results apart by shape
+%   or colour. Short labels make for narrower nodes, and so for a graph that
+%   fits the page more easily. The default corresponds to |#2 #1|. Use it in
+%   the preamble, once for each environment to relabel; a result that is drawn
+%   without being numbered has an empty |#1|.
+% \end{description}
 %
 % \subsection{Embedding the rendered graph}
 % \label{sec:embedding}
@@ -1988,6 +2007,17 @@
 \newcommand\pgph@setstyle[2]{\endgroup
   \global\@namedef{pgph@style@#1}{#2}}
 %    \end{macrocode}
+% \DescribeMacro{\proofgraphlabel}
+% \begin{macro}{\proofgraphlabel}
+% |\proofgraphlabel{|\meta{env}|}{|\meta{format}|}| sets the label of the nodes
+% of an environment. The format is stored as the body of a two-parameter macro,
+% so the |#1| and |#2| written in it are the number and the printed name of the
+% result, filled in when the node is emitted.
+%    \begin{macrocode}
+\newcommand\proofgraphlabel[2]{%
+  \expandafter\gdef\csname pgph@fmt@#1\endcsname##1##2{#2}}
+%    \end{macrocode}
+% \end{macro}
 % External citation nodes (option |cite|) share one style, held in
 % |\pgph@citestyle| and overridable with |\proofgraphstylecite|; it defaults to
 % |shape=note|.
@@ -2137,6 +2167,9 @@
 % \end{macro}
 % \begin{macro}{\pgph@node}
 % Emit one node line, honouring exclusions and per-environment styling.
+% The label is the printed name followed by the number, unless
+% |\proofgraphlabel| gave the environment a format of its own; a tie in that
+% format is written out as a space, a \Graphviz\ label having no use for it.
 % External (|cite:|) targets are emitted separately as a pass over edges.
 % An \emph{unnumbered} result (no number captured) is omitted: a results graph
 % is about numbered statements, and unnumbered theorem-like environments are
@@ -2164,7 +2197,15 @@
     , \csname pgph@style@#2\endcsname\fi}%
   \edef\pgph@dn{\ifcsname pgph@name@#1\endcsname
     \csname pgph@name@#1\endcsname\else#3\fi}%
-  \edef\pgph@lbl{\pgph@dn\space\pgph@nm}%
+  \ifcsname pgph@fmt@#2\endcsname
+    \begingroup
+      \let~\space
+      \edef\pgph@x{\endgroup\def\noexpand\pgph@lbl{%
+        \csname pgph@fmt@#2\endcsname{\pgph@nm}{\pgph@dn}}}%
+    \pgph@x
+  \else
+    \edef\pgph@lbl{\pgph@dn\space\pgph@nm}%
+  \fi
   \pgph@dotesc\pgph@lbl
   \immediate\write\pgph@out{%
     \space\space"n#1" [label="\pgph@lbl"\pgph@s];}%

@@ -551,6 +551,8 @@
 \newcommand\proofgraphstyle{\begingroup\@makeother\#\pgph@setstyle}
 \newcommand\pgph@setstyle[2]{\endgroup
   \global\@namedef{pgph@style@#1}{#2}}
+\newcommand\proofgraphlabel[2]{%
+  \expandafter\gdef\csname pgph@fmt@#1\endcsname##1##2{#2}}
 \newcommand\pgph@citestyle{shape=note}
 \newcommand\proofgraphstylecite{\begingroup\@makeother\#\pgph@setcitestyle}
 \newcommand\pgph@setcitestyle[1]{\endgroup
@@ -670,7 +672,15 @@
     , \csname pgph@style@#2\endcsname\fi}%
   \edef\pgph@dn{\ifcsname pgph@name@#1\endcsname
     \csname pgph@name@#1\endcsname\else#3\fi}%
-  \edef\pgph@lbl{\pgph@dn\space\pgph@nm}%
+  \ifcsname pgph@fmt@#2\endcsname
+    \begingroup
+      \let~\space
+      \edef\pgph@x{\endgroup\def\noexpand\pgph@lbl{%
+        \csname pgph@fmt@#2\endcsname{\pgph@nm}{\pgph@dn}}}%
+    \pgph@x
+  \else
+    \edef\pgph@lbl{\pgph@dn\space\pgph@nm}%
+  \fi
   \pgph@dotesc\pgph@lbl
   \immediate\write\pgph@out{%
     \space\space"n#1" [label="\pgph@lbl"\pgph@s];}%
