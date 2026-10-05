@@ -26,7 +26,8 @@ rendered and embedded into the document automatically). It can:
 - remove self-loops, suppress specific (e.g. unwanted forward) citations, and
   exclude chosen nodes;
 - style nodes differently according to the type of result, and shorten their
-  labels (“L3” for “Lemma 3”) for a narrower graph;
+  labels (“L3” for “Lemma 3”) for a narrower graph, or label a single result
+  by the name it is known by;
 - optionally run Graphviz and include the rendered graph automatically.
 
 The documentation of this package is provided in the `proofgraph.pdf` file,

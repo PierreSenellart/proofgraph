@@ -4,6 +4,11 @@
 %   a format using the printed name as well (#2 (#1));
 %   an environment left alone, which keeps the default label;
 %   an unnumbered environment drawn through \proofgraphtrack, whose #1 is empty.
+% And \proofgraphnodelabel, a label of its own for one result:
+%   over the default label, with an accented letter;
+%   over a \proofgraphlabel format, with quotes, which the .dot has to
+%   escape;
+%   the same text for two results, which remain two nodes with their edges.
 \documentclass{article}
 \usepackage{amsthm}
 \usepackage{proofgraph}
@@ -27,4 +32,14 @@
 \begin{proof}By \ref{t}.\end{proof}
 \begin{mainthm}\label{m}The main theorem.\end{mainthm}
 \begin{proof}By \ref{c}.\end{proof}
+\begin{theorem}\label{r}\proofgraphnodelabel{Théorème de Rolle}
+A named theorem.\end{theorem}
+\begin{proof}By \ref{m}.\end{proof}
+\begin{lemma}\label{q} \proofgraphnodelabel{The "key" lemma}
+A lemma with a format, named all the same.\end{lemma}
+\begin{proof}By \ref{r}.\end{proof}
+\begin{lemma}\label{d1}\proofgraphnodelabel{Twin}A twin.\end{lemma}
+\begin{proof}By \ref{q}.\end{proof}
+\begin{lemma}\label{d2}\proofgraphnodelabel{Twin}Its twin.\end{lemma}
+\begin{proof}By \ref{r}.\end{proof}
 \end{document}

@@ -94,6 +94,10 @@
 #             (written out as a space), one using the printed name, an
 #             environment left with the default label, and an unnumbered
 #             environment drawn through \proofgraphtrack, whose number is empty.
+#             Also \proofgraphnodelabel: a label of its own for one result, over
+#             the default label and over a \proofgraphlabel format, with
+#             quotes and an accented letter in it, and the same text given to
+#             two results, which stay two nodes.
 # The engine, format and hyperlinks options are exercised by the manual build
 # (l3build doc), which is an autorun proofgraph document with clickable embedded
 # graphs. The autorun option and \proofgraph have a fixture of their own, run

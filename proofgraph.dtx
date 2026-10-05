@@ -79,7 +79,7 @@
 %</driver>
 % \fi
 %
-% \CheckSum{2286}
+% \CheckSum{2316}
 %
 % \CharacterTable
 %  {Upper-case    \A\B\C\D\E\F\G\H\I\J\K\L\M\N\O\P\Q\R\S\T\U\V\W\X\Y\Z
@@ -243,6 +243,9 @@
 % \changes{v1.1.1-dev}{2026/10/05}{Add \texttt{proofgraphlabel}, which sets
 %   how the nodes of an environment are labelled, so that ``Lemma~3'' can be
 %   drawn as ``L3'' and a wide graph made narrower}
+% \changes{v1.1.1-dev}{2026/10/05}{Add \texttt{proofgraphnodelabel}, which
+%   gives the node of a single result a label of its own, such as the name
+%   the result is known by}
 %
 % \DoNotIndex{\newcommand,\renewcommand,\providecommand,\def,\edef,\gdef,\xdef}
 % \DoNotIndex{\let,\global,\long,\relax,\expandafter,\csname,\endcsname}
@@ -697,6 +700,18 @@
 %   fits the page more easily. The default corresponds to |#2 #1|. Use it in
 %   the preamble, once for each environment to relabel; a result that is drawn
 %   without being numbered has an empty |#1|.
+% \item[\cmdname{proofgraphnodelabel}\cmdarg{text}]%
+%   \SpecialUsageIndex{\proofgraphnodelabel}%
+%   Gives the node of a single result a label of its own, for instance the
+%   name the result is known by. Use it inside the statement of the result:
+%   a |\proofgraphnodelabel{Rolle}| placed after the |\begin{theorem}|, next
+%   to the |\label|, has the node of that theorem labelled ``Rolle''.
+%   The \meta{text} replaces the whole label of the node, whether the default
+%   one or the one a |\proofgraphlabel| format would have given, and is
+%   written to the graph as it stands, without being expanded. Nothing
+%   requires it to be unique: a node is identified by its result and not by
+%   its label, so two results given the same \meta{text} remain two nodes,
+%   each with its own edges.
 % \end{description}
 %
 % \subsection{Embedding the rendered graph}
@@ -2012,6 +2027,28 @@
   \expandafter\gdef\csname pgph@fmt@#1\endcsname##1##2{#2}}
 %    \end{macrocode}
 % \end{macro}
+% \begin{macro}{\proofgraphnodelabel}
+% |\proofgraphnodelabel{|\meta{text}|}| sets the label of the node of the
+% result it is used in. The text is kept detokenized under the identifier of
+% the current result, so it reaches the graph as it was typed, and it only
+% ever serves as a label: the node keeps its identifier, which is why two
+% results may be given the same text. Like |\label|, the command leaves no
+% space of its own in the statement.
+%    \begin{macrocode}
+\newcommand\proofgraphnodelabel[1]{%
+  \@bsphack
+  \ifx\pgph@curresult\@empty
+    \PackageWarning{proofgraph}{%
+      \string\proofgraphnodelabel\space is used before any\MessageBreak
+      result, and is ignored}%
+  \else
+    \expandafter\xdef\csname pgph@own@\pgph@curresult\endcsname{%
+      \detokenize{#1}}%
+  \fi
+  \@esphack
+}
+%    \end{macrocode}
+% \end{macro}
 % External citation nodes (option |cite|) share one style, held in
 % |\pgph@citestyle| and overridable with |\proofgraphstylecite|; it defaults to
 % |shape=note|.
@@ -2164,6 +2201,8 @@
 % The label is the printed name followed by the number, unless
 % |\proofgraphlabel| gave the environment a format of its own; a tie in that
 % format is written out as a space, a \Graphviz\ label having no use for it.
+% A label that |\proofgraphnodelabel| gave to the result itself comes before
+% both.
 % External (|cite:|) targets are emitted separately as a pass over edges.
 % An \emph{unnumbered} result (no number captured) is omitted: a results graph
 % is about numbered statements, and unnumbered theorem-like environments are
@@ -2191,7 +2230,9 @@
     , \csname pgph@style@#2\endcsname\fi}%
   \edef\pgph@dn{\ifcsname pgph@name@#1\endcsname
     \csname pgph@name@#1\endcsname\else#3\fi}%
-  \ifcsname pgph@fmt@#2\endcsname
+  \ifcsname pgph@own@#1\endcsname
+    \expandafter\let\expandafter\pgph@lbl\csname pgph@own@#1\endcsname
+  \else\ifcsname pgph@fmt@#2\endcsname
     \begingroup
       \let~\space
       \edef\pgph@x{\endgroup\def\noexpand\pgph@lbl{%
@@ -2199,7 +2240,7 @@
     \pgph@x
   \else
     \edef\pgph@lbl{\pgph@dn\space\pgph@nm}%
-  \fi
+  \fi\fi
   \pgph@dotesc\pgph@lbl
   \immediate\write\pgph@out{%
     \space\space"n#1" [label="\pgph@lbl"\pgph@s];}%
