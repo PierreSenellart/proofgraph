@@ -7,11 +7,11 @@ typesetopts = " --interaction=nonstopmode --shell-escape"
 textfiles = {"README.md", "LICENSE"}
 
 -- Metadata for `l3build upload`. Update `version` at each release; set
--- `announcement` for feature releases, keep it empty for bugfix releases
+-- `announcement` only for releases with major changes, keep it empty otherwise
 -- (an empty announcement means the CTAN update is not announced).
 uploadconfig = {
   pkg          = "proofgraph",
-  version      = "1.1.1",
+  version      = "1.2.0",
   author       = "Pierre Senellart",
   uploader     = "Pierre Senellart",
   email        = "pierre@senellart.com",
