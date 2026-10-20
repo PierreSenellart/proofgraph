@@ -11,7 +11,7 @@ textfiles = {"README.md", "LICENSE"}
 -- (an empty announcement means the CTAN update is not announced).
 uploadconfig = {
   pkg          = "proofgraph",
-  version      = "1.2.0",
+  version      = "1.2.0-dev",
   author       = "Pierre Senellart",
   uploader     = "Pierre Senellart",
   email        = "pierre@senellart.com",

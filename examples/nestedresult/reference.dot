@@ -1,0 +1,16 @@
+digraph proofgraph {
+  rankdir="LR";
+  "n7" [label="Corollary 2"];
+  "n6" [label="Lemma 3"];
+  "n5" [label="Theorem 2"];
+  "n4" [label="Corollary 1"];
+  "n3" [label="Lemma 2"];
+  "n2" [label="Theorem 1"];
+  "n1" [label="Lemma 1"];
+  "n3" -> "n2";
+  "n1" -> "n3";
+  "n4" -> "n3";
+  "n4" -> "n2";
+  "n6" -> "n5";
+  "n5" -> "n7";
+}

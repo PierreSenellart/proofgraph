@@ -1,0 +1,44 @@
+% Regression test (issue #11): a result opened inside another result. The
+% heading macros were wrapped again at the inner \begin, which saved the wrapper
+% itself as the original: the inner heading called itself forever and pdflatex
+% hung (the harness runs it under timeout, so a regression fails fast). An
+% unclosed statement, which nests everything after it, hung the same way instead
+% of stopping on the unmatched environment.
+%
+% The inner results must still be recorded with their own names, numbers and
+% optional-title references, both directly inside a statement and two levels
+% deep, and the enclosing result must get back its own attribution once they
+% close: the \ref after the nested lemma is a dependency of the theorem, the
+% proof that follows is the theorem's, and so is a \label written after a nested
+% result (the last result, citing that label, must point at Theorem 2, not at
+% Lemma 3). A result nested in a statement is part of that statement, so it is
+% drawn as supporting it, as a claim stated in a proof supports the result
+% proved.
+\documentclass{article}
+\usepackage{amsthm}
+\usepackage{proofgraph}
+\newtheorem{theorem}{Theorem}
+\newtheorem{lemma}{Lemma}
+\newtheorem{corollary}{Corollary}
+\begin{document}
+
+\begin{lemma}\label{lem:base}Base.\end{lemma}
+
+\begin{theorem}\label{thm:outer}Outer statement.
+  \begin{lemma}[using Lemma~\ref{lem:base}]\label{lem:inner}Inner.
+    \begin{corollary}\label{cor:deep}Two levels deep.\end{corollary}
+  \end{lemma}
+  The theorem itself rests on Lemma~\ref{lem:inner}.
+\end{theorem}
+
+\begin{proof}
+  By Corollary~\ref{cor:deep}.
+\end{proof}
+
+\begin{theorem}Labelled late.
+  \begin{lemma}\label{lem:early}Nested.\end{lemma}
+  \label{thm:late}
+\end{theorem}
+
+\begin{corollary}\label{cor:last}Of Theorem~\ref{thm:late}.\end{corollary}
+\end{document}

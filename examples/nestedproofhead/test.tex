@@ -1,0 +1,30 @@
+% Regression test (issue #11): under a class whose proof is a theorem-like
+% environment with a heading of its own (here llncs, through
+% \@spopargbegintheorem), a titled proof nested in a titled proof wrapped the
+% proof heading again, saving the wrapper itself as the original, and the inner
+% heading called itself forever (the harness runs pdflatex under timeout, so a
+% regression fails fast). Results nested in a statement hit the same loop
+% through the result headings.
+%
+% Each title must still attribute its own proof: the outer one to Theorem 1, the
+% nested one to Theorem 2, so the \ref inside the nested proof is a dependency
+% of Theorem 2 and the one after it of Theorem 1 again.
+\documentclass{llncs}
+\usepackage{proofgraph}
+\proofgraphproofenv{proof}
+\begin{document}
+
+\begin{lemma}\label{lem:a}A.\end{lemma}
+\begin{lemma}\label{lem:b}B.\end{lemma}
+\begin{theorem}\label{thm:one}One.\end{theorem}
+\begin{theorem}\label{thm:two}Two.
+  \begin{lemma}\label{lem:inner}Stated inside Theorem~2.\end{lemma}
+\end{theorem}
+
+\begin{proof}[of Theorem~\ref{thm:one}]
+  \begin{proof}[of Theorem~\ref{thm:two}]
+    By Lemma~\ref{lem:a}.
+  \end{proof}
+  Then Lemma~\ref{lem:b}.
+\end{proof}
+\end{document}

@@ -246,6 +246,15 @@
 % \changes{v1.2.0}{2026/10/05}{Add \texttt{proofgraphnodelabel}, which
 %   gives the node of a single result a label of its own, such as the name
 %   the result is known by}
+% \changes{v1.2.0-dev}{2026/10/20}{Wrap the heading macros once for a result
+%   opened inside another, and once for a proof inside a proof with a
+%   theorem-like heading. The nested environment saved the wrapper itself as
+%   the original, and its heading called itself until the run was killed;
+%   a statement left unclosed, which nests everything after it, did the same
+%   instead of stopping on the unmatched environment (issue \#11). Make
+%   the enclosing result current again when a nested one closes, so that a
+%   label further down its statement, and its proof, are no longer given to
+%   the nested result}
 %
 % \DoNotIndex{\newcommand,\renewcommand,\providecommand,\def,\edef,\gdef,\xdef}
 % \DoNotIndex{\let,\global,\long,\relax,\expandafter,\csname,\endcsname}
@@ -900,7 +909,7 @@
 %<*package>
 \NeedsTeXFormat{LaTeX2e}[2020/10/01]
 \ProvidesPackage{proofgraph}
-  [2026/10/06 v1.2.0 Dependency graph of results]
+  [2026/10/20 v1.2.0-dev Dependency graph of results]
 %    \end{macrocode}
 %
 % \subsection{Dependencies}
@@ -1120,6 +1129,7 @@
   \ifcsname pgph@hooked@#1\endcsname\else
     \global\@namedef{pgph@hooked@#1}{}%
     \AtBeginEnvironment{#1}{\pgph@beginresult{#1}}%
+    \AtEndEnvironment{#1}{\pgph@endresult}%
   \fi
 }
 \newcommand\pgph@maybehook[1]{%
@@ -1143,6 +1153,7 @@
 %    \end{macrocode}
 %
 % \begin{macro}{\pgph@beginresult}
+% \begin{macro}{\pgph@endresult}
 % \begin{macro}{\pgph@hooknames}
 % \begin{macro}{\pgph@recordresult}
 % Start a result: allocate an id and record the node. The node is keyed and
@@ -1162,6 +1173,22 @@
 % |\pgph@scanrefs|. These redefinitions are confined to the current environment
 % group, so they revert at |\end|. We also locally redefine |\label| to populate
 % the map.
+%
+% A result opened inside another one (or a statement left unclosed, which
+% leaves everything after it nested in it) finds the heading macros already
+% wrapped. Wrapping them again would save the wrapper itself as the original,
+% and the heading would then call itself forever. The wrappers read
+% |\pgph@curresult| when they run, not when they are installed, so what the
+% enclosing environment installed serves the nested one as well:
+% |\ifpgph@nameshooked|, set locally on the first wrapping, skips the others.
+%
+% |\pgph@curresult| is set globally, since a proof after the result has to find
+% it, so a nested result would otherwise remain the current one once closed: a
+% |\label| further down the enclosing statement, and the proof that follows it,
+% would go to the nested result. |\pgph@inresult| holds, locally, the result
+% whose environment we are in, and |\pgph@endresult|, run at the |\end| of every
+% tracked environment, makes the enclosing one (|\pgph@encresult|) current
+% again. An outermost result has none and leaves |\pgph@curresult| alone.
 %
 % The note read as a \emph{delimited} argument is handed back to the original
 % macro inside braces, |[{|\meta{note}|}]| rather than |[|\meta{note}|]|. TeX
@@ -1205,10 +1232,13 @@
 \newcommand\pgph@prependnode[1]{%
   \xdef\pgph@nodes{\unexpanded{#1}\unexpanded\expandafter{\pgph@nodes}}%
 }
+\let\pgph@inresult\@empty
 \newcommand\pgph@beginresult[1]{%
   \let\pgph@encproof\pgph@curproof
+  \let\pgph@encresult\pgph@inresult
   \global\advance\pgph@idcnt\@ne
   \xdef\pgph@curresult{\the\pgph@idcnt}%
+  \let\pgph@inresult\pgph@curresult
   \protected@edef\pgph@tmp{%
     \noexpand\pgph@node{\pgph@curresult}{#1}{#1}}%
   \expandafter\pgph@prependnode\expandafter{\pgph@tmp}%
@@ -1218,7 +1248,15 @@
   \let\label\pgph@maplabel
   \ifpgph@statements\pgph@beginstatement\fi
 }
+\newcommand\pgph@endresult{%
+  \ifx\pgph@encresult\@empty\else
+    \global\let\pgph@curresult\pgph@encresult
+  \fi
+}
+\newif\ifpgph@nameshooked
 \newcommand\pgph@hooknames{%
+  \ifpgph@nameshooked\else
+  \pgph@nameshookedtrue
   \ifdefined\@begintheorem
     \let\pgph@orig@bt\@begintheorem
     \ifx\@opargbegintheorem\relax
@@ -1246,6 +1284,7 @@
     \def\@spopargbegintheorem##1##2##3##4##5{%
       \pgph@recordresult{##1}{##2}\pgph@scanrefs{##3}%
       \pgph@orig@spobt{##1}{##2}{##3}{##4}{##5}}%
+  \fi
   \fi
 }
 %    \end{macrocode}
@@ -1308,6 +1347,7 @@
   \fi
 }
 %    \end{macrocode}
+% \end{macro}
 % \end{macro}
 % \end{macro}
 % \end{macro}
@@ -1542,9 +1582,15 @@
 % |\pgph@hooknames|, a |\relax| |\@opargbegintheorem| is left alone: that is the
 % \textsf{amsthm} setup, where the macro is never called, and giving it a
 % meaning would make |\pgph@hooknames| read a result nested in the proof as
-% having the kernel's two-argument heading rather than \textsf{amsthm}'s.
+% having the kernel's two-argument heading rather than \textsf{amsthm}'s. A
+% proof nested in a proof keeps the wrapping of the one around it, for the
+% reason given for |\pgph@hooknames|: |\pgph@scanproofarg| acts on the proof
+% current when it runs.
 %    \begin{macrocode}
+\newif\ifpgph@proofheadhooked
 \newcommand\pgph@hookproofhead{%
+  \ifpgph@proofheadhooked\else
+  \pgph@proofheadhookedtrue
   \ifdefined\@opargbegintheorem\ifx\@opargbegintheorem\relax\else
     \let\pgph@orig@obtp\@opargbegintheorem
     \def\@opargbegintheorem##1##2##3{%
@@ -1560,6 +1606,7 @@
     \let\pgph@orig@Obtp\@Opargbegintheorem
     \def\@Opargbegintheorem##1##2##3##4{%
       \pgph@scanproofarg{##2}\pgph@orig@Obtp{##1}{##2}{##3}{##4}}%
+  \fi
   \fi
 }
 %    \end{macrocode}

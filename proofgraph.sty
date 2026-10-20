@@ -27,7 +27,7 @@
 %% 
 \NeedsTeXFormat{LaTeX2e}[2020/10/01]
 \ProvidesPackage{proofgraph}
-  [2026/10/06 v1.2.0 Dependency graph of results]
+  [2026/10/20 v1.2.0-dev Dependency graph of results]
 \@ifpackageloaded{amsthm}{}{%
   \@ifundefined{proof}{}{%
     \let\pgph@class@proof\proof \let\pgph@class@endproof\endproof}%
@@ -134,6 +134,7 @@
   \ifcsname pgph@hooked@#1\endcsname\else
     \global\@namedef{pgph@hooked@#1}{}%
     \AtBeginEnvironment{#1}{\pgph@beginresult{#1}}%
+    \AtEndEnvironment{#1}{\pgph@endresult}%
   \fi
 }
 \newcommand\pgph@maybehook[1]{%
@@ -162,10 +163,13 @@
 \newcommand\pgph@prependnode[1]{%
   \xdef\pgph@nodes{\unexpanded{#1}\unexpanded\expandafter{\pgph@nodes}}%
 }
+\let\pgph@inresult\@empty
 \newcommand\pgph@beginresult[1]{%
   \let\pgph@encproof\pgph@curproof
+  \let\pgph@encresult\pgph@inresult
   \global\advance\pgph@idcnt\@ne
   \xdef\pgph@curresult{\the\pgph@idcnt}%
+  \let\pgph@inresult\pgph@curresult
   \protected@edef\pgph@tmp{%
     \noexpand\pgph@node{\pgph@curresult}{#1}{#1}}%
   \expandafter\pgph@prependnode\expandafter{\pgph@tmp}%
@@ -175,7 +179,15 @@
   \let\label\pgph@maplabel
   \ifpgph@statements\pgph@beginstatement\fi
 }
+\newcommand\pgph@endresult{%
+  \ifx\pgph@encresult\@empty\else
+    \global\let\pgph@curresult\pgph@encresult
+  \fi
+}
+\newif\ifpgph@nameshooked
 \newcommand\pgph@hooknames{%
+  \ifpgph@nameshooked\else
+  \pgph@nameshookedtrue
   \ifdefined\@begintheorem
     \let\pgph@orig@bt\@begintheorem
     \ifx\@opargbegintheorem\relax
@@ -203,6 +215,7 @@
     \def\@spopargbegintheorem##1##2##3##4##5{%
       \pgph@recordresult{##1}{##2}\pgph@scanrefs{##3}%
       \pgph@orig@spobt{##1}{##2}{##3}{##4}{##5}}%
+  \fi
   \fi
 }
 \newcommand\pgph@scanrefs[1]{%
@@ -340,7 +353,10 @@
   \pgph@setpres\pgph@curproof
   \pgph@installcapture
 }
+\newif\ifpgph@proofheadhooked
 \newcommand\pgph@hookproofhead{%
+  \ifpgph@proofheadhooked\else
+  \pgph@proofheadhookedtrue
   \ifdefined\@opargbegintheorem\ifx\@opargbegintheorem\relax\else
     \let\pgph@orig@obtp\@opargbegintheorem
     \def\@opargbegintheorem##1##2##3{%
@@ -356,6 +372,7 @@
     \let\pgph@orig@Obtp\@Opargbegintheorem
     \def\@Opargbegintheorem##1##2##3##4{%
       \pgph@scanproofarg{##2}\pgph@orig@Obtp{##1}{##2}{##3}{##4}}%
+  \fi
   \fi
 }
 \NewDocumentCommand\pgph@zcproofof{sO{}m}{\proofof{#3}}

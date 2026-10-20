@@ -98,6 +98,15 @@
 #             the default label and over a \proofgraphlabel format, with
 #             quotes and an accented letter in it, and the same text given to
 #             two results, which stay two nodes.
+#   nestedresult results nested in a statement, one and two levels deep (issue
+#             #11: the inner heading was wrapped over its own wrapper and
+#             recursed forever, as did a statement left unclosed): each keeps
+#             its own name, number and title reference, and once it closes the
+#             enclosing result is current again, for a \ref or a \label further
+#             down its statement and for the proof that follows.
+#   nestedproofhead the same recursion through the proof heading, under llncs,
+#             whose proof is theorem-like: a titled proof nested in a titled
+#             proof, each title attributing its own proof.
 # The engine, format and hyperlinks options are exercised by the manual build
 # (l3build doc), which is an autorun proofgraph document with clickable embedded
 # graphs. The autorun option and \proofgraph have a fixture of their own, run
@@ -108,7 +117,8 @@ REPO   := $(CURDIR)/..
 TESTS  := apxproof features options citetag predefined nestedproof natbibcite \
           biblatex biblatexalpha zrefclever citecmds proofenv statements \
           manualcite citenote bracedtitle detachedproof citeanchor \
-          nestedproofof headref ignore nodelabel pf2
+          nestedproofof headref ignore nodelabel nestedresult nestedproofhead \
+          pf2
 
 # A fixture may need a package that cannot be assumed installed. REQUIRE_<test>
 # names the style file it wants; the fixture is skipped, with a message, when
